@@ -9,6 +9,7 @@ import { TripForm } from '@/components/trip/TripForm';
 import { TripsTable } from '@/components/trip/TripsTable';
 import { FileUpload } from '@/components/upload/FileUpload';
 import { MonthlyReports } from '@/components/reports/MonthlyReports';
+import { MaintenanceForm } from '@/components/maintenance/MaintenanceForm';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -142,14 +143,16 @@ export const Dashboard = () => {
         <DashboardSummary data={calculateSummary()} />
 
         <Tabs defaultValue="trips" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="trips">Trips Management</TabsTrigger>
-            <TabsTrigger value="add-trip">Add Trip</TabsTrigger>
-            <TabsTrigger value="uploads">File Uploads</TabsTrigger>
-            <TabsTrigger value="reports">Monthly Reports</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="trips">Trips</TabsTrigger>
+            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+            <TabsTrigger value="upload">Upload</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="trips" className="space-y-6">
+            <TripForm onSuccess={fetchTrips} />
             <TripsTable 
               trips={trips} 
               onTripUpdated={fetchTrips}
@@ -157,16 +160,27 @@ export const Dashboard = () => {
             />
           </TabsContent>
 
-          <TabsContent value="add-trip" className="space-y-6">
-            <TripForm onSuccess={fetchTrips} />
+          <TabsContent value="maintenance" className="space-y-6">
+            <MaintenanceForm onSuccess={fetchTrips} />
           </TabsContent>
 
-          <TabsContent value="uploads" className="space-y-6">
+          <TabsContent value="upload" className="space-y-6">
             <FileUpload onUploadSuccess={fetchTrips} />
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-6">
             <MonthlyReports />
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Settings panel coming soon...</p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>

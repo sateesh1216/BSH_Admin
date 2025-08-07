@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, FileSpreadsheet } from 'lucide-react';
+import { Upload, FileSpreadsheet, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
@@ -16,6 +16,37 @@ export const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const tripsFileRef = useRef<HTMLInputElement>(null);
   const maintenanceFileRef = useRef<HTMLInputElement>(null);
+
+  const downloadTemplate = (type: 'trips' | 'maintenance') => {
+    const templates = {
+      trips: [
+        ['Date', 'Driver Name', 'Driver Number', 'Customer Name', 'Customer Number', 'From', 'To', 'Company', 'Fuel Type', 'Payment Mode', 'Driver Amount', 'Commission', 'Fuel', 'Tolls', 'Trip Amount'],
+        ['2024-01-15', 'Rajesh Kumar', '9876543210', 'Amit Sharma', '9123456789', 'Mumbai', 'Pune', 'TechCorp', 'Petrol', 'Cash', '2500', '300', '800', '200', '4000']
+      ],
+      maintenance: [
+        ['Date', 'Vehicle Number', 'Driver Name', 'Driver Number', 'Customer Name', 'Customer Number', 'Company', 'Maintenance Type', 'Description', 'Amount', 'Payment Mode', 'Fuel Type', 'Commission', 'Fuel', 'Tolls'],
+        ['2024-01-10', 'MH12AB1234', 'Rajesh Kumar', '9876543210', 'Service Center', '9111222333', 'AutoServe', 'Oil Change', 'Engine oil and filter replacement', '1500', 'Cash', 'Petrol', '0', '0', '0']
+      ]
+    };
+
+    const ws = XLSX.utils.aoa_to_sheet(templates[type]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, type);
+    
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${type}-template.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Success",
+      description: `${type} template downloaded successfully`,
+    });
+  };
 
   const handleFileUpload = async (file: File, type: 'trips' | 'maintenance') => {
     if (!file) return;
@@ -115,7 +146,7 @@ export const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
         <CardContent>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Upload Excel file with trip data. Expected columns: Date, Driver Name, Driver Number, Customer Name, Customer Number, From, To, Company, Fuel Type, Payment Mode, Driver Amount, Commission, Fuel, Tolls, Trip Amount.
+              Upload an Excel file with trip data. Use the template for correct format.
             </p>
             <input
               ref={tripsFileRef}
@@ -127,13 +158,24 @@ export const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
                 if (file) handleFileUpload(file, 'trips');
               }}
             />
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Select Trips Excel File</label>
+              <Button
+                onClick={() => tripsFileRef.current?.click()}
+                disabled={isUploading}
+                variant="outline"
+                className="w-full justify-start"
+              >
+                Choose File
+              </Button>
+            </div>
             <Button
-              onClick={() => tripsFileRef.current?.click()}
-              disabled={isUploading}
+              onClick={() => downloadTemplate('trips')}
+              variant="outline"
               className="w-full"
             >
-              <Upload className="mr-2 h-4 w-4" />
-              {isUploading ? 'Uploading...' : 'Upload Trips Excel'}
+              <Download className="mr-2 h-4 w-4" />
+              Download Template
             </Button>
           </div>
         </CardContent>
@@ -149,7 +191,7 @@ export const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
         <CardContent>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Upload Excel file with maintenance data. Expected columns: Date, Vehicle Number, Driver Name, Driver Number, Customer Name, Customer Number, Company, Maintenance Type, Description, Amount, Payment Mode, Fuel Type, Commission, Fuel, Tolls.
+              Upload an Excel file with maintenance data. Use the template for correct format.
             </p>
             <input
               ref={maintenanceFileRef}
@@ -161,13 +203,24 @@ export const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
                 if (file) handleFileUpload(file, 'maintenance');
               }}
             />
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Select Maintenance Excel File</label>
+              <Button
+                onClick={() => maintenanceFileRef.current?.click()}
+                disabled={isUploading}
+                variant="outline"
+                className="w-full justify-start"
+              >
+                Choose File
+              </Button>
+            </div>
             <Button
-              onClick={() => maintenanceFileRef.current?.click()}
-              disabled={isUploading}
+              onClick={() => downloadTemplate('maintenance')}
+              variant="outline"
               className="w-full"
             >
-              <Upload className="mr-2 h-4 w-4" />
-              {isUploading ? 'Uploading...' : 'Upload Maintenance Excel'}
+              <Download className="mr-2 h-4 w-4" />
+              Download Template
             </Button>
           </div>
         </CardContent>
