@@ -1,0 +1,6 @@
+Date,Driver Name,Driver Number,Customer Name,Customer Number,From,To,Company,Fuel Type,Payment Mode,Driver Amount,Commission,Fuel,Tolls,Trip Amount
+2024-01-15,Rajesh Kumar,9876543210,Amit Sharma,9123456789,Mumbai,Pune,TechCorp,Petrol,Cash,2500,300,800,200,4000
+2024-01-16,Priya Singh,9876543211,Sunita Verma,9123456788,Delhi,Gurgaon,InfoSys,Diesel,UPI,1800,200,600,150,3200
+2024-01-17,Vikram Patel,9876543212,Rohit Gupta,9123456787,Bangalore,Mysore,Wipro,CNG,Credit Card,3000,400,500,300,4500
+2024-01-18,Kavya Nair,9876543213,Neha Reddy,9123456786,Chennai,Coimbatore,TCS,Petrol,Online,2200,250,700,180,3800
+2024-01-19,Arjun Rao,9876543214,Deepak Joshi,9123456785,Hyderabad,Vijayawada,Cognizant,Diesel,Cash,2800,350,900,250,4200

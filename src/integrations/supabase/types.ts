@@ -17,37 +17,64 @@ export type Database = {
       maintenance: {
         Row: {
           amount: number
+          commission: number
+          company: string | null
           created_at: string | null
           created_by: string | null
+          customer_name: string
+          customer_number: string
           date: string
           description: string | null
           driver_name: string
+          driver_number: string
+          fuel_amount: number
+          fuel_type: string
           id: string
           maintenance_type: string
+          payment_mode: string
+          tolls: number
           updated_at: string | null
           vehicle_number: string
         }
         Insert: {
           amount?: number
+          commission?: number
+          company?: string | null
           created_at?: string | null
           created_by?: string | null
+          customer_name: string
+          customer_number: string
           date: string
           description?: string | null
           driver_name: string
+          driver_number: string
+          fuel_amount?: number
+          fuel_type?: string
           id?: string
           maintenance_type: string
+          payment_mode?: string
+          tolls?: number
           updated_at?: string | null
           vehicle_number: string
         }
         Update: {
           amount?: number
+          commission?: number
+          company?: string | null
           created_at?: string | null
           created_by?: string | null
+          customer_name?: string
+          customer_number?: string
           date?: string
           description?: string | null
           driver_name?: string
+          driver_number?: string
+          fuel_amount?: number
+          fuel_type?: string
           id?: string
           maintenance_type?: string
+          payment_mode?: string
+          tolls?: number
           updated_at?: string | null
           vehicle_number?: string
         }

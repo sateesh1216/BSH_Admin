@@ -81,9 +81,18 @@ export const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
       date: new Date(row.Date || row.date).toISOString().split('T')[0],
       vehicle_number: row['Vehicle Number'] || row.vehicle_number || '',
       driver_name: row['Driver Name'] || row.driver_name || '',
+      driver_number: row['Driver Number'] || row.driver_number || '',
+      customer_name: row['Customer Name'] || row.customer_name || '',
+      customer_number: row['Customer Number'] || row.customer_number || '',
+      company: row['Company'] || row.company || null,
       maintenance_type: row['Maintenance Type'] || row.maintenance_type || '',
       description: row['Description'] || row.description || null,
       amount: parseFloat(row['Amount'] || row.amount || 0),
+      payment_mode: row['Payment Mode'] || row.payment_mode || 'Cash',
+      fuel_type: row['Fuel Type'] || row.fuel_type || 'Petrol',
+      commission: parseFloat(row['Commission'] || row.commission || 0),
+      fuel_amount: parseFloat(row['Fuel'] || row.fuel_amount || 0),
+      tolls: parseFloat(row['Tolls'] || row.tolls || 0),
       created_by: user?.id,
     }));
 
@@ -140,7 +149,7 @@ export const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
         <CardContent>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Upload Excel file with maintenance data. Expected columns: Date, Vehicle Number, Driver Name, Maintenance Type, Description, Amount.
+              Upload Excel file with maintenance data. Expected columns: Date, Vehicle Number, Driver Name, Driver Number, Customer Name, Customer Number, Company, Maintenance Type, Description, Amount, Payment Mode, Fuel Type, Commission, Fuel, Tolls.
             </p>
             <input
               ref={maintenanceFileRef}

@@ -25,8 +25,8 @@ const tripSchema = z.object({
   fromLocation: z.string().min(1, 'From location is required'),
   toLocation: z.string().min(1, 'To location is required'),
   company: z.string().optional(),
-  fuelType: z.enum(['Petrol', 'Diesel', 'EV']),
-  paymentMode: z.enum(['Cash', 'UPI', 'Online', 'Other']),
+  fuelType: z.enum(['Petrol', 'Diesel', 'CNG']),
+  paymentMode: z.enum(['Cash', 'UPI', 'Online', 'Credit Card', 'Other']),
   driverAmount: z.number().min(0, 'Amount must be positive'),
   commission: z.number().min(0, 'Amount must be positive'),
   fuelAmount: z.number().min(0, 'Amount must be positive'),
@@ -251,7 +251,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
                 <SelectContent>
                   <SelectItem value="Petrol">Petrol</SelectItem>
                   <SelectItem value="Diesel">Diesel</SelectItem>
-                  <SelectItem value="EV">EV</SelectItem>
+                  <SelectItem value="CNG">CNG</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -266,6 +266,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
                   <SelectItem value="Cash">Cash</SelectItem>
                   <SelectItem value="UPI">UPI</SelectItem>
                   <SelectItem value="Online">Online</SelectItem>
+                  <SelectItem value="Credit Card">Credit Card</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>

@@ -1,0 +1,6 @@
+Date,Vehicle Number,Driver Name,Driver Number,Customer Name,Customer Number,Company,Maintenance Type,Description,Amount,Payment Mode,Fuel Type,Commission,Fuel,Tolls
+2024-01-10,MH12AB1234,Rajesh Kumar,9876543210,Service Center,9111222333,AutoServe,Oil Change,Engine oil and filter replacement,1500,Cash,Petrol,0,0,0
+2024-01-12,DL08CD5678,Priya Singh,9876543211,Parts Supplier,9111222334,CarCare,Brake Service,Brake pad replacement,2500,UPI,Diesel,200,0,0
+2024-01-14,KA05EF9012,Vikram Patel,9876543212,Garage Owner,9111222335,FixIt,Tire Change,Four tire replacement,8000,Credit Card,CNG,500,0,0
+2024-01-16,TN09GH3456,Kavya Nair,9876543213,Service Station,9111222336,QuickFix,AC Repair,Air conditioning system repair,3500,Online,Petrol,300,0,0
+2024-01-18,AP28IJ7890,Arjun Rao,9876543214,Mechanic Shop,9111222337,SpeedyFix,Engine Repair,Engine overhaul,15000,Cash,Diesel,800,0,0
