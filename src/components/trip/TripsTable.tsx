@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Edit, Trash2, Search, Download } from 'lucide-react';
+import { Edit, Trash2, Search, Download, FileText, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -90,6 +90,31 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
     setIsEditDialogOpen(false);
     setEditingTrip(null);
     onTripUpdated();
+  };
+
+  const handleInvoice = async (trip: Trip, withGST: boolean = false) => {
+    try {
+      // Simulate sending invoice
+      const invoiceType = withGST ? 'with GST' : 'without GST';
+      
+      // Send WhatsApp messages (simulate for now)
+      const driverMessage = `Invoice sent: Customer: ${trip.customer_name} (${trip.customer_number}), Route: ${trip.from_location} → ${trip.to_location}, Amount: ₹${trip.trip_amount} (${invoiceType})`;
+      const customerMessage = `Invoice received: Driver: ${trip.driver_name} (${trip.driver_number}), Route: ${trip.from_location} → ${trip.to_location}, Amount: ₹${trip.trip_amount} (${invoiceType})`;
+      
+      console.log('WhatsApp to Driver:', driverMessage);
+      console.log('WhatsApp to Customer:', customerMessage);
+
+      toast({
+        title: "Success",
+        description: `Invoice ${invoiceType} sent successfully!`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send invoice",
+        variant: "destructive",
+      });
+    }
   };
 
   const exportToExcel = () => {
@@ -191,17 +216,36 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
                   </TableCell>
                   {canEdit && (
                     <TableCell>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1 flex-wrap">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleEdit(trip)}
+                          title="Edit Trip"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleInvoice(trip, false)}
+                          title="Send Invoice (No GST)"
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleInvoice(trip, true)}
+                          title="Send Invoice (With GST)"
+                          className="text-green-600 hover:text-green-700"
+                        >
+                          <Receipt className="h-4 w-4" />
+                        </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" title="Delete Trip">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>

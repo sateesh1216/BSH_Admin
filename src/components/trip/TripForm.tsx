@@ -336,37 +336,15 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+          <div className="pt-4">
             <Button
               type="button"
               onClick={form.handleSubmit((data) => onSubmit(data, false))}
-              className="flex-1"
+              className="w-full"
               disabled={form.formState.isSubmitting}
             >
               {editData ? 'Update Trip' : 'Submit Trip'}
             </Button>
-            {!editData && (
-              <>
-                <Button
-                  type="button"
-                  onClick={form.handleSubmit((data) => onSubmit(data, false))}
-                  variant="secondary"
-                  className="flex-1"
-                  disabled={form.formState.isSubmitting}
-                >
-                  Invoice (No GST)
-                </Button>
-                <Button
-                  type="button"
-                  onClick={form.handleSubmit((data) => onSubmit(data, true))}
-                  variant="outline"
-                  className="flex-1"
-                  disabled={form.formState.isSubmitting}
-                >
-                  Invoice (With GST)
-                </Button>
-              </>
-            )}
           </div>
         </form>
       </CardContent>
