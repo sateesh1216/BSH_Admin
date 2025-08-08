@@ -24,8 +24,8 @@ export const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
         ['2024-01-15', 'Rajesh Kumar', '9876543210', 'Amit Sharma', '9123456789', 'Mumbai', 'Pune', 'TechCorp', 'Petrol', 'Cash', '2500', '300', '800', '200', '4000']
       ],
       maintenance: [
-        ['Date', 'Vehicle Number', 'Driver Name', 'Driver Number', 'Customer Name', 'Customer Number', 'Company', 'Maintenance Type', 'Description', 'Amount', 'Payment Mode', 'Fuel Type', 'Commission', 'Fuel', 'Tolls'],
-        ['2024-01-10', 'MH12AB1234', 'Rajesh Kumar', '9876543210', 'Service Center', '9111222333', 'AutoServe', 'Oil Change', 'Engine oil and filter replacement', '1500', 'Cash', 'Petrol', '0', '0', '0']
+        ['Date', 'Vehicle Number', 'Driver Name', 'Driver Number', 'Company', 'Maintenance Type', 'Description', 'Amount', 'Payment Mode', 'KM at Maintenance', 'Next Oil Change KM', 'Original Odometer KM'],
+        ['2024-01-10', 'MH12AB1234', 'Rajesh Kumar', '9876543210', 'AutoServe', 'Oil Change', 'Engine oil and filter replacement', '1500', 'Cash', '45000', '50000', '40000']
       ]
     };
 
@@ -113,17 +113,14 @@ export const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
       vehicle_number: row['Vehicle Number'] || row.vehicle_number || '',
       driver_name: row['Driver Name'] || row.driver_name || '',
       driver_number: row['Driver Number'] || row.driver_number || '',
-      customer_name: row['Customer Name'] || row.customer_name || '',
-      customer_number: row['Customer Number'] || row.customer_number || '',
       company: row['Company'] || row.company || null,
       maintenance_type: row['Maintenance Type'] || row.maintenance_type || '',
       description: row['Description'] || row.description || null,
       amount: parseFloat(row['Amount'] || row.amount || 0),
       payment_mode: row['Payment Mode'] || row.payment_mode || 'Cash',
-      fuel_type: row['Fuel Type'] || row.fuel_type || 'Petrol',
-      commission: parseFloat(row['Commission'] || row.commission || 0),
-      fuel_amount: parseFloat(row['Fuel'] || row.fuel_amount || 0),
-      tolls: parseFloat(row['Tolls'] || row.tolls || 0),
+      km_at_maintenance: parseFloat(row['KM at Maintenance'] || row.km_at_maintenance || 0) || null,
+      next_oil_change_km: parseFloat(row['Next Oil Change KM'] || row.next_oil_change_km || 0) || null,
+      original_odometer_km: parseFloat(row['Original Odometer KM'] || row.original_odometer_km || 0) || null,
       created_by: user?.id,
     }));
 
