@@ -92,6 +92,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
         fuel_amount: data.fuelAmount,
         tolls: data.tolls,
         trip_amount: data.tripAmount,
+        profit: profit,
         created_by: user?.id,
       };
 
@@ -342,17 +343,30 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
               className="flex-1"
               disabled={form.formState.isSubmitting}
             >
-              {editData ? 'Update Trip' : 'Submit & Send Invoice (No GST)'}
+              {editData ? 'Update Trip' : 'Submit Trip'}
             </Button>
-            <Button
-              type="button"
-              onClick={form.handleSubmit((data) => onSubmit(data, true))}
-              variant="secondary"
-              className="flex-1"
-              disabled={form.formState.isSubmitting}
-            >
-              {editData ? 'Update with GST' : 'Submit & Send Invoice (With GST)'}
-            </Button>
+            {!editData && (
+              <>
+                <Button
+                  type="button"
+                  onClick={form.handleSubmit((data) => onSubmit(data, false))}
+                  variant="secondary"
+                  className="flex-1"
+                  disabled={form.formState.isSubmitting}
+                >
+                  Invoice (No GST)
+                </Button>
+                <Button
+                  type="button"
+                  onClick={form.handleSubmit((data) => onSubmit(data, true))}
+                  variant="outline"
+                  className="flex-1"
+                  disabled={form.formState.isSubmitting}
+                >
+                  Invoice (With GST)
+                </Button>
+              </>
+            )}
           </div>
         </form>
       </CardContent>

@@ -25,7 +25,10 @@ export type Database = {
           driver_name: string
           driver_number: string
           id: string
+          km_at_maintenance: number | null
           maintenance_type: string
+          next_oil_change_km: number | null
+          original_odometer_km: number | null
           payment_mode: string
           updated_at: string | null
           vehicle_number: string
@@ -40,7 +43,10 @@ export type Database = {
           driver_name: string
           driver_number: string
           id?: string
+          km_at_maintenance?: number | null
           maintenance_type: string
+          next_oil_change_km?: number | null
+          original_odometer_km?: number | null
           payment_mode?: string
           updated_at?: string | null
           vehicle_number: string
@@ -55,7 +61,10 @@ export type Database = {
           driver_name?: string
           driver_number?: string
           id?: string
+          km_at_maintenance?: number | null
           maintenance_type?: string
+          next_oil_change_km?: number | null
+          original_odometer_km?: number | null
           payment_mode?: string
           updated_at?: string | null
           vehicle_number?: string
