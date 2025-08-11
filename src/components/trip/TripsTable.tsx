@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { TripForm } from './TripForm';
+import { InvoiceModal } from '../invoice/InvoiceModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
@@ -42,6 +43,9 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
   const [searchTerm, setSearchTerm] = useState('');
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [invoiceTrip, setInvoiceTrip] = useState<Trip | null>(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [invoiceWithGST, setInvoiceWithGST] = useState(false);
 
   const filteredTrips = trips.filter(trip =>
     trip.driver_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,29 +96,10 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
     onTripUpdated();
   };
 
-  const handleInvoice = async (trip: Trip, withGST: boolean = false) => {
-    try {
-      // Simulate sending invoice
-      const invoiceType = withGST ? 'with GST' : 'without GST';
-      
-      // Send WhatsApp messages (simulate for now)
-      const driverMessage = `Invoice sent: Customer: ${trip.customer_name} (${trip.customer_number}), Route: ${trip.from_location} → ${trip.to_location}, Amount: ₹${trip.trip_amount} (${invoiceType})`;
-      const customerMessage = `Invoice received: Driver: ${trip.driver_name} (${trip.driver_number}), Route: ${trip.from_location} → ${trip.to_location}, Amount: ₹${trip.trip_amount} (${invoiceType})`;
-      
-      console.log('WhatsApp to Driver:', driverMessage);
-      console.log('WhatsApp to Customer:', customerMessage);
-
-      toast({
-        title: "Success",
-        description: `Invoice ${invoiceType} sent successfully!`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to send invoice",
-        variant: "destructive",
-      });
-    }
+  const handleInvoice = (trip: Trip, withGST: boolean = false) => {
+    setInvoiceTrip(trip);
+    setInvoiceWithGST(withGST);
+    setIsInvoiceModalOpen(true);
   };
 
   const exportToExcel = () => {
@@ -292,6 +277,13 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
             )}
           </DialogContent>
         </Dialog>
+
+        <InvoiceModal
+          isOpen={isInvoiceModalOpen}
+          onClose={() => setIsInvoiceModalOpen(false)}
+          trip={invoiceTrip}
+          withGST={invoiceWithGST}
+        />
       </CardContent>
     </Card>
   );
