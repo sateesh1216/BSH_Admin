@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Download, Printer } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import signatureImage from '@/assets/signature.png';
+import companySealImage from '@/assets/company-seal.png';
 
 interface Trip {
   id: string;
@@ -202,14 +204,14 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
             <h3 className="font-bold text-primary mb-3">Bank Account Details:</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p><strong>Mode of Payment:</strong> NEFT/RTGS</p>
-                <p><strong>Account Holder Name:</strong> BSH TAXI SERVICES</p>
-                <p><strong>Bank Name:</strong> State Bank of India</p>
+                <p><strong>Mode of Payment:</strong> IMPS/NEFT</p>
+                <p><strong>Account Holder Name:</strong> BANDARU SATEESH</p>
+                <p><strong>Bank Name:</strong> State Bank Of India</p>
               </div>
               <div>
-                <p><strong>A/C No:</strong> 123456789012</p>
-                <p><strong>IFSC:</strong> SBIN0000123</p>
-                <p><strong>Branch:</strong> Bengaluru Main Branch</p>
+                <p><strong>A/C No:</strong> 32647106186</p>
+                <p><strong>IFSC:</strong> SBIN0020861</p>
+                <p><strong>Branch Name:</strong> Saligramapuram Vizag</p>
               </div>
             </div>
           </div>
@@ -217,12 +219,17 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
           {/* Footer */}
           <div className="text-center text-sm text-muted-foreground border-t pt-4">
             <p><strong>Customers are requested to check their belongings before leaving the cab. The Travel Officer/Owner/Driver is not responsible for any loss.</strong></p>
-            <div className="mt-4 flex justify-end">
-              <div className="w-24 h-24 border rounded-full flex items-center justify-center text-xs">
-                <div className="text-center">
-                  <div className="font-bold">BSH</div>
-                  <div>SERVICES</div>
-                  <div className="text-xs">Authorized Sign</div>
+            <div className="mt-4 flex justify-between items-end">
+              <div className="flex flex-col items-center">
+                <img src={signatureImage} alt="Signature" className="h-16 w-auto mb-2" />
+                <div className="text-xs text-center">
+                  <div className="font-bold">Authorized Signature</div>
+                </div>
+              </div>
+              <div className="flex flex-col items-center">
+                <img src={companySealImage} alt="Company Seal" className="h-20 w-20 mb-2" />
+                <div className="text-xs text-center">
+                  <div className="font-bold">Company Seal</div>
                 </div>
               </div>
             </div>
