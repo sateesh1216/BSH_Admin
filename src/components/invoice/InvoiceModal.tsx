@@ -122,10 +122,12 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
               </div>
               <div className="text-right text-sm">
                 <p className="font-semibold">www.bshtaxiservices.com</p>
-                <p>📞 +91 9886603322, +91 9663042216</p>
+                <p>📞 +91 8886803322, +91 9640241216</p>
                 <p>📧 bshtaxiservices@gmail.com</p>
-                <p>📍 Vidhik Ganaon, S100004</p>
-                <p>Bengaluru, Karnataka</p>
+                <p>📍 36-92-242-532/1, Palanati colony,</p>
+                <p>kancharapelam,</p>
+                <p>Visakhapatnam, 530008.</p>
+                <p>LIN: AP-03-46-005-03355176</p>
               </div>
             </div>
           </div>
@@ -219,13 +221,7 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
           {/* Footer */}
           <div className="text-center text-sm text-muted-foreground border-t pt-4">
             <p><strong>Customers are requested to check their belongings before leaving the cab. The Travel Officer/Owner/Driver is not responsible for any loss.</strong></p>
-            <div className="mt-4 flex justify-between items-end">
-              <div className="flex flex-col items-center">
-                <img src={signatureImage} alt="Signature" className="h-16 w-auto mb-2" />
-                <div className="text-xs text-center">
-                  <div className="font-bold">Authorized Signature</div>
-                </div>
-              </div>
+            <div className="mt-4 flex justify-end items-end">
               <div className="flex flex-col items-center">
                 <img src={companySealImage} alt="Company Seal" className="h-20 w-20 mb-2" />
                 <div className="text-xs text-center">
