@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon, Wrench } from 'lucide-react';
+import { CalendarIcon, Wrench, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -145,11 +146,12 @@ export const MaintenanceForm = ({ onSuccess, editData }: MaintenanceFormProps) =
       };
 
       let result;
-      if (editData) {
+      const editId = form.getValues('id' as any) || editData?.id;
+      if (editId) {
         result = await supabase
           .from('maintenance')
           .update(maintenanceData)
-          .eq('id', editData.id);
+          .eq('id', editId);
       } else {
         result = await supabase
           .from('maintenance')
@@ -167,11 +169,14 @@ export const MaintenanceForm = ({ onSuccess, editData }: MaintenanceFormProps) =
 
       toast({
         title: "Success",
-        description: `Maintenance record ${editData ? 'updated' : 'added'} successfully!`,
+        description: `Maintenance record ${editId ? 'updated' : 'added'} successfully!`,
       });
 
-      if (!editData) {
+      if (!editId) {
         form.reset();
+      } else {
+        // Clear the edit ID after successful update
+        form.setValue('id' as any, undefined);
       }
       fetchMaintenance();
       onSuccess?.();
@@ -185,6 +190,56 @@ export const MaintenanceForm = ({ onSuccess, editData }: MaintenanceFormProps) =
   };
 
   const totalExpenses = maintenanceRecords.reduce((sum, record) => sum + record.amount, 0);
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('maintenance')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Maintenance record deleted successfully",
+      });
+      fetchMaintenance();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = (record: Maintenance) => {
+    // Reset form with edit data
+    form.reset({
+      date: new Date(record.date),
+      vehicleNumber: record.vehicle_number,
+      driverName: record.driver_name,
+      driverNumber: record.driver_number,
+      company: record.company || '',
+      maintenanceType: record.maintenance_type,
+      description: record.description || '',
+      amount: record.amount,
+      paymentMode: record.payment_mode as any,
+      kmAtMaintenance: record.km_at_maintenance || undefined,
+      nextOilChangeKm: record.next_oil_change_km || undefined,
+      originalOdometerKm: record.original_odometer_km || undefined,
+    });
+    // Store the ID for updating
+    form.setValue('id' as any, record.id);
+  };
 
   return (
     <div className="space-y-6">
@@ -364,9 +419,14 @@ export const MaintenanceForm = ({ onSuccess, editData }: MaintenanceFormProps) =
             <Wrench className="h-5 w-5" />
             Maintenance Records
           </span>
-          <span className="text-lg font-semibold text-green-600">
-            Total: ₹{totalExpenses.toLocaleString()}
-          </span>
+          <div className="text-sm space-y-1">
+            <div className="text-lg font-semibold text-green-600">
+              Total: ₹{totalExpenses.toLocaleString()}
+            </div>
+            <div className="text-muted-foreground text-xs">
+              ({maintenanceRecords.length} record{maintenanceRecords.length !== 1 ? 's' : ''})
+            </div>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -386,6 +446,7 @@ export const MaintenanceForm = ({ onSuccess, editData }: MaintenanceFormProps) =
                   <th className="border border-gray-200 px-4 py-2 text-left">Type</th>
                   <th className="border border-gray-200 px-4 py-2 text-left">Amount</th>
                   <th className="border border-gray-200 px-4 py-2 text-left">Payment</th>
+                  <th className="border border-gray-200 px-4 py-2 text-left">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -399,6 +460,39 @@ export const MaintenanceForm = ({ onSuccess, editData }: MaintenanceFormProps) =
                     <td className="border border-gray-200 px-4 py-2">{record.maintenance_type}</td>
                     <td className="border border-gray-200 px-4 py-2">₹{record.amount.toLocaleString()}</td>
                     <td className="border border-gray-200 px-4 py-2">{record.payment_mode}</td>
+                    <td className="border border-gray-200 px-4 py-2">
+                      <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(record)}
+                          title="Edit Maintenance"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" title="Delete Maintenance">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete this maintenance record.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(record.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
