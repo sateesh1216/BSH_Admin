@@ -9,6 +9,7 @@ import { TripForm } from '@/components/trip/TripForm';
 import { TripsTable } from '@/components/trip/TripsTable';
 import { FileUpload } from '@/components/upload/FileUpload';
 import { MonthlyReports } from '@/components/reports/MonthlyReports';
+import { ExpensesReports } from '@/components/reports/ExpensesReports';
 import { MaintenanceForm } from '@/components/maintenance/MaintenanceForm';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -170,6 +171,7 @@ export const Dashboard = () => {
 
           <TabsContent value="reports" className="space-y-6">
             <MonthlyReports />
+            <ExpensesReports />
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
