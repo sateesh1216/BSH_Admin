@@ -78,7 +78,7 @@ export const AuthForm = () => {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-primary">
-            Taxi Service Management
+            BSH Taxi Service Management
           </CardTitle>
           <CardDescription>
             {isLogin ? 'Sign in to your account' : 'Create a new account'}

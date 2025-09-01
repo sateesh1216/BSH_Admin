@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { LogOut, Plus } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/layout/AppSidebar';
+import { DateRangeFilter, FilterOptions } from '@/components/filters/DateRangeFilter';
 import { DashboardSummary } from '@/components/dashboard/DashboardSummary';
 import { TripForm } from '@/components/trip/TripForm';
 import { TripsTable } from '@/components/trip/TripsTable';
@@ -14,6 +15,7 @@ import { MaintenanceForm } from '@/components/maintenance/MaintenanceForm';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 interface Trip {
   id: string;
@@ -39,15 +41,20 @@ export const Dashboard = () => {
   const { user, userRole, signOut } = useAuth();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAddTripDialogOpen, setIsAddTripDialogOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('trips');
+  const [currentFilter, setCurrentFilter] = useState<FilterOptions>({ 
+    type: 'monthly', 
+    month: format(new Date(), 'yyyy-MM') 
+  });
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const isAdmin = userRole === 'admin';
 
   useEffect(() => {
     fetchTrips();
-  }, [user]);
+  }, [user, currentFilter]);
 
-  const fetchTrips = async () => {
+  const fetchTrips = async (filter?: FilterOptions) => {
     try {
       setLoading(true);
       let query = supabase.from('trips').select('*');
@@ -55,6 +62,23 @@ export const Dashboard = () => {
       // If not admin, only fetch user's own trips
       if (!isAdmin && user) {
         query = query.eq('created_by', user.id);
+      }
+
+      // Apply date filtering
+      const filterToUse = filter || currentFilter;
+      if (filterToUse.type === 'monthly' && filterToUse.month) {
+        const startOfMonth = `${filterToUse.month}-01`;
+        const year = parseInt(filterToUse.month.split('-')[0]);
+        const month = parseInt(filterToUse.month.split('-')[1]);
+        const endOfMonth = format(new Date(year, month, 0), 'yyyy-MM-dd');
+        query = query.gte('date', startOfMonth).lte('date', endOfMonth);
+      } else if (filterToUse.type === 'yearly' && filterToUse.year) {
+        const startOfYear = `${filterToUse.year}-01-01`;
+        const endOfYear = `${filterToUse.year}-12-31`;
+        query = query.gte('date', startOfYear).lte('date', endOfYear);
+      } else if (filterToUse.type === 'custom' && filterToUse.startDate && filterToUse.endDate) {
+        query = query.gte('date', format(filterToUse.startDate, 'yyyy-MM-dd'))
+                     .lte('date', format(filterToUse.endDate, 'yyyy-MM-dd'));
       }
       
       const { data, error } = await query.order('date', { ascending: false });
@@ -95,9 +119,22 @@ export const Dashboard = () => {
     };
   };
 
-  const handleAddTripSuccess = () => {
-    setIsAddTripDialogOpen(false);
+  const handleSectionChange = (section: string) => {
+    setActiveSection(section);
+    setShowAddForm(false);
+  };
+
+  const handleAddNew = (section: string) => {
+    setShowAddForm(true);
+  };
+
+  const handleFormSuccess = () => {
+    setShowAddForm(false);
     fetchTrips();
+  };
+
+  const handleFilterChange = (filter: FilterOptions) => {
+    setCurrentFilter(filter);
   };
 
   const handleSignOut = async () => {
@@ -119,73 +156,93 @@ export const Dashboard = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100">
-      <header className="bg-white shadow-md border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-primary">
-                Taxi Service Management
-              </h1>
-              <p className="text-muted-foreground">
-                Welcome back, {user?.email} ({userRole})
-              </p>
-            </div>
-            <Button onClick={handleSignOut} variant="outline">
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <DashboardSummary data={calculateSummary()} />
-
-        <Tabs defaultValue="trips" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="trips">Trips</TabsTrigger>
-            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-            <TabsTrigger value="upload">Upload</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="trips" className="space-y-6">
-            <TripForm onSuccess={fetchTrips} />
+  const renderMainContent = () => {
+    switch (activeSection) {
+      case 'trips':
+        return (
+          <div className="space-y-6">
+            {showAddForm && <TripForm onSuccess={handleFormSuccess} />}
             <TripsTable 
               trips={trips} 
               onTripUpdated={fetchTrips}
               canEdit={true}
             />
-          </TabsContent>
-
-          <TabsContent value="maintenance" className="space-y-6">
-            <MaintenanceForm onSuccess={fetchTrips} />
-          </TabsContent>
-
-          <TabsContent value="upload" className="space-y-6">
-            <FileUpload onUploadSuccess={fetchTrips} />
-          </TabsContent>
-
-          <TabsContent value="reports" className="space-y-6">
+          </div>
+        );
+      case 'maintenance':
+        return (
+          <div className="space-y-6">
+            {showAddForm && <MaintenanceForm onSuccess={handleFormSuccess} />}
+          </div>
+        );
+      case 'upload':
+        return <FileUpload onUploadSuccess={fetchTrips} />;
+      case 'reports':
+        return (
+          <div className="space-y-6">
             <MonthlyReports />
             <ExpensesReports />
-          </TabsContent>
+          </div>
+        );
+      case 'settings':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Settings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Settings panel coming soon...</p>
+            </CardContent>
+          </Card>
+        );
+      default:
+        return null;
+    }
+  };
 
-          <TabsContent value="settings" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Settings panel coming soon...</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </main>
-    </div>
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-green-50 to-green-100">
+        <AppSidebar 
+          activeSection={activeSection}
+          onSectionChange={handleSectionChange}
+          onAddNew={handleAddNew}
+        />
+        
+        <div className="flex-1 flex flex-col">
+          <header className="bg-white shadow-md border-b">
+            <div className="px-4 sm:px-6 lg:px-8 py-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <SidebarTrigger />
+                  <div>
+                    <h1 className="text-2xl font-bold text-primary">
+                      BSH Taxi Service Management
+                    </h1>
+                    <p className="text-muted-foreground">
+                      Welcome back, {user?.email} ({userRole})
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={handleSignOut} variant="outline">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </Button>
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
+            <DashboardSummary data={calculateSummary()} />
+            
+            {(activeSection === 'trips' || activeSection === 'maintenance' || activeSection === 'reports') && (
+              <DateRangeFilter onFilterChange={handleFilterChange} />
+            )}
+            
+            {renderMainContent()}
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 };
