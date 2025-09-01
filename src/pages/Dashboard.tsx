@@ -233,13 +233,22 @@ export const Dashboard = () => {
           </header>
 
           <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
-            <DashboardSummary data={calculateSummary()} />
-            
-            {(activeSection === 'trips' || activeSection === 'maintenance' || activeSection === 'reports') && (
-              <DateRangeFilter onFilterChange={handleFilterChange} />
-            )}
-            
-            {renderMainContent()}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+              {/* Left sidebar - Filters */}
+              <div className="xl:col-span-1 space-y-4">
+                {(activeSection === 'trips' || activeSection === 'maintenance' || activeSection === 'reports') && (
+                  <div className="sticky top-4">
+                    <DateRangeFilter onFilterChange={handleFilterChange} />
+                  </div>
+                )}
+              </div>
+              
+              {/* Main content area */}
+              <div className="xl:col-span-3 space-y-6">
+                <DashboardSummary data={calculateSummary()} />
+                {renderMainContent()}
+              </div>
+            </div>
           </main>
         </div>
       </div>

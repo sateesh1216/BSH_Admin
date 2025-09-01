@@ -75,97 +75,132 @@ export function DateRangeFilter({ onFilterChange }: DateRangeFilterProps) {
   };
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CalendarIcon className="h-5 w-5" />
+    <Card className="mb-6 bg-gradient-to-r from-green-light to-accent border-primary/20 shadow-lg">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-primary font-semibold">
+          <CalendarIcon className="h-5 w-5 text-primary" />
           Date Filter
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-4 items-center">
-          <Select value={filterType} onValueChange={handleFilterTypeChange}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="monthly">Monthly</SelectItem>
-              <SelectItem value="yearly">Yearly</SelectItem>
-              <SelectItem value="custom">Custom Range</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {filterType === 'monthly' && (
-            <Select value={selectedMonth} onValueChange={handleMonthChange}>
-              <SelectTrigger className="w-48">
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">Filter Type</label>
+            <Select value={filterType} onValueChange={handleFilterTypeChange}>
+              <SelectTrigger className="w-40 bg-background border-primary/30 hover:border-primary focus:ring-primary">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                {generateMonthOptions().map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
+              <SelectContent className="bg-popover border-primary/20">
+                <SelectItem value="monthly" className="hover:bg-accent">Monthly</SelectItem>
+                <SelectItem value="yearly" className="hover:bg-accent">Yearly</SelectItem>
+                <SelectItem value="custom" className="hover:bg-accent">Custom Range</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {filterType === 'monthly' && (
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">Select Month</label>
+              <Select value={selectedMonth} onValueChange={handleMonthChange}>
+                <SelectTrigger className="w-48 bg-background border-primary/30 hover:border-primary focus:ring-primary">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-primary/20 max-h-60">
+                  {generateMonthOptions().map((option) => (
+                    <SelectItem key={option.value} value={option.value} className="hover:bg-accent">
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
 
           {filterType === 'yearly' && (
-            <Select value={selectedYear} onValueChange={handleYearChange}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {generateYearOptions().map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">Select Year</label>
+              <Select value={selectedYear} onValueChange={handleYearChange}>
+                <SelectTrigger className="w-32 bg-background border-primary/30 hover:border-primary focus:ring-primary">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-primary/20">
+                  {generateYearOptions().map((option) => (
+                    <SelectItem key={option.value} value={option.value} className="hover:bg-accent">
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
 
           {filterType === 'custom' && (
-            <div className="flex gap-2 items-center">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-40">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, 'PPP') : 'Start date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={setStartDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">Custom Date Range</label>
+              <div className="flex flex-wrap gap-2 items-center">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-40 justify-start bg-background border-primary/30 hover:border-primary hover:bg-accent"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                      {startDate ? format(startDate, 'PPP') : 'Start date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-popover border-primary/20" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={(date) => {
+                        setStartDate(date);
+                        if (date && endDate) {
+                          handleCustomDateChange();
+                        }
+                      }}
+                      initialFocus
+                      className="bg-popover"
+                    />
+                  </PopoverContent>
+                </Popover>
 
-              <span className="text-muted-foreground">to</span>
+                <span className="text-muted-foreground font-medium">to</span>
 
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-40">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, 'PPP') : 'End date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={setEndDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-40 justify-start bg-background border-primary/30 hover:border-primary hover:bg-accent"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                      {endDate ? format(endDate, 'PPP') : 'End date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-popover border-primary/20" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={(date) => {
+                        setEndDate(date);
+                        if (startDate && date) {
+                          handleCustomDateChange();
+                        }
+                      }}
+                      initialFocus
+                      className="bg-popover"
+                    />
+                  </PopoverContent>
+                </Popover>
 
-              <Button onClick={handleCustomDateChange} size="sm">
-                Apply
-              </Button>
+                <Button 
+                  onClick={handleCustomDateChange} 
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  disabled={!startDate || !endDate}
+                >
+                  Apply Filter
+                </Button>
+              </div>
             </div>
           )}
         </div>
