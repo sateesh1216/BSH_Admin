@@ -251,17 +251,17 @@ const [selectedMonthYM, setSelectedMonthYM] = useState(format(new Date(), 'MM'))
       )
     ) : (
       variant === 'year-month' ? (
-        <Card className="mb-6 bg-gradient-to-r from-green-light to-accent border-primary/20 shadow-lg">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-primary font-semibold">
-              <CalendarIcon className="h-5 w-5 text-primary" />
-              Date Filter
+        <Card className="bg-white border border-gray-200 shadow-sm rounded-lg">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-gray-900 font-medium text-base">
+              <CalendarIcon className="h-4 w-4 text-blue-600" />
+              Filter Data
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-3 items-end">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-foreground">Year</label>
+          <CardContent className="space-y-4 pt-0">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Year</label>
                 <Select
                   value={selectedYear}
                   onValueChange={(year) => {
@@ -273,12 +273,12 @@ const [selectedMonthYM, setSelectedMonthYM] = useState(format(new Date(), 'MM'))
                     }
                   }}
                 >
-                  <SelectTrigger className="w-32 bg-background border-primary/30">
-                    <SelectValue />
+                  <SelectTrigger className="w-full bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
+                    <SelectValue placeholder="2025" />
                   </SelectTrigger>
-                  <SelectContent className="bg-popover border-primary/20">
+                  <SelectContent className="bg-white border-gray-200">
                     {generateYearOptions().map((option) => (
-                      <SelectItem key={option.value} value={option.value} className="hover:bg-accent">
+                      <SelectItem key={option.value} value={option.value} className="hover:bg-gray-50">
                         {option.label}
                       </SelectItem>
                     ))}
@@ -286,8 +286,8 @@ const [selectedMonthYM, setSelectedMonthYM] = useState(format(new Date(), 'MM'))
                 </Select>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-foreground">Month</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Month</label>
                 <Select
                   value={selectedMonthYM}
                   onValueChange={(m) => {
@@ -297,15 +297,15 @@ const [selectedMonthYM, setSelectedMonthYM] = useState(format(new Date(), 'MM'))
                     }
                   }}
                 >
-                  <SelectTrigger className="w-40 bg-background border-primary/30">
-                    <SelectValue />
+                  <SelectTrigger className="w-full bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
+                    <SelectValue placeholder="September" />
                   </SelectTrigger>
-                  <SelectContent className="bg-popover border-primary/20 max-h-60">
+                  <SelectContent className="bg-white border-gray-200 max-h-60">
                     {Array.from({ length: 12 }, (_, i) => {
                       const value = String(i + 1).padStart(2, '0');
                       const label = format(new Date(2000, i, 1), 'MMMM');
                       return (
-                        <SelectItem key={value} value={value} className="hover:bg-accent">
+                        <SelectItem key={value} value={value} className="hover:bg-gray-50">
                           {label}
                         </SelectItem>
                       );
@@ -317,39 +317,39 @@ const [selectedMonthYM, setSelectedMonthYM] = useState(format(new Date(), 'MM'))
           </CardContent>
         </Card>
       ) : (
-        <Card className="mb-6 bg-gradient-to-r from-green-light to-accent border-primary/20 shadow-lg">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-primary font-semibold">
-              <CalendarIcon className="h-5 w-5 text-primary" />
-              Date Filter
+        <Card className="bg-white border border-gray-200 shadow-sm rounded-lg">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-gray-900 font-medium text-base">
+              <CalendarIcon className="h-4 w-4 text-blue-600" />
+              Filter Data
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-3 items-center">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-foreground">Filter Type</label>
+          <CardContent className="space-y-4 pt-0">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Filter Type</label>
                 <Select value={filterType} onValueChange={handleFilterTypeChange}>
-                  <SelectTrigger className="w-40 bg-background border-primary/30 hover:border-primary focus:ring-primary">
+                  <SelectTrigger className="w-full bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-popover border-primary/20">
-                    <SelectItem value="monthly" className="hover:bg-accent">Monthly</SelectItem>
-                    <SelectItem value="yearly" className="hover:bg-accent">Yearly</SelectItem>
-                    <SelectItem value="custom" className="hover:bg-accent">Custom Range</SelectItem>
+                  <SelectContent className="bg-white border-gray-200">
+                    <SelectItem value="yearly" className="hover:bg-gray-50">Year</SelectItem>
+                    <SelectItem value="monthly" className="hover:bg-gray-50">Month</SelectItem>
+                    <SelectItem value="custom" className="hover:bg-gray-50">Custom Range</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {filterType === 'monthly' && (
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-foreground">Select Month</label>
-                  <Select value={selectedMonth} onValueChange={handleMonthChange}>
-                    <SelectTrigger className="w-48 bg-background border-primary/30 hover:border-primary focus:ring-primary">
+              {filterType === 'yearly' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Select Year</label>
+                  <Select value={selectedYear} onValueChange={handleYearChange}>
+                    <SelectTrigger className="w-full bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-popover border-primary/20 max-h-60">
-                      {generateMonthOptions().map((option) => (
-                        <SelectItem key={option.value} value={option.value} className="hover:bg-accent">
+                    <SelectContent className="bg-white border-gray-200">
+                      {generateYearOptions().map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="hover:bg-gray-50">
                           {option.label}
                         </SelectItem>
                       ))}
@@ -358,16 +358,16 @@ const [selectedMonthYM, setSelectedMonthYM] = useState(format(new Date(), 'MM'))
                 </div>
               )}
 
-              {filterType === 'yearly' && (
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-foreground">Select Year</label>
-                  <Select value={selectedYear} onValueChange={handleYearChange}>
-                    <SelectTrigger className="w-32 bg-background border-primary/30 hover:border-primary focus:ring-primary">
+              {filterType === 'monthly' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Select Month</label>
+                  <Select value={selectedMonth} onValueChange={handleMonthChange}>
+                    <SelectTrigger className="w-full bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-popover border-primary/20">
-                      {generateYearOptions().map((option) => (
-                        <SelectItem key={option.value} value={option.value} className="hover:bg-accent">
+                    <SelectContent className="bg-white border-gray-200 max-h-60">
+                      {generateMonthOptions().map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="hover:bg-gray-50">
                           {option.label}
                         </SelectItem>
                       ))}
@@ -377,20 +377,20 @@ const [selectedMonthYM, setSelectedMonthYM] = useState(format(new Date(), 'MM'))
               )}
 
               {filterType === 'custom' && (
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-foreground">Custom Date Range</label>
-                  <div className="flex flex-wrap gap-2 items-center">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-gray-700">Custom Date Range</label>
+                  <div className="space-y-3">
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button 
                           variant="outline" 
-                          className="w-40 justify-start bg-background border-primary/30 hover:border-primary hover:bg-accent"
+                          className="w-full justify-start bg-white border-gray-300 hover:border-gray-400"
                         >
-                          <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                          <CalendarIcon className="mr-2 h-4 w-4 text-blue-600" />
                           {startDate ? format(startDate, 'PPP') : 'Start date'}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 bg-popover border-primary/20" align="start">
+                      <PopoverContent className="w-auto p-0 bg-white border-gray-200" align="start">
                         <Calendar
                           mode="single"
                           selected={startDate}
@@ -401,24 +401,22 @@ const [selectedMonthYM, setSelectedMonthYM] = useState(format(new Date(), 'MM'))
                             }
                           }}
                           initialFocus
-                          className="p-3 pointer-events-auto bg-popover"
+                          className="p-3 pointer-events-auto bg-white"
                         />
                       </PopoverContent>
                     </Popover>
-
-                    <span className="text-muted-foreground font-medium">to</span>
 
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button 
                           variant="outline" 
-                          className="w-40 justify-start bg-background border-primary/30 hover:border-primary hover:bg-accent"
+                          className="w-full justify-start bg-white border-gray-300 hover:border-gray-400"
                         >
-                          <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                          <CalendarIcon className="mr-2 h-4 w-4 text-blue-600" />
                           {endDate ? format(endDate, 'PPP') : 'End date'}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 bg-popover border-primary/20" align="start">
+                      <PopoverContent className="w-auto p-0 bg-white border-gray-200" align="start">
                         <Calendar
                           mode="single"
                           selected={endDate}
@@ -429,7 +427,7 @@ const [selectedMonthYM, setSelectedMonthYM] = useState(format(new Date(), 'MM'))
                             }
                           }}
                           initialFocus
-                          className="p-3 pointer-events-auto bg-popover"
+                          className="p-3 pointer-events-auto bg-white"
                         />
                       </PopoverContent>
                     </Popover>
