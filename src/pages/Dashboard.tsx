@@ -224,10 +224,19 @@ export const Dashboard = () => {
                     </p>
                   </div>
                 </div>
-                <Button onClick={handleSignOut} variant="outline">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </Button>
+                <div className="flex items-center gap-3">
+                  <div className="hidden md:block">
+                    <DateRangeFilter 
+                      onFilterChange={handleFilterChange} 
+                      compact 
+                      variant={activeSection === 'maintenance' ? 'year-month' : 'default'}
+                    />
+                  </div>
+                  <Button onClick={handleSignOut} variant="outline">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </Button>
+                </div>
               </div>
             </div>
           </header>
