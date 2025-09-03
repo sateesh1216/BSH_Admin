@@ -224,12 +224,10 @@ export const Dashboard = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Button onClick={handleSignOut} variant="outline">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
-                  </Button>
-                </div>
+                <Button onClick={handleSignOut} variant="outline">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </Button>
               </div>
             </div>
           </header>
@@ -238,12 +236,11 @@ export const Dashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               {/* Left sidebar - Filters */}
               <div className="lg:col-span-1 space-y-4">
-                <div className="sticky top-4">
-                  <DateRangeFilter 
-                    onFilterChange={handleFilterChange} 
-                    variant={activeSection === 'maintenance' ? 'year-month' : 'default'}
-                  />
-                </div>
+                {(activeSection === 'trips' || activeSection === 'maintenance' || activeSection === 'reports') && (
+                  <div className="sticky top-4">
+                    <DateRangeFilter onFilterChange={handleFilterChange} />
+                  </div>
+                )}
               </div>
               
               {/* Main content area */}
