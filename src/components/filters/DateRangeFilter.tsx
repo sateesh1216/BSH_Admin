@@ -75,52 +75,34 @@ export function DateRangeFilter({ onFilterChange }: DateRangeFilterProps) {
   };
 
   return (
-    <Card className="mb-6 bg-gradient-to-r from-green-light to-accent border-primary/20 shadow-lg">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-primary font-semibold">
-          <CalendarIcon className="h-5 w-5 text-primary" />
+    <Card className="mb-4 bg-gradient-to-r from-green-light to-accent border-primary/20 shadow-lg">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-primary font-semibold text-sm">
+          <CalendarIcon className="h-4 w-4 text-primary" />
           Date Filter
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-3 items-center">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-foreground">Filter Type</label>
+      <CardContent className="space-y-3">
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-foreground">Filter Type</label>
             <Select value={filterType} onValueChange={handleFilterTypeChange}>
-              <SelectTrigger className="w-40 bg-background border-primary/30 hover:border-primary focus:ring-primary">
+              <SelectTrigger className="w-full bg-background border-primary/30 hover:border-primary focus:ring-primary h-8">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-popover border-primary/20">
-                <SelectItem value="monthly" className="hover:bg-accent">Monthly</SelectItem>
-                <SelectItem value="yearly" className="hover:bg-accent">Yearly</SelectItem>
+                <SelectItem value="yearly" className="hover:bg-accent">Year</SelectItem>
+                <SelectItem value="monthly" className="hover:bg-accent">Month</SelectItem>
                 <SelectItem value="custom" className="hover:bg-accent">Custom Range</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {filterType === 'monthly' && (
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">Select Month</label>
-              <Select value={selectedMonth} onValueChange={handleMonthChange}>
-                <SelectTrigger className="w-48 bg-background border-primary/30 hover:border-primary focus:ring-primary">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-primary/20 max-h-60">
-                  {generateMonthOptions().map((option) => (
-                    <SelectItem key={option.value} value={option.value} className="hover:bg-accent">
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           {filterType === 'yearly' && (
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">Select Year</label>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground">Select Year</label>
               <Select value={selectedYear} onValueChange={handleYearChange}>
-                <SelectTrigger className="w-32 bg-background border-primary/30 hover:border-primary focus:ring-primary">
+                <SelectTrigger className="w-full bg-background border-primary/30 hover:border-primary focus:ring-primary h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-primary/20">
@@ -134,18 +116,36 @@ export function DateRangeFilter({ onFilterChange }: DateRangeFilterProps) {
             </div>
           )}
 
+          {filterType === 'monthly' && (
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground">Select Month</label>
+              <Select value={selectedMonth} onValueChange={handleMonthChange}>
+                <SelectTrigger className="w-full bg-background border-primary/30 hover:border-primary focus:ring-primary h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-primary/20 max-h-60">
+                  {generateMonthOptions().map((option) => (
+                    <SelectItem key={option.value} value={option.value} className="hover:bg-accent">
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {filterType === 'custom' && (
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">Custom Date Range</label>
-              <div className="flex flex-wrap gap-2 items-center">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground">Custom Date Range</label>
+              <div className="space-y-2">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button 
                       variant="outline" 
-                      className="w-40 justify-start bg-background border-primary/30 hover:border-primary hover:bg-accent"
+                      className="w-full justify-start bg-background border-primary/30 hover:border-primary hover:bg-accent h-8 text-xs"
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                      {startDate ? format(startDate, 'PPP') : 'Start date'}
+                      <CalendarIcon className="mr-1 h-3 w-3 text-primary" />
+                      {startDate ? format(startDate, 'MMM dd, yyyy') : 'Start date'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 bg-popover border-primary/20" align="start">
@@ -159,21 +159,19 @@ export function DateRangeFilter({ onFilterChange }: DateRangeFilterProps) {
                         }
                       }}
                       initialFocus
-                      className="bg-popover"
+                      className="bg-popover pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
-
-                <span className="text-muted-foreground font-medium">to</span>
 
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button 
                       variant="outline" 
-                      className="w-40 justify-start bg-background border-primary/30 hover:border-primary hover:bg-accent"
+                      className="w-full justify-start bg-background border-primary/30 hover:border-primary hover:bg-accent h-8 text-xs"
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                      {endDate ? format(endDate, 'PPP') : 'End date'}
+                      <CalendarIcon className="mr-1 h-3 w-3 text-primary" />
+                      {endDate ? format(endDate, 'MMM dd, yyyy') : 'End date'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 bg-popover border-primary/20" align="start">
@@ -187,7 +185,7 @@ export function DateRangeFilter({ onFilterChange }: DateRangeFilterProps) {
                         }
                       }}
                       initialFocus
-                      className="bg-popover"
+                      className="bg-popover pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -195,7 +193,7 @@ export function DateRangeFilter({ onFilterChange }: DateRangeFilterProps) {
                 <Button 
                   onClick={handleCustomDateChange} 
                   size="sm"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-7 text-xs"
                   disabled={!startDate || !endDate}
                 >
                   Apply Filter

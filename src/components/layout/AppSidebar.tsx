@@ -13,6 +13,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { DateRangeFilter, FilterOptions } from '@/components/filters/DateRangeFilter';
 
 const menuItems = [
   { 
@@ -51,9 +52,10 @@ interface AppSidebarProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
   onAddNew: (section: string) => void;
+  onFilterChange?: (filter: FilterOptions) => void;
 }
 
-export function AppSidebar({ activeSection, onSectionChange, onAddNew }: AppSidebarProps) {
+export function AppSidebar({ activeSection, onSectionChange, onAddNew, onFilterChange }: AppSidebarProps) {
   const { state } = useSidebar();
 
   const isActive = (key: string) => activeSection === key;
@@ -63,6 +65,15 @@ export function AppSidebar({ activeSection, onSectionChange, onAddNew }: AppSide
       <SidebarTrigger className="m-2 self-end text-primary hover:bg-accent" />
       
       <SidebarContent className="bg-transparent">
+        {/* Date Filter Section */}
+        {(activeSection === 'trips' || activeSection === 'maintenance' || activeSection === 'reports') && onFilterChange && (
+          <SidebarGroup className="px-2 mb-4">
+            <div className={state !== 'collapsed' ? 'block' : 'hidden'}>
+              <DateRangeFilter onFilterChange={onFilterChange} />
+            </div>
+          </SidebarGroup>
+        )}
+        
         <SidebarGroup className="px-2">
           <SidebarGroupLabel className="text-primary font-bold text-lg mb-4 px-2">
             Navigation

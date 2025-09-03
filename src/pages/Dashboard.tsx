@@ -207,6 +207,7 @@ export const Dashboard = () => {
           activeSection={activeSection}
           onSectionChange={handleSectionChange}
           onAddNew={handleAddNew}
+          onFilterChange={handleFilterChange}
         />
         
         <div className="flex-1 flex flex-col">
@@ -233,21 +234,9 @@ export const Dashboard = () => {
           </header>
 
           <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              {/* Left sidebar - Filters */}
-              <div className="lg:col-span-1 space-y-4">
-                {(activeSection === 'trips' || activeSection === 'maintenance' || activeSection === 'reports') && (
-                  <div className="sticky top-4">
-                    <DateRangeFilter onFilterChange={handleFilterChange} />
-                  </div>
-                )}
-              </div>
-              
-              {/* Main content area */}
-              <div className="lg:col-span-4 space-y-6">
-                <DashboardSummary data={calculateSummary()} />
-                {renderMainContent()}
-              </div>
+            <div className="space-y-6">
+              <DashboardSummary data={calculateSummary()} />
+              {renderMainContent()}
             </div>
           </main>
         </div>
