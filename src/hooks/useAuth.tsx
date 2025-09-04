@@ -8,6 +8,8 @@ interface AuthContextType {
   userRole: string | null;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName: string, role: string) => Promise<{ error: any }>;
+  signInWithPhone: (phone: string) => Promise<{ error: any }>;
+  verifyOTP: (phone: string, token: string, fullName?: string, role?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
 }
@@ -81,6 +83,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error };
   };
 
+  const signInWithPhone = async (phone: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: phone,
+    });
+    return { error };
+  };
+
+  const verifyOTP = async (phone: string, token: string, fullName?: string, role?: string) => {
+    const { error, data } = await supabase.auth.verifyOtp({
+      phone: phone,
+      token: token,
+      type: 'sms'
+    });
+
+    // If this is a new user (signing up), create their profile
+    if (!error && data?.user && !data?.user?.phone_confirmed_at && fullName && role) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            id: data.user.id,
+            username: phone,
+            full_name: fullName,
+            role: role as 'admin' | 'driver1' | 'driver2' | 'driver3'
+          }
+        ]);
+      
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+      }
+    }
+
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -96,6 +133,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         userRole,
         signIn,
         signUp,
+        signInWithPhone,
+        verifyOTP,
         signOut,
         loading,
       }}

@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { PhoneAuthForm } from './PhoneAuthForm';
+import { Phone, Mail } from 'lucide-react';
 
 const authSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -21,6 +23,7 @@ type AuthFormData = z.infer<typeof authSchema>;
 
 export const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const { signIn, signUp } = useAuth();
   
   const form = useForm<AuthFormData>({
@@ -73,10 +76,17 @@ export const AuthForm = () => {
     }
   };
 
+  if (authMethod === 'phone') {
+    return <PhoneAuthForm onBackToEmail={() => setAuthMethod('email')} />;
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100 p-4">
-      <Card className="w-full max-w-md shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5 p-4">
+      <Card className="w-full max-w-md shadow-xl border-primary/20">
         <CardHeader className="text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Mail className="h-8 w-8 text-primary" />
+          </div>
           <CardTitle className="text-2xl font-bold text-primary">
             BSH Taxi Service Management
           </CardTitle>
@@ -84,7 +94,28 @@ export const AuthForm = () => {
             {isLogin ? 'Sign in to your account' : 'Create a new account'}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              type="button"
+              variant={authMethod === 'email' ? 'default' : 'outline'}
+              onClick={() => setAuthMethod('email')}
+              className="flex items-center gap-2"
+            >
+              <Mail className="h-4 w-4" />
+              Email
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAuthMethod('phone')}
+              className="flex items-center gap-2"
+            >
+              <Phone className="h-4 w-4" />
+              Phone OTP
+            </Button>
+          </div>
+
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
