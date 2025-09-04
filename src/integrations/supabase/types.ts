@@ -169,7 +169,132 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      maintenance_secure: {
+        Row: {
+          amount: number | null
+          company: string | null
+          created_at: string | null
+          created_by: string | null
+          date: string | null
+          description: string | null
+          driver_name: string | null
+          driver_number: string | null
+          id: string | null
+          km_at_maintenance: number | null
+          maintenance_type: string | null
+          next_oil_change_km: number | null
+          original_odometer_km: number | null
+          payment_mode: string | null
+          updated_at: string | null
+          vehicle_number: string | null
+        }
+        Insert: {
+          amount?: number | null
+          company?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date?: string | null
+          description?: string | null
+          driver_name?: string | null
+          driver_number?: never
+          id?: string | null
+          km_at_maintenance?: number | null
+          maintenance_type?: string | null
+          next_oil_change_km?: number | null
+          original_odometer_km?: number | null
+          payment_mode?: string | null
+          updated_at?: string | null
+          vehicle_number?: string | null
+        }
+        Update: {
+          amount?: number | null
+          company?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date?: string | null
+          description?: string | null
+          driver_name?: string | null
+          driver_number?: never
+          id?: string | null
+          km_at_maintenance?: number | null
+          maintenance_type?: string | null
+          next_oil_change_km?: number | null
+          original_odometer_km?: number | null
+          payment_mode?: string | null
+          updated_at?: string | null
+          vehicle_number?: string | null
+        }
+        Relationships: []
+      }
+      trips_secure: {
+        Row: {
+          commission: number | null
+          company: string | null
+          created_at: string | null
+          created_by: string | null
+          customer_name: string | null
+          customer_number: string | null
+          date: string | null
+          driver_amount: number | null
+          driver_name: string | null
+          driver_number: string | null
+          from_location: string | null
+          fuel_amount: number | null
+          fuel_type: string | null
+          id: string | null
+          payment_mode: string | null
+          profit: number | null
+          to_location: string | null
+          tolls: number | null
+          trip_amount: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          commission?: number | null
+          company?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_name?: string | null
+          customer_number?: never
+          date?: string | null
+          driver_amount?: number | null
+          driver_name?: string | null
+          driver_number?: never
+          from_location?: string | null
+          fuel_amount?: number | null
+          fuel_type?: string | null
+          id?: string | null
+          payment_mode?: string | null
+          profit?: number | null
+          to_location?: string | null
+          tolls?: number | null
+          trip_amount?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          commission?: number | null
+          company?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_name?: string | null
+          customer_number?: never
+          date?: string | null
+          driver_amount?: number | null
+          driver_name?: string | null
+          driver_number?: never
+          from_location?: string | null
+          fuel_amount?: number | null
+          fuel_type?: string | null
+          id?: string | null
+          payment_mode?: string | null
+          profit?: number | null
+          to_location?: string | null
+          tolls?: number | null
+          trip_amount?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
