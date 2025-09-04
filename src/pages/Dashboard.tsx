@@ -76,7 +76,7 @@ export const Dashboard = () => {
   const fetchTrips = async (filter?: FilterOptions) => {
     try {
       setLoading(true);
-      let query = supabase.from('trips').select('*');
+      let query = supabase.from('trips_secure').select('*');
       
       // If not admin, only fetch user's own trips
       if (!isAdmin && user) {
@@ -126,7 +126,7 @@ export const Dashboard = () => {
   const fetchMaintenance = async (filter?: FilterOptions) => {
     try {
       setLoading(true);
-      let query = supabase.from('maintenance').select('*');
+      let query = supabase.from('maintenance_secure').select('*');
       
       // If not admin, only fetch user's own maintenance records
       if (!isAdmin && user) {
