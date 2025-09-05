@@ -26,18 +26,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.id);
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           // Fetch user role from profiles table
           setTimeout(async () => {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', session.user.id)
-              .single();
-            setUserRole(profile?.role || null);
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .single();
+              setUserRole(profile?.role || null);
+            } catch (error) {
+              console.error('Error fetching user role:', error);
+              setUserRole(null);
+            }
           }, 0);
         } else {
           setUserRole(null);
@@ -46,13 +53,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // THEN check for existing session with error handling
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Session error:', error);
+        // Clear any stale auth data
+        setSession(null);
+        setUser(null);
+        setUserRole(null);
+        setLoading(false);
+        return;
+      }
+      
       setSession(session);
       setUser(session?.user ?? null);
       if (!session) {
         setLoading(false);
       }
+    }).catch((error) => {
+      console.error('Failed to get session:', error);
+      // Clear any stale auth data on error
+      setSession(null);
+      setUser(null);
+      setUserRole(null);
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
