@@ -312,8 +312,8 @@ export const Dashboard = () => {
             </div>
           </header>
 
-          <main className="flex-1 px-6 py-8 overflow-auto">
-            <div className="max-w-full space-y-8">
+          <main className="flex-1 px-3 sm:px-6 py-4 sm:py-8 overflow-auto">
+            <div className="w-full max-w-none space-y-4 sm:space-y-8">
               <DashboardSummary data={calculateSummary()} />
               {renderMainContent()}
             </div>
