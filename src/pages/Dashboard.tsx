@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import { MaintenanceTable } from '@/components/maintenance/MaintenanceTable';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { Loading } from '@/components/ui/loading';
 import { format } from 'date-fns';
 
 interface Trip {
@@ -68,12 +69,7 @@ export const Dashboard = () => {
 
   const isAdmin = userRole === 'admin';
 
-  useEffect(() => {
-    fetchTrips();
-    fetchMaintenance();
-  }, [user, currentFilter]);
-
-  const fetchTrips = async (filter?: FilterOptions) => {
+  const fetchTrips = useCallback(async (filter?: FilterOptions) => {
     try {
       setLoading(true);
       let query = supabase.from('trips_secure').select('*');
@@ -121,11 +117,10 @@ export const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdmin, user, currentFilter]);
 
-  const fetchMaintenance = async (filter?: FilterOptions) => {
+  const fetchMaintenance = useCallback(async (filter?: FilterOptions) => {
     try {
-      setLoading(true);
       let query = supabase.from('maintenance_secure').select('*');
       
       // If not admin, only fetch user's own maintenance records
@@ -168,12 +163,25 @@ export const Dashboard = () => {
         description: "Failed to fetch maintenance records",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [isAdmin, user, currentFilter]);
 
-  const calculateSummary = () => {
+  // Fetch data in parallel to improve loading speed
+  useEffect(() => {
+    if (user) {
+      const fetchData = async () => {
+        setLoading(true);
+        try {
+          await Promise.all([fetchTrips(), fetchMaintenance()]);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchData();
+    }
+  }, [user, currentFilter, fetchTrips, fetchMaintenance]);
+
+  const calculateSummary = useMemo(() => {
     const totalTrips = trips.length;
     const totalTripMoney = trips.reduce((sum, trip) => sum + trip.trip_amount, 0);
     const tripExpenses = trips.reduce((sum, trip) => 
@@ -190,42 +198,46 @@ export const Dashboard = () => {
       totalMaintenance: maintenance.length,
       maintenanceExpenses,
     };
-  };
+  }, [trips, maintenance]);
 
-  const handleSectionChange = (section: string) => {
+  const handleSectionChange = useCallback((section: string) => {
     setActiveSection(section);
     setShowAddForm(false);
-  };
+  }, []);
 
-  const handleAddNew = (section: string) => {
+  const handleAddNew = useCallback((section: string) => {
     setShowAddForm(true);
-  };
+  }, []);
 
-  const handleFormSuccess = () => {
+  const handleFormSuccess = useCallback(() => {
     setShowAddForm(false);
-    fetchTrips();
-    fetchMaintenance();
-  };
+    const refreshData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([fetchTrips(), fetchMaintenance()]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    refreshData();
+  }, [fetchTrips, fetchMaintenance]);
 
-  const handleFilterChange = (filter: FilterOptions) => {
+  const handleFilterChange = useCallback((filter: FilterOptions) => {
     setCurrentFilter(filter);
-  };
+  }, []);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     await signOut();
     toast({
       title: "Success",
       description: "Signed out successfully",
     });
-  };
+  }, [signOut]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading dashboard...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loading size="lg" text="Loading dashboard data..." />
       </div>
     );
   }
@@ -314,7 +326,7 @@ export const Dashboard = () => {
 
           <main className="flex-1 px-3 sm:px-6 py-4 sm:py-8 overflow-auto">
             <div className="w-full max-w-none space-y-4 sm:space-y-8">
-              <DashboardSummary data={calculateSummary()} />
+              <DashboardSummary data={calculateSummary} />
               {renderMainContent()}
             </div>
           </main>

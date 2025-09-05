@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, Car, TrendingUp, Calculator } from 'lucide-react';
+import { memo, useMemo } from 'react';
 
 interface SummaryData {
   totalTrips: number;
@@ -12,15 +13,15 @@ interface DashboardSummaryProps {
   data: SummaryData;
 }
 
-export const DashboardSummary = ({ data }: DashboardSummaryProps) => {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
+const DashboardSummaryComponent = ({ data }: DashboardSummaryProps) => {
+  const formatCurrency = useMemo(() => 
+    new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
-    }).format(amount);
-  };
+    }), []
+  );
 
-  const summaryCards = [
+  const summaryCards = useMemo(() => [
     {
       title: 'Total Trips',
       value: data.totalTrips.toString(),
@@ -29,23 +30,23 @@ export const DashboardSummary = ({ data }: DashboardSummaryProps) => {
     },
     {
       title: 'Total Trip Money',
-      value: formatCurrency(data.totalTripMoney),
+      value: formatCurrency.format(data.totalTripMoney),
       icon: DollarSign,
       color: 'text-blue-600',
     },
     {
       title: 'Total Expenses',
-      value: formatCurrency(data.totalExpenses),
+      value: formatCurrency.format(data.totalExpenses),
       icon: Calculator,
       color: 'text-orange-600',
     },
     {
       title: 'Total Profit',
-      value: formatCurrency(data.totalProfit),
+      value: formatCurrency.format(data.totalProfit),
       icon: TrendingUp,
       color: 'text-green-600',
     },
-  ];
+  ], [data, formatCurrency]);
 
   return (
     <div className="w-full">
@@ -71,3 +72,5 @@ export const DashboardSummary = ({ data }: DashboardSummaryProps) => {
     </div>
   );
 };
+
+export const DashboardSummary = memo(DashboardSummaryComponent);
