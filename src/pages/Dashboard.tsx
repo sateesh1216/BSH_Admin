@@ -312,7 +312,7 @@ export const Dashboard = () => {
                       BSH Taxi Service Management
                     </h1>
                     <p className="text-muted-foreground mt-1">
-                      Welcome back, {user?.email} • {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                      Welcome back, {user?.email} • {userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Loading...'}
                     </p>
                   </div>
                 </div>
