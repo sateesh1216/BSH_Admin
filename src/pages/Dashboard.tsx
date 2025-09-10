@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/AppSidebar';
-import { DateRangeFilter, FilterOptions } from '@/components/filters/DateRangeFilter';
+
 import { DashboardSummary } from '@/components/dashboard/DashboardSummary';
 import { TripForm } from '@/components/trip/TripForm';
 import { TripsTable } from '@/components/trip/TripsTable';
@@ -61,15 +61,12 @@ export const Dashboard = () => {
   const [maintenance, setMaintenance] = useState<Maintenance[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('trips');
-  const [currentFilter, setCurrentFilter] = useState<FilterOptions>({ 
-    type: 'monthly', 
-    month: format(new Date(), 'yyyy-MM') 
-  });
+  const [currentMonth, setCurrentMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   const [showAddForm, setShowAddForm] = useState(false);
 
   const isAdmin = userRole === 'admin';
 
-  const fetchTrips = useCallback(async (filter?: FilterOptions) => {
+  const fetchTrips = useCallback(async (month?: string) => {
     try {
       setLoading(true);
       let query = supabase.from('trips_secure').select('*');
@@ -79,22 +76,13 @@ export const Dashboard = () => {
         query = query.eq('created_by', user.id);
       }
 
-      // Apply date filtering
-      const filterToUse = filter || currentFilter;
-      if (filterToUse.type === 'monthly' && filterToUse.month) {
-        const startOfMonth = `${filterToUse.month}-01`;
-        const year = parseInt(filterToUse.month.split('-')[0]);
-        const month = parseInt(filterToUse.month.split('-')[1]);
-        const endOfMonth = format(new Date(year, month, 0), 'yyyy-MM-dd');
-        query = query.gte('date', startOfMonth).lte('date', endOfMonth);
-      } else if (filterToUse.type === 'yearly' && filterToUse.year) {
-        const startOfYear = `${filterToUse.year}-01-01`;
-        const endOfYear = `${filterToUse.year}-12-31`;
-        query = query.gte('date', startOfYear).lte('date', endOfYear);
-      } else if (filterToUse.type === 'custom' && filterToUse.startDate && filterToUse.endDate) {
-        query = query.gte('date', format(filterToUse.startDate, 'yyyy-MM-dd'))
-                     .lte('date', format(filterToUse.endDate, 'yyyy-MM-dd'));
-      }
+      // Apply month filtering
+      const monthToUse = month || currentMonth;
+      const startOfMonth = `${monthToUse}-01`;
+      const year = parseInt(monthToUse.split('-')[0]);
+      const monthNum = parseInt(monthToUse.split('-')[1]);
+      const endOfMonth = format(new Date(year, monthNum, 0), 'yyyy-MM-dd');
+      query = query.gte('date', startOfMonth).lte('date', endOfMonth);
       
       const { data, error } = await query.order('date', { ascending: false });
 
@@ -117,9 +105,9 @@ export const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, user, currentFilter]);
+  }, [isAdmin, user, currentMonth]);
 
-  const fetchMaintenance = useCallback(async (filter?: FilterOptions) => {
+  const fetchMaintenance = useCallback(async (month?: string) => {
     try {
       let query = supabase.from('maintenance_secure').select('*');
       
@@ -128,22 +116,13 @@ export const Dashboard = () => {
         query = query.eq('created_by', user.id);
       }
 
-      // Apply date filtering
-      const filterToUse = filter || currentFilter;
-      if (filterToUse.type === 'monthly' && filterToUse.month) {
-        const startOfMonth = `${filterToUse.month}-01`;
-        const year = parseInt(filterToUse.month.split('-')[0]);
-        const month = parseInt(filterToUse.month.split('-')[1]);
-        const endOfMonth = format(new Date(year, month, 0), 'yyyy-MM-dd');
-        query = query.gte('date', startOfMonth).lte('date', endOfMonth);
-      } else if (filterToUse.type === 'yearly' && filterToUse.year) {
-        const startOfYear = `${filterToUse.year}-01-01`;
-        const endOfYear = `${filterToUse.year}-12-31`;
-        query = query.gte('date', startOfYear).lte('date', endOfYear);
-      } else if (filterToUse.type === 'custom' && filterToUse.startDate && filterToUse.endDate) {
-        query = query.gte('date', format(filterToUse.startDate, 'yyyy-MM-dd'))
-                     .lte('date', format(filterToUse.endDate, 'yyyy-MM-dd'));
-      }
+      // Apply month filtering
+      const monthToUse = month || currentMonth;
+      const startOfMonth = `${monthToUse}-01`;
+      const year = parseInt(monthToUse.split('-')[0]);
+      const monthNum = parseInt(monthToUse.split('-')[1]);
+      const endOfMonth = format(new Date(year, monthNum, 0), 'yyyy-MM-dd');
+      query = query.gte('date', startOfMonth).lte('date', endOfMonth);
       
       const { data, error } = await query.order('date', { ascending: false });
 
@@ -164,7 +143,7 @@ export const Dashboard = () => {
         variant: "destructive",
       });
     }
-  }, [isAdmin, user, currentFilter]);
+  }, [isAdmin, user, currentMonth]);
 
   // Fetch data in parallel to improve loading speed
   useEffect(() => {
@@ -179,7 +158,7 @@ export const Dashboard = () => {
       };
       fetchData();
     }
-  }, [user, currentFilter, fetchTrips, fetchMaintenance]);
+  }, [user, currentMonth, fetchTrips, fetchMaintenance]);
 
   const calculateSummary = useMemo(() => {
     const totalTrips = trips.length;
@@ -222,8 +201,8 @@ export const Dashboard = () => {
     refreshData();
   }, [fetchTrips, fetchMaintenance]);
 
-  const handleFilterChange = useCallback((filter: FilterOptions) => {
-    setCurrentFilter(filter);
+  const handleFilterChange = useCallback((month: string) => {
+    setCurrentMonth(month);
   }, []);
 
   const handleSignOut = useCallback(async () => {

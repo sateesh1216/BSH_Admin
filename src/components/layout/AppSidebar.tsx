@@ -13,7 +13,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { DateRangeFilter, FilterOptions } from '@/components/filters/DateRangeFilter';
+import { MonthFilter } from '@/components/filters/MonthFilter';
 
 const menuItems = [
   { 
@@ -52,7 +52,7 @@ interface AppSidebarProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
   onAddNew: (section: string) => void;
-  onFilterChange?: (filter: FilterOptions) => void;
+  onFilterChange?: (month: string) => void;
 }
 
 export function AppSidebar({ activeSection, onSectionChange, onAddNew, onFilterChange }: AppSidebarProps) {
@@ -65,11 +65,11 @@ export function AppSidebar({ activeSection, onSectionChange, onAddNew, onFilterC
       <SidebarTrigger className="m-2 self-end text-primary hover:bg-accent" />
       
       <SidebarContent className="bg-transparent">
-        {/* Date Filter Section */}
-        {(activeSection === 'trips' || activeSection === 'maintenance' || activeSection === 'reports') && onFilterChange && (
+        {/* Month Filter Section - Only for trips and maintenance */}
+        {(activeSection === 'trips' || activeSection === 'maintenance') && onFilterChange && (
           <SidebarGroup className="px-2 mb-4">
             <div className={state !== 'collapsed' ? 'block' : 'hidden'}>
-              <DateRangeFilter onFilterChange={onFilterChange} />
+              <MonthFilter onFilterChange={onFilterChange} />
             </div>
           </SidebarGroup>
         )}
