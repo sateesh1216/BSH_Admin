@@ -49,7 +49,9 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
 
   const filteredTrips = trips.filter(trip =>
     trip.driver_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    trip.driver_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     trip.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    trip.customer_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     trip.from_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
     trip.to_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
     trip.company?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -107,6 +109,9 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
       'S.No': index + 1,
       'Date': new Date(trip.date).toLocaleDateString(),
       'Driver': trip.driver_name,
+      'Driver Phone': trip.driver_number,
+      'Customer': trip.customer_name,
+      'Customer Phone': trip.customer_number,
       'Route': `${trip.from_location} → ${trip.to_location}`,
       'Company': trip.company || '',
       'Driver Amount (₹)': trip.driver_amount,
@@ -162,12 +167,15 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="min-w-[1200px]">
             <TableHeader>
               <TableRow>
                 <TableHead>S.No</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Driver</TableHead>
+                <TableHead>Driver Phone</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Customer Phone</TableHead>
                 <TableHead>Route</TableHead>
                 <TableHead>Company</TableHead>
                 <TableHead>Driver ₹</TableHead>
@@ -187,6 +195,9 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{new Date(trip.date).toLocaleDateString()}</TableCell>
                   <TableCell>{trip.driver_name}</TableCell>
+                  <TableCell>{trip.driver_number}</TableCell>
+                  <TableCell>{trip.customer_name}</TableCell>
+                  <TableCell>{trip.customer_number}</TableCell>
                   <TableCell>{trip.from_location} → {trip.to_location}</TableCell>
                   <TableCell>{trip.company || '-'}</TableCell>
                   <TableCell>{formatCurrency(trip.driver_amount)}</TableCell>

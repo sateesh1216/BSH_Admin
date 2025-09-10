@@ -91,8 +91,8 @@ export function DateRangeFilter({ onFilterChange }: DateRangeFilterProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-popover border-primary/20">
-                <SelectItem value="yearly" className="hover:bg-accent">Year</SelectItem>
-                <SelectItem value="monthly" className="hover:bg-accent">Month</SelectItem>
+                <SelectItem value="yearly" className="hover:bg-accent">Years</SelectItem>
+                <SelectItem value="monthly" className="hover:bg-accent">Months</SelectItem>
                 <SelectItem value="custom" className="hover:bg-accent">Custom Range</SelectItem>
               </SelectContent>
             </Select>
