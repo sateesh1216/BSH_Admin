@@ -53,15 +53,15 @@ const DashboardSummaryComponent = ({ data }: DashboardSummaryProps) => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {summaryCards.map((card, index) => (
           <Card key={index} className="border-border bg-card hover:bg-accent/50 transition-all duration-200 shadow-sm hover:shadow-md">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <card.icon className={`h-5 w-5 ${card.color}`} />
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <card.icon className={`h-4 w-4 ${card.color}`} />
               </div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">
+              <div className="space-y-0.5">
+                <p className="text-xs font-medium text-muted-foreground">
                   {card.title}
                 </p>
-                <p className={`text-xl font-bold ${card.color} leading-tight`}>
+                <p className={`text-lg font-bold ${card.color} leading-tight`}>
                   {card.value}
                 </p>
               </div>
