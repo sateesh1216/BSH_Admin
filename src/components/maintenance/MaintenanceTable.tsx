@@ -3,7 +3,9 @@ import { format } from 'date-fns';
 import { Edit, Trash2, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { MaintenanceForm } from './MaintenanceForm';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -31,6 +33,8 @@ interface MaintenanceTableProps {
 
 export const MaintenanceTable = ({ maintenance, onMaintenanceUpdated, canEdit }: MaintenanceTableProps) => {
   const [loading, setLoading] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<Maintenance | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const totalExpenses = maintenance.reduce((sum, record) => sum + record.amount, 0);
 
@@ -67,6 +71,17 @@ export const MaintenanceTable = ({ maintenance, onMaintenanceUpdated, canEdit }:
     }
   };
 
+  const handleEdit = (record: Maintenance) => {
+    setEditingRecord(record);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    setIsEditDialogOpen(false);
+    setEditingRecord(null);
+    onMaintenanceUpdated();
+  };
+
   if (maintenance.length === 0) {
     return (
       <Card className="shadow-lg border-primary/20">
@@ -84,136 +99,156 @@ export const MaintenanceTable = ({ maintenance, onMaintenanceUpdated, canEdit }:
   }
 
   return (
-    <Card className="shadow-lg border-primary/20">
-      <CardHeader className="bg-gradient-to-r from-primary/5 to-accent/5 border-b">
-        <CardTitle className="flex items-center justify-between">
-          <span className="flex items-center gap-2 text-primary">
-            <Wrench className="h-5 w-5" />
-            Maintenance Records
-          </span>
-          <div className="text-right">
-            <div className="text-2xl font-bold text-primary">
-              ₹{totalExpenses.toLocaleString()}
+    <>
+      <Card className="shadow-lg border-primary/20">
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-accent/5 border-b">
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2 text-primary">
+              <Wrench className="h-5 w-5" />
+              Maintenance Records
+            </span>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-primary">
+                ₹{totalExpenses.toLocaleString()}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {maintenance.length} record{maintenance.length !== 1 ? 's' : ''}
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">
-              {maintenance.length} record{maintenance.length !== 1 ? 's' : ''}
-            </div>
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b bg-muted/30">
-                <th className="text-left py-4 px-6 font-semibold text-foreground">Date</th>
-                <th className="text-left py-4 px-6 font-semibold text-foreground">Vehicle</th>
-                <th className="text-left py-4 px-6 font-semibold text-foreground">Driver</th>
-                <th className="text-left py-4 px-6 font-semibold text-foreground">Type</th>
-                <th className="text-left py-4 px-6 font-semibold text-foreground">Amount</th>
-                <th className="text-left py-4 px-6 font-semibold text-foreground">Payment</th>
-                <th className="text-left py-4 px-6 font-semibold text-foreground">KM</th>
-                {canEdit && <th className="text-left py-4 px-6 font-semibold text-foreground">Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {maintenance.map((record, index) => (
-                <tr 
-                  key={record.id} 
-                  className={`border-b hover:bg-accent/20 transition-colors ${
-                    index % 2 === 0 ? 'bg-background' : 'bg-muted/10'
-                  }`}
-                >
-                  <td className="py-4 px-6 font-medium">
-                    {format(new Date(record.date), 'dd/MM/yyyy')}
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="font-medium">{record.vehicle_number}</div>
-                    {record.company && (
-                      <div className="text-sm text-muted-foreground">{record.company}</div>
-                    )}
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="font-medium">{record.driver_name}</div>
-                    <div className="text-sm text-muted-foreground">{record.driver_number}</div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                      {record.maintenance_type}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="font-semibold text-lg text-primary">
-                      ₹{record.amount.toLocaleString()}
-                    </div>
-                    <div className="text-sm text-muted-foreground">{record.payment_mode}</div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="text-sm text-muted-foreground">{record.payment_mode}</div>
-                  </td>
-                  <td className="py-4 px-6">
-                    {record.km_at_maintenance && (
-                      <div className="text-sm">
-                        <div>At: {record.km_at_maintenance.toLocaleString()}</div>
-                        {record.next_oil_change_km && (
-                          <div className="text-muted-foreground">
-                            Next: {record.next_oil_change_km.toLocaleString()}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                  {canEdit && (
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-muted/30">
+                  <th className="text-left py-4 px-6 font-semibold text-foreground">Date</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground">Vehicle</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground">Driver</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground">Driver No.</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground">Type</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground">Amount</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground">Payment</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground">KM</th>
+                  {canEdit && <th className="text-left py-4 px-6 font-semibold text-foreground">Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {maintenance.map((record, index) => (
+                  <tr 
+                    key={record.id} 
+                    className={`border-b hover:bg-accent/20 transition-colors ${
+                      index % 2 === 0 ? 'bg-background' : 'bg-muted/10'
+                    }`}
+                  >
+                    <td className="py-4 px-6 font-medium">
+                      {format(new Date(record.date), 'dd/MM/yyyy')}
+                    </td>
                     <td className="py-4 px-6">
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="hover:bg-primary hover:text-primary-foreground"
-                          title="Edit Maintenance"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="hover:bg-destructive hover:text-destructive-foreground"
-                              title="Delete Maintenance"
-                              disabled={loading}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Maintenance Record</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete this maintenance record for {record.vehicle_number}? 
-                                This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(record.id)}
-                                className="bg-destructive hover:bg-destructive/90"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                      <div className="font-medium">{record.vehicle_number}</div>
+                      {record.company && (
+                        <div className="text-sm text-muted-foreground">{record.company}</div>
+                      )}
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="font-medium">{record.driver_name}</div>
+                    </td>
+                    <td className="py-4 px-6 font-mono text-sm">
+                      {record.driver_number}
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        {record.maintenance_type}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="font-semibold text-lg text-primary">
+                        ₹{record.amount.toLocaleString()}
                       </div>
                     </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
+                    <td className="py-4 px-6">
+                      <div className="text-sm">{record.payment_mode}</div>
+                    </td>
+                    <td className="py-4 px-6">
+                      {record.km_at_maintenance && (
+                        <div className="text-sm">
+                          <div>At: {record.km_at_maintenance.toLocaleString()}</div>
+                          {record.next_oil_change_km && (
+                            <div className="text-muted-foreground">
+                              Next: {record.next_oil_change_km.toLocaleString()}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    {canEdit && (
+                      <td className="py-4 px-6">
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(record)}
+                            className="hover:bg-primary hover:text-primary-foreground"
+                            title="Edit Maintenance"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="hover:bg-destructive hover:text-destructive-foreground"
+                                title="Delete Maintenance"
+                                disabled={loading}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Maintenance Record</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this maintenance record for {record.vehicle_number}? 
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(record.id)}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Maintenance Record</DialogTitle>
+          </DialogHeader>
+          {editingRecord && (
+            <MaintenanceForm
+              editData={editingRecord}
+              onSuccess={handleEditSuccess}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
