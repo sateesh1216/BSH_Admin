@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Car, Wrench, Upload, BarChart3, Plus } from 'lucide-react';
+import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DashboardSummary } from '@/components/dashboard/DashboardSummary';
 import { TripForm } from '@/components/trip/TripForm';
@@ -11,10 +10,12 @@ import { MonthlyReports } from '@/components/reports/MonthlyReports';
 import { ExpensesReports } from '@/components/reports/ExpensesReports';
 import { MaintenanceForm } from '@/components/maintenance/MaintenanceForm';
 import { MaintenanceTable } from '@/components/maintenance/MaintenanceTable';
+import { DateFilter, DateFilterOptions } from '@/components/filters/DateFilter';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loading } from '@/components/ui/loading';
+import { format } from 'date-fns';
 
 interface Trip {
   id: string;
@@ -60,6 +61,7 @@ export const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('trips');
   const [showTripForm, setShowTripForm] = useState(false);
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
+  const [dateFilter, setDateFilter] = useState<DateFilterOptions>({ type: 'all' });
 
   const isAdmin = userRole === 'admin';
 
@@ -69,6 +71,16 @@ export const Dashboard = () => {
       
       if (!isAdmin && user) {
         query = query.eq('created_by', user.id);
+      }
+
+      // Apply date filtering
+      if (dateFilter.type === 'monthly' && dateFilter.month) {
+        const [year, month] = dateFilter.month.split('-');
+        const startOfMonth = `${dateFilter.month}-01`;
+        const endOfMonth = format(new Date(parseInt(year), parseInt(month), 0), 'yyyy-MM-dd');
+        query = query.gte('date', startOfMonth).lte('date', endOfMonth);
+      } else if (dateFilter.type === 'yearly' && dateFilter.year) {
+        query = query.gte('date', `${dateFilter.year}-01-01`).lte('date', `${dateFilter.year}-12-31`);
       }
       
       const { data, error } = await query.order('date', { ascending: false });
@@ -90,7 +102,7 @@ export const Dashboard = () => {
         variant: "destructive",
       });
     }
-  }, [isAdmin, user]);
+  }, [isAdmin, user, dateFilter]);
 
   const fetchMaintenance = useCallback(async () => {
     try {
@@ -98,6 +110,16 @@ export const Dashboard = () => {
       
       if (!isAdmin && user) {
         query = query.eq('created_by', user.id);
+      }
+
+      // Apply date filtering
+      if (dateFilter.type === 'monthly' && dateFilter.month) {
+        const [year, month] = dateFilter.month.split('-');
+        const startOfMonth = `${dateFilter.month}-01`;
+        const endOfMonth = format(new Date(parseInt(year), parseInt(month), 0), 'yyyy-MM-dd');
+        query = query.gte('date', startOfMonth).lte('date', endOfMonth);
+      } else if (dateFilter.type === 'yearly' && dateFilter.year) {
+        query = query.gte('date', `${dateFilter.year}-01-01`).lte('date', `${dateFilter.year}-12-31`);
       }
       
       const { data, error } = await query.order('date', { ascending: false });
@@ -119,9 +141,9 @@ export const Dashboard = () => {
         variant: "destructive",
       });
     }
-  }, [isAdmin, user]);
+  }, [isAdmin, user, dateFilter]);
 
-  // Fetch data only once on mount - no auto-refresh
+  // Fetch data on mount and when filter changes
   useEffect(() => {
     if (user) {
       const fetchData = async () => {
@@ -134,7 +156,7 @@ export const Dashboard = () => {
       };
       fetchData();
     }
-  }, [user]); // Removed fetchTrips and fetchMaintenance from dependencies to prevent auto-refresh
+  }, [user, dateFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const calculateSummary = useMemo(() => {
     const totalTrips = trips.length;
@@ -177,6 +199,10 @@ export const Dashboard = () => {
     setLoading(true);
     try {
       await Promise.all([fetchTrips(), fetchMaintenance()]);
+      toast({
+        title: "Refreshed",
+        description: "Data updated successfully",
+      });
     } finally {
       setLoading(false);
     }
@@ -204,18 +230,28 @@ export const Dashboard = () => {
                 {user?.email} • {userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Loading...'}
               </p>
             </div>
-            <Button onClick={handleSignOut} variant="outline" size="sm" className="border-primary/30 hover:bg-primary hover:text-primary-foreground">
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline ml-2">Sign Out</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={refreshData} variant="outline" size="sm" title="Refresh Data">
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button onClick={handleSignOut} variant="outline" size="sm" className="border-primary/30 hover:bg-primary hover:text-primary-foreground">
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline ml-2">Sign Out</span>
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="p-4 max-w-7xl mx-auto">
+        {/* Date Filter */}
+        <DateFilter currentFilter={dateFilter} onFilterChange={setDateFilter} />
+
         {/* Summary Cards */}
-        <DashboardSummary data={calculateSummary} />
+        <div className="mt-4">
+          <DashboardSummary data={calculateSummary} />
+        </div>
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
