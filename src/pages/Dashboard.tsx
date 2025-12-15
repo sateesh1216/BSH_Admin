@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Car, Wrench, Upload, BarChart3, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/layout/AppSidebar';
-import { DateRangeFilter, FilterOptions } from '@/components/filters/DateRangeFilter';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DashboardSummary } from '@/components/dashboard/DashboardSummary';
 import { TripForm } from '@/components/trip/TripForm';
 import { TripsTable } from '@/components/trip/TripsTable';
@@ -17,7 +15,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loading } from '@/components/ui/loading';
-import { format } from 'date-fns';
 
 interface Trip {
   id: string;
@@ -60,40 +57,18 @@ export const Dashboard = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [maintenance, setMaintenance] = useState<Maintenance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState('trips');
-  const [currentFilter, setCurrentFilter] = useState<FilterOptions>({ 
-    type: 'monthly', 
-    month: format(new Date(), 'yyyy-MM') 
-  });
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [activeTab, setActiveTab] = useState('trips');
+  const [showTripForm, setShowTripForm] = useState(false);
+  const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
 
   const isAdmin = userRole === 'admin';
 
-  const fetchTrips = useCallback(async (filter?: FilterOptions) => {
+  const fetchTrips = useCallback(async () => {
     try {
-      setLoading(true);
       let query = supabase.from('trips_secure').select('*');
       
-      // If not admin, only fetch user's own trips
       if (!isAdmin && user) {
         query = query.eq('created_by', user.id);
-      }
-
-      // Apply date filtering
-      const filterToUse = filter || currentFilter;
-      if (filterToUse.type === 'monthly' && filterToUse.month) {
-        const startOfMonth = `${filterToUse.month}-01`;
-        const year = parseInt(filterToUse.month.split('-')[0]);
-        const month = parseInt(filterToUse.month.split('-')[1]);
-        const endOfMonth = format(new Date(year, month, 0), 'yyyy-MM-dd');
-        query = query.gte('date', startOfMonth).lte('date', endOfMonth);
-      } else if (filterToUse.type === 'yearly' && filterToUse.year) {
-        const startOfYear = `${filterToUse.year}-01-01`;
-        const endOfYear = `${filterToUse.year}-12-31`;
-        query = query.gte('date', startOfYear).lte('date', endOfYear);
-      } else if (filterToUse.type === 'custom' && filterToUse.startDate && filterToUse.endDate) {
-        query = query.gte('date', format(filterToUse.startDate, 'yyyy-MM-dd'))
-                     .lte('date', format(filterToUse.endDate, 'yyyy-MM-dd'));
       }
       
       const { data, error } = await query.order('date', { ascending: false });
@@ -114,35 +89,15 @@ export const Dashboard = () => {
         description: "Failed to fetch trips",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
-  }, [isAdmin, user, currentFilter]);
+  }, [isAdmin, user]);
 
-  const fetchMaintenance = useCallback(async (filter?: FilterOptions) => {
+  const fetchMaintenance = useCallback(async () => {
     try {
       let query = supabase.from('maintenance_secure').select('*');
       
-      // If not admin, only fetch user's own maintenance records
       if (!isAdmin && user) {
         query = query.eq('created_by', user.id);
-      }
-
-      // Apply date filtering
-      const filterToUse = filter || currentFilter;
-      if (filterToUse.type === 'monthly' && filterToUse.month) {
-        const startOfMonth = `${filterToUse.month}-01`;
-        const year = parseInt(filterToUse.month.split('-')[0]);
-        const month = parseInt(filterToUse.month.split('-')[1]);
-        const endOfMonth = format(new Date(year, month, 0), 'yyyy-MM-dd');
-        query = query.gte('date', startOfMonth).lte('date', endOfMonth);
-      } else if (filterToUse.type === 'yearly' && filterToUse.year) {
-        const startOfYear = `${filterToUse.year}-01-01`;
-        const endOfYear = `${filterToUse.year}-12-31`;
-        query = query.gte('date', startOfYear).lte('date', endOfYear);
-      } else if (filterToUse.type === 'custom' && filterToUse.startDate && filterToUse.endDate) {
-        query = query.gte('date', format(filterToUse.startDate, 'yyyy-MM-dd'))
-                     .lte('date', format(filterToUse.endDate, 'yyyy-MM-dd'));
       }
       
       const { data, error } = await query.order('date', { ascending: false });
@@ -164,9 +119,9 @@ export const Dashboard = () => {
         variant: "destructive",
       });
     }
-  }, [isAdmin, user, currentFilter]);
+  }, [isAdmin, user]);
 
-  // Fetch data in parallel to improve loading speed
+  // Fetch data only once on mount - no auto-refresh
   useEffect(() => {
     if (user) {
       const fetchData = async () => {
@@ -179,7 +134,7 @@ export const Dashboard = () => {
       };
       fetchData();
     }
-  }, [user, currentFilter, fetchTrips, fetchMaintenance]);
+  }, [user]); // Removed fetchTrips and fetchMaintenance from dependencies to prevent auto-refresh
 
   const calculateSummary = useMemo(() => {
     const totalTrips = trips.length;
@@ -200,31 +155,15 @@ export const Dashboard = () => {
     };
   }, [trips, maintenance]);
 
-  const handleSectionChange = useCallback((section: string) => {
-    setActiveSection(section);
-    setShowAddForm(false);
-  }, []);
+  const handleTripFormSuccess = useCallback(() => {
+    setShowTripForm(false);
+    fetchTrips();
+  }, [fetchTrips]);
 
-  const handleAddNew = useCallback((section: string) => {
-    setShowAddForm(true);
-  }, []);
-
-  const handleFormSuccess = useCallback(() => {
-    setShowAddForm(false);
-    const refreshData = async () => {
-      setLoading(true);
-      try {
-        await Promise.all([fetchTrips(), fetchMaintenance()]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    refreshData();
-  }, [fetchTrips, fetchMaintenance]);
-
-  const handleFilterChange = useCallback((filter: FilterOptions) => {
-    setCurrentFilter(filter);
-  }, []);
+  const handleMaintenanceFormSuccess = useCallback(() => {
+    setShowMaintenanceForm(false);
+    fetchMaintenance();
+  }, [fetchMaintenance]);
 
   const handleSignOut = useCallback(async () => {
     await signOut();
@@ -234,6 +173,15 @@ export const Dashboard = () => {
     });
   }, [signOut]);
 
+  const refreshData = useCallback(async () => {
+    setLoading(true);
+    try {
+      await Promise.all([fetchTrips(), fetchMaintenance()]);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchTrips, fetchMaintenance]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -242,96 +190,100 @@ export const Dashboard = () => {
     );
   }
 
-  const renderMainContent = () => {
-    switch (activeSection) {
-      case 'trips':
-        return (
-          <div className="space-y-6">
-            {showAddForm && <TripForm onSuccess={handleFormSuccess} />}
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/30">
+      {/* Header */}
+      <header className="bg-background shadow-lg border-b border-primary/20 sticky top-0 z-50">
+        <div className="px-4 py-3">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-primary">
+                BSH Taxi Service
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {user?.email} • {userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Loading...'}
+              </p>
+            </div>
+            <Button onClick={handleSignOut} variant="outline" size="sm" className="border-primary/30 hover:bg-primary hover:text-primary-foreground">
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline ml-2">Sign Out</span>
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="p-4 max-w-7xl mx-auto">
+        {/* Summary Cards */}
+        <DashboardSummary data={calculateSummary} />
+
+        {/* Tabs Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsTrigger value="trips" className="flex items-center gap-1 text-xs sm:text-sm">
+              <Car className="h-4 w-4" />
+              <span className="hidden sm:inline">Trips</span>
+            </TabsTrigger>
+            <TabsTrigger value="maintenance" className="flex items-center gap-1 text-xs sm:text-sm">
+              <Wrench className="h-4 w-4" />
+              <span className="hidden sm:inline">Maintenance</span>
+            </TabsTrigger>
+            <TabsTrigger value="upload" className="flex items-center gap-1 text-xs sm:text-sm">
+              <Upload className="h-4 w-4" />
+              <span className="hidden sm:inline">Upload</span>
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="flex items-center gap-1 text-xs sm:text-sm">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Reports</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Trips Tab */}
+          <TabsContent value="trips" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-primary">Trips Management</h2>
+              <Button onClick={() => setShowTripForm(!showTripForm)} size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Add Trip
+              </Button>
+            </div>
+            {showTripForm && <TripForm onSuccess={handleTripFormSuccess} />}
             <TripsTable 
               trips={trips} 
               onTripUpdated={fetchTrips}
               canEdit={true}
             />
-          </div>
-        );
-      case 'maintenance':
-        return (
-          <div className="space-y-6">
-            {showAddForm && <MaintenanceForm onSuccess={handleFormSuccess} />}
+          </TabsContent>
+
+          {/* Maintenance Tab */}
+          <TabsContent value="maintenance" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-primary">Maintenance Records</h2>
+              <Button onClick={() => setShowMaintenanceForm(!showMaintenanceForm)} size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Add Record
+              </Button>
+            </div>
+            {showMaintenanceForm && <MaintenanceForm onSuccess={handleMaintenanceFormSuccess} />}
             <MaintenanceTable 
               maintenance={maintenance} 
-              onMaintenanceUpdated={() => fetchMaintenance()}
+              onMaintenanceUpdated={fetchMaintenance}
               canEdit={true}
             />
-          </div>
-        );
-      case 'upload':
-        return <FileUpload onUploadSuccess={fetchTrips} />;
-      case 'reports':
-        return (
-          <div className="space-y-6">
+          </TabsContent>
+
+          {/* Upload Tab */}
+          <TabsContent value="upload">
+            <FileUpload onUploadSuccess={refreshData} />
+          </TabsContent>
+
+          {/* Reports Tab */}
+          <TabsContent value="reports" className="space-y-6">
             <MonthlyReports />
             <ExpensesReports />
-          </div>
-        );
-      case 'settings':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Settings panel coming soon...</p>
-            </CardContent>
-          </Card>
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gradient-to-br from-background to-muted/30">
-        <AppSidebar 
-          activeSection={activeSection}
-          onSectionChange={handleSectionChange}
-          onAddNew={handleAddNew}
-          onFilterChange={handleFilterChange}
-        />
-        
-        <div className="flex-1 flex flex-col min-h-screen">
-          <header className="bg-background shadow-lg border-b border-primary/20">
-            <div className="px-6 py-4">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <SidebarTrigger className="text-primary hover:bg-primary/10" />
-                  <div>
-                    <h1 className="text-3xl font-bold text-primary">
-                      BSH Taxi Service Management
-                    </h1>
-                    <p className="text-muted-foreground mt-1">
-                      Welcome back, {user?.email} • {userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Loading...'}
-                    </p>
-                  </div>
-                </div>
-                <Button onClick={handleSignOut} variant="outline" className="border-primary/30 hover:bg-primary hover:text-primary-foreground">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </Button>
-              </div>
-            </div>
-          </header>
-
-          <main className="flex-1 px-3 sm:px-6 py-4 sm:py-8 overflow-auto">
-            <div className="w-full max-w-none space-y-4 sm:space-y-8">
-              <DashboardSummary data={calculateSummary} />
-              {renderMainContent()}
-            </div>
-          </main>
-        </div>
-      </div>
-    </SidebarProvider>
+          </TabsContent>
+        </Tabs>
+      </main>
+    </div>
   );
 };
