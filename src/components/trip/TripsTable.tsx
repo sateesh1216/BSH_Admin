@@ -168,14 +168,12 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
                 <TableHead>S.No</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Driver</TableHead>
+                <TableHead>Driver No.</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Customer No.</TableHead>
                 <TableHead>Route</TableHead>
                 <TableHead>Company</TableHead>
                 <TableHead>Driver ₹</TableHead>
-                <TableHead>Commission ₹</TableHead>
-                <TableHead>Fuel Type</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead>Fuel ₹</TableHead>
-                <TableHead>Tolls ₹</TableHead>
                 <TableHead>Trip ₹</TableHead>
                 <TableHead>Profit ₹</TableHead>
                 {canEdit && <TableHead>Actions</TableHead>}
@@ -187,14 +185,12 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{new Date(trip.date).toLocaleDateString()}</TableCell>
                   <TableCell>{trip.driver_name}</TableCell>
+                  <TableCell className="font-mono text-sm">{trip.driver_number}</TableCell>
+                  <TableCell>{trip.customer_name}</TableCell>
+                  <TableCell className="font-mono text-sm">{trip.customer_number}</TableCell>
                   <TableCell>{trip.from_location} → {trip.to_location}</TableCell>
                   <TableCell>{trip.company || '-'}</TableCell>
                   <TableCell>{formatCurrency(trip.driver_amount)}</TableCell>
-                  <TableCell>{formatCurrency(trip.commission)}</TableCell>
-                  <TableCell>{trip.fuel_type}</TableCell>
-                  <TableCell>{trip.payment_mode}</TableCell>
-                  <TableCell>{formatCurrency(trip.fuel_amount)}</TableCell>
-                  <TableCell>{formatCurrency(trip.tolls)}</TableCell>
                   <TableCell>{formatCurrency(trip.trip_amount)}</TableCell>
                   <TableCell className={trip.profit >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
                     {formatCurrency(trip.profit)}
