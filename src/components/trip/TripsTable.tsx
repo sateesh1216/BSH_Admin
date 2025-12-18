@@ -183,6 +183,7 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
                 <TableHead>Route</TableHead>
                 <TableHead>Company</TableHead>
                 <TableHead>Driver ₹</TableHead>
+                <TableHead>Commission ₹</TableHead>
                 <TableHead>Tolls ₹</TableHead>
                 <TableHead>Trip ₹</TableHead>
                 <TableHead>Profit ₹</TableHead>
@@ -201,6 +202,7 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
                   <TableCell>{trip.from_location} → {trip.to_location}</TableCell>
                   <TableCell>{trip.company || '-'}</TableCell>
                   <TableCell>{formatCurrency(trip.driver_amount)}</TableCell>
+                  <TableCell>{formatCurrency(trip.commission)}</TableCell>
                   <TableCell>{formatCurrency(trip.tolls)}</TableCell>
                   <TableCell>{formatCurrency(trip.trip_amount)}</TableCell>
                   <TableCell className={trip.profit >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
