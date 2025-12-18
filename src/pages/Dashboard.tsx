@@ -143,20 +143,38 @@ export const Dashboard = () => {
     }
   }, [isAdmin, user, dateFilter]);
 
-  // Fetch data on mount and when filter changes
+  // Track if initial data has been loaded
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
+  // Fetch data on mount only
   useEffect(() => {
-    if (user) {
+    if (user && !initialLoadComplete) {
       const fetchData = async () => {
         setLoading(true);
         try {
           await Promise.all([fetchTrips(), fetchMaintenance()]);
         } finally {
           setLoading(false);
+          setInitialLoadComplete(true);
         }
       };
       fetchData();
     }
-  }, [user, dateFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch data when filter changes (but not on initial load)
+  useEffect(() => {
+    if (user && initialLoadComplete) {
+      const fetchData = async () => {
+        try {
+          await Promise.all([fetchTrips(), fetchMaintenance()]);
+        } catch (error) {
+          // Error handled in fetch functions
+        }
+      };
+      fetchData();
+    }
+  }, [dateFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const calculateSummary = useMemo(() => {
     const totalTrips = trips.length;
