@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Edit, Trash2, Search, Download, FileText, Receipt } from 'lucide-react';
+import { Edit, Trash2, Search, Download, FileText, Receipt, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,6 +46,7 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
   const [invoiceTrip, setInvoiceTrip] = useState<Trip | null>(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [invoiceWithGST, setInvoiceWithGST] = useState(false);
+  const [showPhoneNumbers, setShowPhoneNumbers] = useState(false);
 
   const filteredTrips = trips.filter(trip =>
     trip.driver_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -158,6 +159,14 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
             <Download className="h-4 w-4" />
             Export to Excel
           </Button>
+          <Button 
+            onClick={() => setShowPhoneNumbers(!showPhoneNumbers)} 
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            {showPhoneNumbers ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showPhoneNumbers ? 'Hide Numbers' : 'Show Numbers'}
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -168,9 +177,9 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
                 <TableHead>S.No</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Driver</TableHead>
-                <TableHead>Driver No.</TableHead>
+                {showPhoneNumbers && <TableHead>Driver No.</TableHead>}
                 <TableHead>Customer</TableHead>
-                <TableHead>Customer No.</TableHead>
+                {showPhoneNumbers && <TableHead>Customer No.</TableHead>}
                 <TableHead>Route</TableHead>
                 <TableHead>Company</TableHead>
                 <TableHead>Driver ₹</TableHead>
@@ -186,9 +195,9 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{new Date(trip.date).toLocaleDateString()}</TableCell>
                   <TableCell>{trip.driver_name}</TableCell>
-                  <TableCell className="font-mono text-sm whitespace-nowrap">{trip.driver_number}</TableCell>
+                  {showPhoneNumbers && <TableCell className="font-mono text-sm whitespace-nowrap">{trip.driver_number}</TableCell>}
                   <TableCell>{trip.customer_name}</TableCell>
-                  <TableCell className="font-mono text-sm whitespace-nowrap">{trip.customer_number}</TableCell>
+                  {showPhoneNumbers && <TableCell className="font-mono text-sm whitespace-nowrap">{trip.customer_number}</TableCell>}
                   <TableCell>{trip.from_location} → {trip.to_location}</TableCell>
                   <TableCell>{trip.company || '-'}</TableCell>
                   <TableCell>{formatCurrency(trip.driver_amount)}</TableCell>
