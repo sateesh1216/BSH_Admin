@@ -67,7 +67,7 @@ export const Dashboard = () => {
 
   const fetchTrips = useCallback(async () => {
     try {
-      let query = supabase.from('trips_secure').select('*');
+      let query = supabase.from('trips').select('*');
       
       if (!isAdmin && user) {
         query = query.eq('created_by', user.id);
@@ -106,7 +106,7 @@ export const Dashboard = () => {
 
   const fetchMaintenance = useCallback(async () => {
     try {
-      let query = supabase.from('maintenance_secure').select('*');
+      let query = supabase.from('maintenance').select('*');
       
       if (!isAdmin && user) {
         query = query.eq('created_by', user.id);
