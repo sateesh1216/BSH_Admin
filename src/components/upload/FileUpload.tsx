@@ -80,13 +80,19 @@ export const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
     }
   };
 
+  const parseNumber = (value: any): number => {
+    if (value === null || value === undefined || value === '') return 0;
+    const num = Number(value);
+    return isNaN(num) ? 0 : num;
+  };
+
   const uploadTrips = async (data: any[]) => {
     const tripsData = data.map((row: any) => {
-      const driver_amount = parseFloat(row['Driver Amount'] || row.driver_amount || 0);
-      const commission = parseFloat(row['Commission'] || row.commission || 0);
-      const fuel_amount = parseFloat(row['Fuel'] || row.fuel_amount || 0);
-      const tolls = parseFloat(row['Tolls'] || row.tolls || 0);
-      const trip_amount = parseFloat(row['Trip Amount'] || row.trip_amount || 0);
+      const driver_amount = parseNumber(row['Driver Amount'] ?? row.driver_amount);
+      const commission = parseNumber(row['Commission'] ?? row.commission);
+      const fuel_amount = parseNumber(row['Fuel'] ?? row.fuel_amount);
+      const tolls = parseNumber(row['Tolls'] ?? row.tolls);
+      const trip_amount = parseNumber(row['Trip Amount'] ?? row.trip_amount);
       const profit = trip_amount - driver_amount - commission - fuel_amount - tolls;
 
       return {
@@ -126,11 +132,11 @@ export const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
       company: row['Company'] || row.company || null,
       maintenance_type: row['Maintenance Type'] || row.maintenance_type || '',
       description: row['Description'] || row.description || null,
-      amount: parseFloat(row['Amount'] || row.amount || 0),
+      amount: parseNumber(row['Amount'] ?? row.amount),
       payment_mode: row['Payment Mode'] || row.payment_mode || 'Cash',
-      km_at_maintenance: parseFloat(row['KM at Maintenance'] || row.km_at_maintenance || 0) || null,
-      next_oil_change_km: parseFloat(row['Next Oil Change KM'] || row.next_oil_change_km || 0) || null,
-      original_odometer_km: parseFloat(row['Original Odometer KM'] || row.original_odometer_km || 0) || null,
+      km_at_maintenance: parseNumber(row['KM at Maintenance'] ?? row.km_at_maintenance) || null,
+      next_oil_change_km: parseNumber(row['Next Oil Change KM'] ?? row.next_oil_change_km) || null,
+      original_odometer_km: parseNumber(row['Original Odometer KM'] ?? row.original_odometer_km) || null,
       created_by: user?.id,
     }));
 
