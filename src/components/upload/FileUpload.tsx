@@ -81,24 +81,34 @@ export const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
   };
 
   const uploadTrips = async (data: any[]) => {
-    const tripsData = data.map((row: any) => ({
-      date: new Date(row.Date || row.date).toISOString().split('T')[0],
-      driver_name: row['Driver Name'] || row.driver_name || '',
-      driver_number: row['Driver Number'] || row.driver_number || '',
-      customer_name: row['Customer Name'] || row.customer_name || '',
-      customer_number: row['Customer Number'] || row.customer_number || '',
-      from_location: row['From'] || row.from_location || '',
-      to_location: row['To'] || row.to_location || '',
-      company: row['Company'] || row.company || null,
-      fuel_type: row['Fuel Type'] || row.fuel_type || 'Petrol',
-      payment_mode: row['Payment Mode'] || row.payment_mode || 'Cash',
-      driver_amount: parseFloat(row['Driver Amount'] || row.driver_amount || 0),
-      commission: parseFloat(row['Commission'] || row.commission || 0),
-      fuel_amount: parseFloat(row['Fuel'] || row.fuel_amount || 0),
-      tolls: parseFloat(row['Tolls'] || row.tolls || 0),
-      trip_amount: parseFloat(row['Trip Amount'] || row.trip_amount || 0),
-      created_by: user?.id,
-    }));
+    const tripsData = data.map((row: any) => {
+      const driver_amount = parseFloat(row['Driver Amount'] || row.driver_amount || 0);
+      const commission = parseFloat(row['Commission'] || row.commission || 0);
+      const fuel_amount = parseFloat(row['Fuel'] || row.fuel_amount || 0);
+      const tolls = parseFloat(row['Tolls'] || row.tolls || 0);
+      const trip_amount = parseFloat(row['Trip Amount'] || row.trip_amount || 0);
+      const profit = trip_amount - driver_amount - commission - fuel_amount - tolls;
+
+      return {
+        date: new Date(row.Date || row.date).toISOString().split('T')[0],
+        driver_name: row['Driver Name'] || row.driver_name || '',
+        driver_number: row['Driver Number'] || row.driver_number || '',
+        customer_name: row['Customer Name'] || row.customer_name || '',
+        customer_number: row['Customer Number'] || row.customer_number || '',
+        from_location: row['From'] || row.from_location || '',
+        to_location: row['To'] || row.to_location || '',
+        company: row['Company'] || row.company || null,
+        fuel_type: row['Fuel Type'] || row.fuel_type || 'Petrol',
+        payment_mode: row['Payment Mode'] || row.payment_mode || 'Cash',
+        driver_amount,
+        commission,
+        fuel_amount,
+        tolls,
+        trip_amount,
+        profit,
+        created_by: user?.id,
+      };
+    });
 
     const { error } = await supabase
       .from('trips')
