@@ -27,6 +27,7 @@ const tripSchema = z.object({
   company: z.string().optional(),
   fuelType: z.enum(['Petrol', 'Diesel', 'CNG', 'EV']),
   paymentMode: z.enum(['Cash', 'UPI', 'Online', 'Credit Card', 'Other']),
+  paymentStatus: z.enum(['paid', 'pending', 'partial']),
   driverAmount: z.number().min(0, 'Amount must be positive'),
   commission: z.number().min(0, 'Amount must be positive'),
   fuelAmount: z.number().min(0, 'Amount must be positive'),
@@ -58,6 +59,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
       company: editData?.company || '',
       fuelType: editData?.fuel_type || 'Petrol',
       paymentMode: editData?.payment_mode || 'Cash',
+      paymentStatus: editData?.payment_status || 'pending',
       driverAmount: editData?.driver_amount || 0,
       commission: editData?.commission || 0,
       fuelAmount: editData?.fuel_amount || 0,
@@ -87,6 +89,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
         company: data.company || null,
         fuel_type: data.fuelType,
         payment_mode: data.paymentMode,
+        payment_status: data.paymentStatus,
         driver_amount: data.driverAmount,
         commission: data.commission,
         fuel_amount: data.fuelAmount,
@@ -270,6 +273,20 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
                   <SelectItem value="Online">Online</SelectItem>
                   <SelectItem value="Credit Card">Credit Card</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Payment Status</Label>
+              <Select onValueChange={(value) => form.setValue('paymentStatus', value as any)} value={form.watch('paymentStatus')}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
                 </SelectContent>
               </Select>
             </div>
