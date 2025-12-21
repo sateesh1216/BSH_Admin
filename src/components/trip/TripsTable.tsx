@@ -92,14 +92,10 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <Badge className="bg-green-500 hover:bg-green-600">Paid</Badge>;
-      case 'partial':
-        return <Badge className="bg-yellow-500 hover:bg-yellow-600">Partial</Badge>;
-      default:
-        return <Badge className="bg-red-500 hover:bg-red-600">Pending</Badge>;
+    if (status === 'paid') {
+      return <Badge className="bg-green-500 hover:bg-green-600">Paid</Badge>;
     }
+    return <Badge className="bg-red-500 hover:bg-red-600">Pending</Badge>;
   };
 
   const handleDelete = async (id: string) => {
@@ -217,7 +213,6 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="paid">Paid</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="partial">Partial</SelectItem>
             </SelectContent>
           </Select>
           <Button onClick={exportToExcel} className="flex items-center gap-2">
@@ -286,7 +281,6 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
                         <SelectContent>
                           <SelectItem value="paid">Paid</SelectItem>
                           <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="partial">Partial</SelectItem>
                         </SelectContent>
                       </Select>
                     ) : (
