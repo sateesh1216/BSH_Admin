@@ -29,6 +29,7 @@ interface Trip {
   company: string;
   fuel_type: string;
   payment_mode: string;
+  payment_status: string;
   driver_amount: number;
   commission: number;
   fuel_amount: number;

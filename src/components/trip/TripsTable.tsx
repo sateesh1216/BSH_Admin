@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Edit, Trash2, Search, Download, FileText, Receipt, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { TripForm } from './TripForm';
 import { InvoiceModal } from '../invoice/InvoiceModal';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +27,7 @@ interface Trip {
   company: string;
   fuel_type: string;
   payment_mode: string;
+  payment_status: string;
   driver_amount: number;
   commission: number;
   fuel_amount: number;
@@ -47,14 +50,57 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [invoiceWithGST, setInvoiceWithGST] = useState(false);
   const [showPhoneNumbers, setShowPhoneNumbers] = useState(false);
+  const [paymentFilter, setPaymentFilter] = useState<string>('all');
 
-  const filteredTrips = trips.filter(trip =>
-    trip.driver_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    trip.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    trip.from_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    trip.to_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    trip.company?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTrips = useMemo(() => {
+    return trips.filter(trip => {
+      const matchesSearch = 
+        trip.driver_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        trip.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        trip.from_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        trip.to_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        trip.company?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesPayment = paymentFilter === 'all' || trip.payment_status === paymentFilter;
+      
+      return matchesSearch && matchesPayment;
+    });
+  }, [trips, searchTerm, paymentFilter]);
+
+  const pendingTotal = useMemo(() => {
+    return trips
+      .filter(t => t.payment_status === 'pending')
+      .reduce((sum, t) => sum + (t.trip_amount || 0), 0);
+  }, [trips]);
+
+  const updatePaymentStatus = async (tripId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('trips')
+        .update({ payment_status: status })
+        .eq('id', tripId);
+
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Success", description: "Payment status updated" });
+      onTripUpdated();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return <Badge className="bg-green-500 hover:bg-green-600">Paid</Badge>;
+      case 'partial':
+        return <Badge className="bg-yellow-500 hover:bg-yellow-600">Partial</Badge>;
+      default:
+        return <Badge className="bg-red-500 hover:bg-red-600">Pending</Badge>;
+    }
+  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -114,6 +160,7 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
       'Commission (₹)': trip.commission,
       'Fuel Type': trip.fuel_type,
       'Payment Mode': trip.payment_mode,
+      'Payment Status': trip.payment_status || 'pending',
       'Fuel (₹)': trip.fuel_amount,
       'Tolls (₹)': trip.tolls,
       'Trip Amount (₹)': trip.trip_amount,
@@ -144,7 +191,14 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="text-primary">Trips Management</CardTitle>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <CardTitle className="text-primary">Trips Management</CardTitle>
+          {pendingTotal > 0 && (
+            <div className="text-sm font-medium text-red-600 bg-red-50 px-3 py-1 rounded-md">
+              Pending Bills: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(pendingTotal)}
+            </div>
+          )}
+        </div>
         <div className="flex flex-col sm:flex-row gap-3 mt-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -155,9 +209,20 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
               className="pl-10"
             />
           </div>
+          <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Payment Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="partial">Partial</SelectItem>
+            </SelectContent>
+          </Select>
           <Button onClick={exportToExcel} className="flex items-center gap-2">
             <Download className="h-4 w-4" />
-            Export to Excel
+            Export
           </Button>
           <Button 
             onClick={() => setShowPhoneNumbers(!showPhoneNumbers)} 
@@ -165,7 +230,7 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
             className="flex items-center gap-2"
           >
             {showPhoneNumbers ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            {showPhoneNumbers ? 'Hide Numbers' : 'Show Numbers'}
+            {showPhoneNumbers ? 'Hide' : 'Show'} No.
           </Button>
         </div>
       </CardHeader>
@@ -187,6 +252,7 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
                 <TableHead>Tolls ₹</TableHead>
                 <TableHead>Trip ₹</TableHead>
                 <TableHead>Profit ₹</TableHead>
+                <TableHead>Status</TableHead>
                 {canEdit && <TableHead>Actions</TableHead>}
               </TableRow>
             </TableHeader>
@@ -207,6 +273,25 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
                   <TableCell>{formatCurrency(trip.trip_amount)}</TableCell>
                   <TableCell className={trip.profit >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
                     {formatCurrency(trip.profit)}
+                  </TableCell>
+                  <TableCell>
+                    {canEdit ? (
+                      <Select 
+                        value={trip.payment_status || 'pending'} 
+                        onValueChange={(val) => updatePaymentStatus(trip.id, val)}
+                      >
+                        <SelectTrigger className="w-[100px] h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="paid">Paid</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="partial">Partial</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      getStatusBadge(trip.payment_status || 'pending')
+                    )}
                   </TableCell>
                   {canEdit && (
                     <TableCell>

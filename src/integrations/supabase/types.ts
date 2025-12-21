@@ -115,6 +115,7 @@ export type Database = {
           fuel_type: string
           id: string
           payment_mode: string
+          payment_status: string
           profit: number | null
           to_location: string
           tolls: number
@@ -137,6 +138,7 @@ export type Database = {
           fuel_type: string
           id?: string
           payment_mode: string
+          payment_status?: string
           profit?: number | null
           to_location: string
           tolls?: number
@@ -159,6 +161,7 @@ export type Database = {
           fuel_type?: string
           id?: string
           payment_mode?: string
+          payment_status?: string
           profit?: number | null
           to_location?: string
           tolls?: number
@@ -243,6 +246,7 @@ export type Database = {
           fuel_type: string | null
           id: string | null
           payment_mode: string | null
+          payment_status: string | null
           profit: number | null
           to_location: string | null
           tolls: number | null
@@ -255,16 +259,17 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           customer_name?: string | null
-          customer_number?: never
+          customer_number?: string | null
           date?: string | null
           driver_amount?: number | null
           driver_name?: string | null
-          driver_number?: never
+          driver_number?: string | null
           from_location?: string | null
           fuel_amount?: number | null
           fuel_type?: string | null
           id?: string | null
           payment_mode?: string | null
+          payment_status?: string | null
           profit?: number | null
           to_location?: string | null
           tolls?: number | null
@@ -277,16 +282,17 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           customer_name?: string | null
-          customer_number?: never
+          customer_number?: string | null
           date?: string | null
           driver_amount?: number | null
           driver_name?: string | null
-          driver_number?: never
+          driver_number?: string | null
           from_location?: string | null
           fuel_amount?: number | null
           fuel_type?: string | null
           id?: string | null
           payment_mode?: string | null
+          payment_status?: string | null
           profit?: number | null
           to_location?: string | null
           tolls?: number | null
