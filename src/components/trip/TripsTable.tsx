@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Edit, Trash2, Search, Download, FileText, Receipt, Eye, EyeOff } from 'lucide-react';
+import { Edit, Trash2, Search, Download, FileText, Receipt, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -190,8 +190,9 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle className="text-primary">Trips Management</CardTitle>
           {pendingTotal > 0 && (
-            <div className="text-sm font-medium text-red-600 bg-red-50 px-3 py-1 rounded-md">
-              Pending Bills: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(pendingTotal)}
+            <div className="flex items-center gap-2 text-sm font-bold text-white bg-gradient-to-r from-red-500 to-red-600 px-4 py-2 rounded-lg shadow-lg animate-pulse">
+              <AlertCircle className="h-5 w-5" />
+              <span>Pending Bills: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(pendingTotal)}</span>
             </div>
           )}
         </div>
