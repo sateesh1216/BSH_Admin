@@ -58,6 +58,7 @@ export const Dashboard = () => {
   const { user, userRole, signOut } = useAuth();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [maintenance, setMaintenance] = useState<Maintenance[]>([]);
+  const [allPendingTotal, setAllPendingTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('trips');
   const [showTripForm, setShowTripForm] = useState(false);
@@ -104,6 +105,32 @@ export const Dashboard = () => {
       });
     }
   }, [isAdmin, user, dateFilter]);
+
+  // Fetch all pending bills total (regardless of date filter)
+  const fetchAllPendingTotal = useCallback(async () => {
+    try {
+      let query = supabase
+        .from('trips')
+        .select('trip_amount')
+        .eq('payment_status', 'pending');
+      
+      if (!isAdmin && user) {
+        query = query.eq('created_by', user.id);
+      }
+      
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching pending total:', error);
+        return;
+      }
+
+      const total = (data || []).reduce((sum, t) => sum + (t.trip_amount || 0), 0);
+      setAllPendingTotal(total);
+    } catch (error) {
+      console.error('Failed to fetch pending total:', error);
+    }
+  }, [isAdmin, user]);
 
   const fetchMaintenance = useCallback(async () => {
     try {
@@ -153,7 +180,7 @@ export const Dashboard = () => {
       const fetchData = async () => {
         setLoading(true);
         try {
-          await Promise.all([fetchTrips(), fetchMaintenance()]);
+          await Promise.all([fetchTrips(), fetchMaintenance(), fetchAllPendingTotal()]);
         } finally {
           setLoading(false);
           setInitialLoadComplete(true);
@@ -199,7 +226,8 @@ export const Dashboard = () => {
   const handleTripFormSuccess = useCallback(() => {
     setShowTripForm(false);
     fetchTrips();
-  }, [fetchTrips]);
+    fetchAllPendingTotal();
+  }, [fetchTrips, fetchAllPendingTotal]);
 
   const handleMaintenanceFormSuccess = useCallback(() => {
     setShowMaintenanceForm(false);
@@ -217,7 +245,7 @@ export const Dashboard = () => {
   const refreshData = useCallback(async () => {
     setLoading(true);
     try {
-      await Promise.all([fetchTrips(), fetchMaintenance()]);
+      await Promise.all([fetchTrips(), fetchMaintenance(), fetchAllPendingTotal()]);
       toast({
         title: "Refreshed",
         description: "Data updated successfully",
@@ -225,7 +253,7 @@ export const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchTrips, fetchMaintenance]);
+  }, [fetchTrips, fetchMaintenance, fetchAllPendingTotal]);
 
   if (loading) {
     return (
@@ -305,8 +333,9 @@ export const Dashboard = () => {
             {showTripForm && <TripForm onSuccess={handleTripFormSuccess} />}
             <TripsTable 
               trips={trips} 
-              onTripUpdated={fetchTrips}
+              onTripUpdated={() => { fetchTrips(); fetchAllPendingTotal(); }}
               canEdit={true}
+              allPendingTotal={allPendingTotal}
             />
           </TabsContent>
 

@@ -40,9 +40,10 @@ interface TripsTableProps {
   trips: Trip[];
   onTripUpdated: () => void;
   canEdit: boolean;
+  allPendingTotal?: number;
 }
 
-export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) => {
+export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: TripsTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -67,11 +68,16 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
     });
   }, [trips, searchTerm, paymentFilter]);
 
-  const pendingTotal = useMemo(() => {
+  // Calculate local pending total from current trips (for fallback)
+  const localPendingTotal = useMemo(() => {
     return trips
       .filter(t => t.payment_status === 'pending')
       .reduce((sum, t) => sum + (t.trip_amount || 0), 0);
   }, [trips]);
+
+  // Use allPendingTotal from parent if provided (shows total across all dates), 
+  // otherwise use local calculation
+  const pendingTotal = allPendingTotal ?? localPendingTotal;
 
   const updatePaymentStatus = async (tripId: string, status: string) => {
     try {
