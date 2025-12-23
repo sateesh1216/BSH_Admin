@@ -190,10 +190,13 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit }: TripsTableProps) =
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle className="text-primary">Trips Management</CardTitle>
           {pendingTotal > 0 && (
-            <div className="flex items-center gap-2 text-base font-extrabold text-white bg-gradient-to-r from-red-600 via-red-500 to-orange-500 px-5 py-3 rounded-xl shadow-xl ring-2 ring-red-300 animate-pulse">
+            <button
+              onClick={() => setPaymentFilter("pending")}
+              className="flex items-center gap-2 text-base font-extrabold text-white bg-gradient-to-r from-red-600 via-red-500 to-orange-500 px-5 py-3 rounded-xl shadow-xl ring-2 ring-red-300 animate-pulse hover:scale-105 transition-transform cursor-pointer"
+            >
               <AlertCircle className="h-6 w-6 animate-bounce" />
               <span className="text-lg">Pending Bills: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(pendingTotal)}</span>
-            </div>
+            </button>
           )}
         </div>
         <div className="flex flex-col sm:flex-row gap-3 mt-4">
