@@ -255,6 +255,7 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
                 <TableHead>Driver ₹</TableHead>
                 <TableHead>Commission ₹</TableHead>
                 <TableHead>Tolls ₹</TableHead>
+                <TableHead>Fuel ₹</TableHead>
                 <TableHead>Trip ₹</TableHead>
                 <TableHead>Profit ₹</TableHead>
                 <TableHead>Status</TableHead>
@@ -275,6 +276,7 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
                   <TableCell>{formatCurrency(trip.driver_amount)}</TableCell>
                   <TableCell>{formatCurrency(trip.commission)}</TableCell>
                   <TableCell>{formatCurrency(trip.tolls)}</TableCell>
+                  <TableCell>{formatCurrency(trip.fuel_amount)}</TableCell>
                   <TableCell>{formatCurrency(trip.trip_amount)}</TableCell>
                   <TableCell className={trip.profit >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
                     {formatCurrency(trip.profit)}
