@@ -68,6 +68,18 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
     });
   }, [trips, searchTerm, paymentFilter]);
 
+  // Calculate totals for filtered trips
+  const filteredTotals = useMemo(() => {
+    return {
+      driver_amount: filteredTrips.reduce((sum, t) => sum + (t.driver_amount || 0), 0),
+      commission: filteredTrips.reduce((sum, t) => sum + (t.commission || 0), 0),
+      tolls: filteredTrips.reduce((sum, t) => sum + (t.tolls || 0), 0),
+      fuel_amount: filteredTrips.reduce((sum, t) => sum + (t.fuel_amount || 0), 0),
+      trip_amount: filteredTrips.reduce((sum, t) => sum + (t.trip_amount || 0), 0),
+      profit: filteredTrips.reduce((sum, t) => sum + (t.profit || 0), 0),
+    };
+  }, [filteredTrips]);
+
   // Calculate local pending total from current trips (for fallback)
   const localPendingTotal = useMemo(() => {
     return trips
@@ -354,6 +366,24 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
                   )}
                 </TableRow>
               ))}
+              {/* Totals Row */}
+              {filteredTrips.length > 0 && (
+                <TableRow className="bg-muted/50 font-bold border-t-2 border-primary">
+                  <TableCell colSpan={showPhoneNumbers ? 8 : 6} className="text-right text-primary">
+                    Total ({filteredTrips.length} trips):
+                  </TableCell>
+                  <TableCell className="text-primary">{formatCurrency(filteredTotals.driver_amount)}</TableCell>
+                  <TableCell className="text-primary">{formatCurrency(filteredTotals.commission)}</TableCell>
+                  <TableCell className="text-primary">{formatCurrency(filteredTotals.tolls)}</TableCell>
+                  <TableCell className="text-primary">{formatCurrency(filteredTotals.fuel_amount)}</TableCell>
+                  <TableCell className="text-primary">{formatCurrency(filteredTotals.trip_amount)}</TableCell>
+                  <TableCell className={filteredTotals.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
+                    {formatCurrency(filteredTotals.profit)}
+                  </TableCell>
+                  <TableCell></TableCell>
+                  {canEdit && <TableCell></TableCell>}
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
