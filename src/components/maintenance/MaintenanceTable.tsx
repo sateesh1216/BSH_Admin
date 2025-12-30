@@ -127,6 +127,7 @@ export const MaintenanceTable = ({ maintenance, onMaintenanceUpdated, canEdit }:
                   <th className="text-left py-4 px-6 font-semibold text-foreground">Driver</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground">Driver No.</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground">Type</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground">Description</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground">Amount</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground">Payment</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground">KM</th>
@@ -160,6 +161,11 @@ export const MaintenanceTable = ({ maintenance, onMaintenanceUpdated, canEdit }:
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                         {record.maintenance_type}
                       </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="text-sm text-muted-foreground max-w-[200px] truncate" title={record.description || '-'}>
+                        {record.description || '-'}
+                      </div>
                     </td>
                     <td className="py-4 px-6">
                       <div className="font-semibold text-lg text-primary">
