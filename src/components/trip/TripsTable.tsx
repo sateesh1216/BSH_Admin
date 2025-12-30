@@ -275,6 +275,24 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
               </TableRow>
             </TableHeader>
             <TableBody>
+              {/* Totals Row at Top */}
+              {filteredTrips.length > 0 && (
+                <TableRow className="bg-muted/50 font-bold border-b-2 border-primary">
+                  <TableCell colSpan={showPhoneNumbers ? 8 : 6} className="text-right text-primary">
+                    Total ({filteredTrips.length} trips):
+                  </TableCell>
+                  <TableCell className="text-primary">{formatCurrency(filteredTotals.driver_amount)}</TableCell>
+                  <TableCell className="text-primary">{formatCurrency(filteredTotals.commission)}</TableCell>
+                  <TableCell className="text-primary">{formatCurrency(filteredTotals.tolls)}</TableCell>
+                  <TableCell className="text-primary">{formatCurrency(filteredTotals.fuel_amount)}</TableCell>
+                  <TableCell className="text-primary">{formatCurrency(filteredTotals.trip_amount)}</TableCell>
+                  <TableCell className={filteredTotals.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
+                    {formatCurrency(filteredTotals.profit)}
+                  </TableCell>
+                  <TableCell></TableCell>
+                  {canEdit && <TableCell></TableCell>}
+                </TableRow>
+              )}
               {filteredTrips.map((trip, index) => (
                 <TableRow key={trip.id}>
                   <TableCell>{index + 1}</TableCell>
@@ -366,24 +384,6 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
                   )}
                 </TableRow>
               ))}
-              {/* Totals Row */}
-              {filteredTrips.length > 0 && (
-                <TableRow className="bg-muted/50 font-bold border-t-2 border-primary">
-                  <TableCell colSpan={showPhoneNumbers ? 8 : 6} className="text-right text-primary">
-                    Total ({filteredTrips.length} trips):
-                  </TableCell>
-                  <TableCell className="text-primary">{formatCurrency(filteredTotals.driver_amount)}</TableCell>
-                  <TableCell className="text-primary">{formatCurrency(filteredTotals.commission)}</TableCell>
-                  <TableCell className="text-primary">{formatCurrency(filteredTotals.tolls)}</TableCell>
-                  <TableCell className="text-primary">{formatCurrency(filteredTotals.fuel_amount)}</TableCell>
-                  <TableCell className="text-primary">{formatCurrency(filteredTotals.trip_amount)}</TableCell>
-                  <TableCell className={filteredTotals.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
-                    {formatCurrency(filteredTotals.profit)}
-                  </TableCell>
-                  <TableCell></TableCell>
-                  {canEdit && <TableCell></TableCell>}
-                </TableRow>
-              )}
             </TableBody>
           </Table>
         </div>
