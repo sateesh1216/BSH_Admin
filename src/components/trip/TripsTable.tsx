@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Edit, Trash2, Search, Download, FileText, Receipt, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Edit, Trash2, Search, Download, FileText, Receipt, Eye, EyeOff, AlertCircle, Clock } from 'lucide-react';
+import { isAfter, startOfDay, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -114,6 +115,12 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
       return <Badge className="bg-green-500 hover:bg-green-600">Paid</Badge>;
     }
     return <Badge className="bg-red-500 hover:bg-red-600">Pending</Badge>;
+  };
+
+  const isUpcomingTrip = (tripDate: string) => {
+    const today = startOfDay(new Date());
+    const tripDay = startOfDay(parseISO(tripDate));
+    return isAfter(tripDay, today);
   };
 
   const handleDelete = async (id: string) => {
@@ -293,10 +300,27 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
                   {canEdit && <TableCell></TableCell>}
                 </TableRow>
               )}
-              {filteredTrips.map((trip, index) => (
-                <TableRow key={trip.id}>
+              {filteredTrips.map((trip, index) => {
+                const upcoming = isUpcomingTrip(trip.date);
+                return (
+                <TableRow 
+                  key={trip.id}
+                  className={upcoming ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-l-4 border-l-orange-500' : ''}
+                >
                   <TableCell>{index + 1}</TableCell>
-                  <TableCell>{new Date(trip.date).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {upcoming && (
+                        <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white animate-pulse flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Upcoming
+                        </Badge>
+                      )}
+                      <span className={upcoming ? 'font-semibold text-orange-700 dark:text-orange-400' : ''}>
+                        {new Date(trip.date).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </TableCell>
                   <TableCell>{trip.driver_name}</TableCell>
                   {showPhoneNumbers && <TableCell className="font-mono text-sm whitespace-nowrap">{trip.driver_number}</TableCell>}
                   <TableCell>{trip.customer_name}</TableCell>
@@ -383,7 +407,8 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
                     </TableCell>
                   )}
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </div>
