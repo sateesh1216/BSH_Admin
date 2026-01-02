@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw } from 'lucide-react';
+import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell } from 'lucide-react';
+import { startOfDay, parseISO, isAfter } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DashboardSummary } from '@/components/dashboard/DashboardSummary';
@@ -223,6 +224,15 @@ export const Dashboard = () => {
     };
   }, [trips, maintenance]);
 
+  // Calculate upcoming trips count
+  const upcomingTripsCount = useMemo(() => {
+    const today = startOfDay(new Date());
+    return trips.filter(trip => {
+      const tripDay = startOfDay(parseISO(trip.date));
+      return isAfter(tripDay, today);
+    }).length;
+  }, [trips]);
+
   const handleTripFormSuccess = useCallback(() => {
     setShowTripForm(false);
     fetchTrips();
@@ -278,6 +288,19 @@ export const Dashboard = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {/* Upcoming Trips Notification Bell */}
+              {upcomingTripsCount > 0 && (
+                <button
+                  onClick={() => setActiveTab('trips')}
+                  className="relative flex items-center justify-center p-2 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg hover:scale-105 transition-transform animate-pulse"
+                  title={`${upcomingTripsCount} upcoming trip${upcomingTripsCount > 1 ? 's' : ''}`}
+                >
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1 text-xs font-bold bg-red-600 text-white rounded-full shadow-md">
+                    {upcomingTripsCount}
+                  </span>
+                </button>
+              )}
               <Button onClick={refreshData} variant="outline" size="sm" title="Refresh Data">
                 <RefreshCw className="h-4 w-4" />
               </Button>
