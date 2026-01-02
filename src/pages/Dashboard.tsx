@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell } from 'lucide-react';
 import { startOfDay, parseISO, isAfter } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DashboardSummary } from '@/components/dashboard/DashboardSummary';
 import { TripForm } from '@/components/trip/TripForm';
@@ -224,14 +226,16 @@ export const Dashboard = () => {
     };
   }, [trips, maintenance]);
 
-  // Calculate upcoming trips count
-  const upcomingTripsCount = useMemo(() => {
+  // Get upcoming trips
+  const upcomingTrips = useMemo(() => {
     const today = startOfDay(new Date());
     return trips.filter(trip => {
       const tripDay = startOfDay(parseISO(trip.date));
       return isAfter(tripDay, today);
-    }).length;
+    }).sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
   }, [trips]);
+
+  const upcomingTripsCount = upcomingTrips.length;
 
   const handleTripFormSuccess = useCallback(() => {
     setShowTripForm(false);
@@ -288,18 +292,76 @@ export const Dashboard = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {/* Upcoming Trips Notification Bell */}
+              {/* Upcoming Trips Notification Bell with Dropdown */}
               {upcomingTripsCount > 0 && (
-                <button
-                  onClick={() => setActiveTab('trips')}
-                  className="relative flex items-center justify-center p-2 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg hover:scale-105 transition-transform animate-pulse"
-                  title={`${upcomingTripsCount} upcoming trip${upcomingTripsCount > 1 ? 's' : ''}`}
-                >
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1 text-xs font-bold bg-red-600 text-white rounded-full shadow-md">
-                    {upcomingTripsCount}
-                  </span>
-                </button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      className="relative flex items-center justify-center p-2 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg hover:scale-105 transition-transform animate-pulse"
+                      title={`${upcomingTripsCount} upcoming trip${upcomingTripsCount > 1 ? 's' : ''}`}
+                    >
+                      <Bell className="h-5 w-5" />
+                      <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1 text-xs font-bold bg-red-600 text-white rounded-full shadow-md">
+                        {upcomingTripsCount}
+                      </span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0 bg-background border shadow-xl z-50" align="end">
+                    <div className="p-3 border-b bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-t-md">
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <Bell className="h-4 w-4" />
+                        Upcoming Trips ({upcomingTripsCount})
+                      </h3>
+                    </div>
+                    <ScrollArea className="max-h-72">
+                      <div className="p-2 space-y-2">
+                        {upcomingTrips.slice(0, 10).map((trip) => (
+                          <div 
+                            key={trip.id} 
+                            className="p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors border-l-4 border-l-orange-500"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm text-foreground truncate">
+                                  {trip.customer_name}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {trip.from_location} → {trip.to_location}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Driver: {trip.driver_name}
+                                </p>
+                              </div>
+                              <div className="text-right ml-2 shrink-0">
+                                <p className="text-xs font-medium text-orange-600 dark:text-orange-400">
+                                  {format(parseISO(trip.date), 'dd MMM')}
+                                </p>
+                                <p className="text-xs font-semibold text-primary mt-0.5">
+                                  ₹{trip.trip_amount.toLocaleString('en-IN')}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {upcomingTripsCount > 10 && (
+                          <p className="text-center text-xs text-muted-foreground py-2">
+                            +{upcomingTripsCount - 10} more upcoming trips
+                          </p>
+                        )}
+                      </div>
+                    </ScrollArea>
+                    <div className="p-2 border-t">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => setActiveTab('trips')}
+                      >
+                        View All Trips
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               )}
               <Button onClick={refreshData} variant="outline" size="sm" title="Refresh Data">
                 <RefreshCw className="h-4 w-4" />
