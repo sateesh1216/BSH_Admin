@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell } from 'lucide-react';
+import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus } from 'lucide-react';
 import { startOfDay, parseISO, isAfter } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -13,6 +13,8 @@ import { MonthlyReports } from '@/components/reports/MonthlyReports';
 import { ExpensesReports } from '@/components/reports/ExpensesReports';
 import { MaintenanceForm } from '@/components/maintenance/MaintenanceForm';
 import { MaintenanceTable } from '@/components/maintenance/MaintenanceTable';
+import { OutsideVehicleTripForm } from '@/components/outside-vehicle/OutsideVehicleTripForm';
+import { OutsideVehicleTripsTable } from '@/components/outside-vehicle/OutsideVehicleTripsTable';
 import { DateFilter, DateFilterOptions } from '@/components/filters/DateFilter';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -57,15 +59,33 @@ interface Maintenance {
   original_odometer_km: number | null;
 }
 
+interface OutsideVehicleTrip {
+  id: string;
+  date: string;
+  driver_name: string;
+  driver_number: string;
+  travel_company: string;
+  vehicle_type: string;
+  from_location: string;
+  to_location: string;
+  travel_name: string;
+  trip_given_company: string;
+  payment_mode: string;
+  payment_status: string;
+  trip_amount: number;
+}
+
 export const Dashboard = () => {
   const { user, userRole, signOut } = useAuth();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [maintenance, setMaintenance] = useState<Maintenance[]>([]);
+  const [outsideVehicleTrips, setOutsideVehicleTrips] = useState<OutsideVehicleTrip[]>([]);
   const [allPendingTotal, setAllPendingTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('trips');
   const [showTripForm, setShowTripForm] = useState(false);
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
+  const [showOutsideVehicleTripForm, setShowOutsideVehicleTripForm] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilterOptions>({ type: 'all' });
 
   const isAdmin = userRole === 'admin';
@@ -174,6 +194,45 @@ export const Dashboard = () => {
     }
   }, [isAdmin, user, dateFilter]);
 
+  const fetchOutsideVehicleTrips = useCallback(async () => {
+    try {
+      let query = supabase.from('outside_vehicle_trips').select('*');
+      
+      if (!isAdmin && user) {
+        query = query.eq('created_by', user.id);
+      }
+
+      // Apply date filtering
+      if (dateFilter.type === 'monthly' && dateFilter.month) {
+        const [year, month] = dateFilter.month.split('-');
+        const startOfMonth = `${dateFilter.month}-01`;
+        const endOfMonth = format(new Date(parseInt(year), parseInt(month), 0), 'yyyy-MM-dd');
+        query = query.gte('date', startOfMonth).lte('date', endOfMonth);
+      } else if (dateFilter.type === 'yearly' && dateFilter.year) {
+        query = query.gte('date', `${dateFilter.year}-01-01`).lte('date', `${dateFilter.year}-12-31`);
+      }
+      
+      const { data, error } = await query.order('date', { ascending: false });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setOutsideVehicleTrips(data || []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch outside vehicle trips",
+        variant: "destructive",
+      });
+    }
+  }, [isAdmin, user, dateFilter]);
+
   // Track if initial data has been loaded
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
@@ -183,7 +242,7 @@ export const Dashboard = () => {
       const fetchData = async () => {
         setLoading(true);
         try {
-          await Promise.all([fetchTrips(), fetchMaintenance(), fetchAllPendingTotal()]);
+          await Promise.all([fetchTrips(), fetchMaintenance(), fetchOutsideVehicleTrips(), fetchAllPendingTotal()]);
         } finally {
           setLoading(false);
           setInitialLoadComplete(true);
@@ -198,7 +257,7 @@ export const Dashboard = () => {
     if (user && initialLoadComplete) {
       const fetchData = async () => {
         try {
-          await Promise.all([fetchTrips(), fetchMaintenance()]);
+          await Promise.all([fetchTrips(), fetchMaintenance(), fetchOutsideVehicleTrips()]);
         } catch (error) {
           // Error handled in fetch functions
         }
@@ -248,6 +307,11 @@ export const Dashboard = () => {
     fetchMaintenance();
   }, [fetchMaintenance]);
 
+  const handleOutsideVehicleTripFormSuccess = useCallback(() => {
+    setShowOutsideVehicleTripForm(false);
+    fetchOutsideVehicleTrips();
+  }, [fetchOutsideVehicleTrips]);
+
   const handleSignOut = useCallback(async () => {
     await signOut();
     toast({
@@ -259,7 +323,7 @@ export const Dashboard = () => {
   const refreshData = useCallback(async () => {
     setLoading(true);
     try {
-      await Promise.all([fetchTrips(), fetchMaintenance(), fetchAllPendingTotal()]);
+      await Promise.all([fetchTrips(), fetchMaintenance(), fetchOutsideVehicleTrips(), fetchAllPendingTotal()]);
       toast({
         title: "Refreshed",
         description: "Data updated successfully",
@@ -267,7 +331,7 @@ export const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchTrips, fetchMaintenance, fetchAllPendingTotal]);
+  }, [fetchTrips, fetchMaintenance, fetchOutsideVehicleTrips, fetchAllPendingTotal]);
 
   if (loading) {
     return (
@@ -387,10 +451,14 @@ export const Dashboard = () => {
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-          <TabsList className="grid w-full grid-cols-4 mb-4">
+          <TabsList className="grid w-full grid-cols-5 mb-4">
             <TabsTrigger value="trips" className="flex items-center gap-1 text-xs sm:text-sm">
               <Car className="h-4 w-4" />
               <span className="hidden sm:inline">Trips</span>
+            </TabsTrigger>
+            <TabsTrigger value="outside-vehicle" className="flex items-center gap-1 text-xs sm:text-sm">
+              <Bus className="h-4 w-4" />
+              <span className="hidden sm:inline">Outside</span>
             </TabsTrigger>
             <TabsTrigger value="maintenance" className="flex items-center gap-1 text-xs sm:text-sm">
               <Wrench className="h-4 w-4" />
@@ -421,6 +489,23 @@ export const Dashboard = () => {
               onTripUpdated={() => { fetchTrips(); fetchAllPendingTotal(); }}
               canEdit={true}
               allPendingTotal={allPendingTotal}
+            />
+          </TabsContent>
+
+          {/* Outside Vehicle Trips Tab */}
+          <TabsContent value="outside-vehicle" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-primary">Outside Vehicle's Trips</h2>
+              <Button onClick={() => setShowOutsideVehicleTripForm(!showOutsideVehicleTripForm)} size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Add Trip
+              </Button>
+            </div>
+            {showOutsideVehicleTripForm && <OutsideVehicleTripForm onSuccess={handleOutsideVehicleTripFormSuccess} />}
+            <OutsideVehicleTripsTable 
+              trips={outsideVehicleTrips} 
+              onTripUpdated={fetchOutsideVehicleTrips}
+              canEdit={true}
             />
           </TabsContent>
 

@@ -71,6 +71,63 @@ export type Database = {
         }
         Relationships: []
       }
+      outside_vehicle_trips: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          date: string
+          driver_name: string
+          driver_number: string
+          from_location: string
+          id: string
+          payment_mode: string
+          payment_status: string
+          to_location: string
+          travel_company: string
+          travel_name: string
+          trip_amount: number
+          trip_given_company: string
+          updated_at: string | null
+          vehicle_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          date: string
+          driver_name: string
+          driver_number: string
+          from_location: string
+          id?: string
+          payment_mode: string
+          payment_status?: string
+          to_location: string
+          travel_company: string
+          travel_name: string
+          trip_amount?: number
+          trip_given_company: string
+          updated_at?: string | null
+          vehicle_type: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          driver_name?: string
+          driver_number?: string
+          from_location?: string
+          id?: string
+          payment_mode?: string
+          payment_status?: string
+          to_location?: string
+          travel_company?: string
+          travel_name?: string
+          trip_amount?: number
+          trip_given_company?: string
+          updated_at?: string | null
+          vehicle_type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
