@@ -275,6 +275,13 @@ export const Dashboard = () => {
     const totalExpenses = tripExpenses + maintenanceExpenses;
     const totalProfit = trips.reduce((sum, trip) => sum + trip.profit, 0) - maintenanceExpenses;
 
+    // Outside Vehicle Trips summary
+    const totalOutsideVehicleTrips = outsideVehicleTrips.length;
+    const totalOutsideVehicleMoney = outsideVehicleTrips.reduce((sum, trip) => sum + trip.trip_amount, 0);
+    const pendingOutsideVehicleMoney = outsideVehicleTrips
+      .filter(trip => trip.payment_status === 'pending')
+      .reduce((sum, trip) => sum + trip.trip_amount, 0);
+
     return {
       totalTrips,
       totalTripMoney,
@@ -282,8 +289,11 @@ export const Dashboard = () => {
       totalProfit,
       totalMaintenance: maintenance.length,
       maintenanceExpenses,
+      totalOutsideVehicleTrips,
+      totalOutsideVehicleMoney,
+      pendingOutsideVehicleMoney,
     };
-  }, [trips, maintenance]);
+  }, [trips, maintenance, outsideVehicleTrips]);
 
   // Get upcoming trips
   const upcomingTrips = useMemo(() => {
