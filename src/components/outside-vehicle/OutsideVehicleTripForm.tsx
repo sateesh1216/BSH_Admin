@@ -205,6 +205,13 @@ export function OutsideVehicleTripForm({ onSuccess, editData }: OutsideVehicleTr
               {errors.vehicle_type && <p className="text-sm text-destructive">{errors.vehicle_type.message}</p>}
             </div>
 
+            {/* Vehicle Number */}
+            <div className="space-y-2">
+              <Label htmlFor="vehicle_number">Vehicle Number</Label>
+              <Input id="vehicle_number" placeholder="Enter vehicle number" {...register('vehicle_number')} />
+              {errors.vehicle_number && <p className="text-sm text-destructive">{errors.vehicle_number.message}</p>}
+            </div>
+
             {/* From */}
             <div className="space-y-2">
               <Label htmlFor="from_location">From</Label>
@@ -217,13 +224,6 @@ export function OutsideVehicleTripForm({ onSuccess, editData }: OutsideVehicleTr
               <Label htmlFor="to_location">To</Label>
               <Input id="to_location" placeholder="Enter to location" {...register('to_location')} />
               {errors.to_location && <p className="text-sm text-destructive">{errors.to_location.message}</p>}
-            </div>
-
-            {/* Vehicle Number */}
-            <div className="space-y-2">
-              <Label htmlFor="vehicle_number">Vehicle Number</Label>
-              <Input id="vehicle_number" placeholder="Enter vehicle number" {...register('vehicle_number')} />
-              {errors.vehicle_number && <p className="text-sm text-destructive">{errors.vehicle_number.message}</p>}
             </div>
 
             {/* Trip Given Company */}
