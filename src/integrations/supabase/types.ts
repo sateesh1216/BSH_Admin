@@ -84,10 +84,10 @@ export type Database = {
           payment_status: string
           to_location: string
           travel_company: string
-          travel_name: string
           trip_amount: number
           trip_given_company: string
           updated_at: string | null
+          vehicle_number: string
           vehicle_type: string
         }
         Insert: {
@@ -102,10 +102,10 @@ export type Database = {
           payment_status?: string
           to_location: string
           travel_company: string
-          travel_name: string
           trip_amount?: number
           trip_given_company: string
           updated_at?: string | null
+          vehicle_number: string
           vehicle_type: string
         }
         Update: {
@@ -120,10 +120,10 @@ export type Database = {
           payment_status?: string
           to_location?: string
           travel_company?: string
-          travel_name?: string
           trip_amount?: number
           trip_given_company?: string
           updated_at?: string | null
+          vehicle_number?: string
           vehicle_type?: string
         }
         Relationships: []

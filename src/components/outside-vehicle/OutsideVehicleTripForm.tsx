@@ -32,7 +32,7 @@ const outsideVehicleTripSchema = z.object({
   vehicle_type: z.string().min(1, 'Vehicle type is required'),
   from_location: z.string().min(1, 'From location is required'),
   to_location: z.string().min(1, 'To location is required'),
-  travel_name: z.string().min(1, 'Travel name is required'),
+  vehicle_number: z.string().min(1, 'Vehicle number is required'),
   trip_given_company: z.string().min(1, 'Trip given company is required'),
   payment_mode: z.string().min(1, 'Payment mode is required'),
   payment_status: z.string().min(1, 'Payment status is required'),
@@ -66,7 +66,7 @@ export function OutsideVehicleTripForm({ onSuccess, editData }: OutsideVehicleTr
       vehicle_type: '',
       from_location: '',
       to_location: '',
-      travel_name: '',
+      vehicle_number: '',
       trip_given_company: '',
       payment_mode: 'Cash',
       payment_status: 'pending',
@@ -97,7 +97,7 @@ export function OutsideVehicleTripForm({ onSuccess, editData }: OutsideVehicleTr
             vehicle_type: data.vehicle_type,
             from_location: data.from_location,
             to_location: data.to_location,
-            travel_name: data.travel_name,
+            vehicle_number: data.vehicle_number,
             trip_given_company: data.trip_given_company,
             payment_mode: data.payment_mode,
             payment_status: data.payment_status,
@@ -122,7 +122,7 @@ export function OutsideVehicleTripForm({ onSuccess, editData }: OutsideVehicleTr
             vehicle_type: data.vehicle_type,
             from_location: data.from_location,
             to_location: data.to_location,
-            travel_name: data.travel_name,
+            vehicle_number: data.vehicle_number,
             trip_given_company: data.trip_given_company,
             payment_mode: data.payment_mode,
             payment_status: data.payment_status,
@@ -219,11 +219,11 @@ export function OutsideVehicleTripForm({ onSuccess, editData }: OutsideVehicleTr
               {errors.to_location && <p className="text-sm text-destructive">{errors.to_location.message}</p>}
             </div>
 
-            {/* Travel Name */}
+            {/* Vehicle Number */}
             <div className="space-y-2">
-              <Label htmlFor="travel_name">Travel Name</Label>
-              <Input id="travel_name" placeholder="Enter travel name" {...register('travel_name')} />
-              {errors.travel_name && <p className="text-sm text-destructive">{errors.travel_name.message}</p>}
+              <Label htmlFor="vehicle_number">Vehicle Number</Label>
+              <Input id="vehicle_number" placeholder="Enter vehicle number" {...register('vehicle_number')} />
+              {errors.vehicle_number && <p className="text-sm text-destructive">{errors.vehicle_number.message}</p>}
             </div>
 
             {/* Trip Given Company */}

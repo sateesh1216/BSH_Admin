@@ -23,7 +23,7 @@ interface OutsideVehicleTrip {
   vehicle_type: string;
   from_location: string;
   to_location: string;
-  travel_name: string;
+  vehicle_number: string;
   trip_given_company: string;
   payment_mode: string;
   payment_status: string;
@@ -48,7 +48,7 @@ export function OutsideVehicleTripsTable({ trips, onTripUpdated, canEdit }: Outs
       const matchesSearch =
         trip.driver_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         trip.travel_company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trip.travel_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        trip.vehicle_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
         trip.from_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
         trip.to_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
         trip.trip_given_company.toLowerCase().includes(searchTerm.toLowerCase());
@@ -126,7 +126,7 @@ export function OutsideVehicleTripsTable({ trips, onTripUpdated, canEdit }: Outs
       'Vehicle Type': trip.vehicle_type,
       From: trip.from_location,
       To: trip.to_location,
-      'Travel Name': trip.travel_name,
+      'Vehicle Number': trip.vehicle_number,
       'Trip Given Company': trip.trip_given_company,
       'Payment Mode': trip.payment_mode,
       'Payment Status': trip.payment_status,
@@ -209,7 +209,7 @@ export function OutsideVehicleTripsTable({ trips, onTripUpdated, canEdit }: Outs
                 <TableHead>Travel Company</TableHead>
                 <TableHead>Vehicle</TableHead>
                 <TableHead>Route</TableHead>
-                <TableHead>Travel Name</TableHead>
+                <TableHead>Vehicle No.</TableHead>
                 <TableHead>Given By</TableHead>
                 <TableHead>Payment</TableHead>
                 <TableHead>Status</TableHead>
@@ -240,7 +240,7 @@ export function OutsideVehicleTripsTable({ trips, onTripUpdated, canEdit }: Outs
                       {trip.from_location} → {trip.to_location}
                     </span>
                   </TableCell>
-                  <TableCell>{trip.travel_name}</TableCell>
+                  <TableCell>{trip.vehicle_number}</TableCell>
                   <TableCell>{trip.trip_given_company}</TableCell>
                   <TableCell>{trip.payment_mode}</TableCell>
                   <TableCell>

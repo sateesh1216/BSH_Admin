@@ -68,7 +68,7 @@ interface OutsideVehicleTrip {
   vehicle_type: string;
   from_location: string;
   to_location: string;
-  travel_name: string;
+  vehicle_number: string;
   trip_given_company: string;
   payment_mode: string;
   payment_status: string;
