@@ -1,12 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Edit, Trash2, Search, Download, FileText, Receipt, Eye, EyeOff, AlertCircle, Clock } from 'lucide-react';
+import { Pencil, Trash2, Download, FileText, Receipt, Phone, PhoneOff, AlertCircle, Clock } from 'lucide-react';
 import { isAfter, startOfDay, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { TripForm } from './TripForm';
@@ -210,213 +209,177 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
   };
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <CardTitle className="text-primary">Trips Management</CardTitle>
-          {pendingTotal > 0 && (
-            <button
-              onClick={() => setPaymentFilter("pending")}
-              className="flex items-center gap-2 text-base font-extrabold text-white bg-gradient-to-r from-red-600 via-red-500 to-orange-500 px-5 py-3 rounded-xl shadow-xl ring-2 ring-red-300 animate-pulse hover:scale-105 transition-transform cursor-pointer"
-            >
-              <AlertCircle className="h-6 w-6 animate-bounce" />
-              <span className="text-lg">Pending Bills: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(pendingTotal)}</span>
-            </button>
-          )}
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3 mt-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+    <Card className="border-primary/20 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <CardTitle className="text-primary">Trips Management ({filteredTrips.length})</CardTitle>
+            {pendingTotal > 0 && (
+              <button
+                onClick={() => setPaymentFilter("pending")}
+                className="flex items-center gap-2 text-sm font-bold text-white bg-gradient-to-r from-red-600 via-red-500 to-orange-500 px-3 py-2 rounded-lg shadow-lg animate-pulse hover:scale-105 transition-transform cursor-pointer"
+              >
+                <AlertCircle className="h-4 w-4" />
+                <span>Pending: {formatCurrency(pendingTotal)}</span>
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
             <Input
               placeholder="Search trips..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="w-full sm:w-48"
             />
+            <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Filter" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border shadow-lg z-50">
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={() => setShowPhoneNumbers(!showPhoneNumbers)}>
+              {showPhoneNumbers ? <PhoneOff className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
+            </Button>
+            <Button onClick={exportToExcel} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-1" />
+              Export
+            </Button>
           </div>
-          <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Payment Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={exportToExcel} className="flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-          <Button 
-            onClick={() => setShowPhoneNumbers(!showPhoneNumbers)} 
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            {showPhoneNumbers ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            {showPhoneNumbers ? 'Hide' : 'Show'} No.
-          </Button>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
+      <CardContent className="pt-4 overflow-x-auto">
+        {filteredTrips.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">
+            No trips found. {searchTerm && `Try adjusting your search term "${searchTerm}".`}
+          </p>
+        ) : (
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>S.No</TableHead>
+              <TableRow className="bg-muted/50">
                 <TableHead>Date</TableHead>
                 <TableHead>Driver</TableHead>
-                {showPhoneNumbers && <TableHead>Driver No.</TableHead>}
+                {showPhoneNumbers && <TableHead>Phone</TableHead>}
                 <TableHead>Customer</TableHead>
-                {showPhoneNumbers && <TableHead>Customer No.</TableHead>}
+                {showPhoneNumbers && <TableHead>Phone</TableHead>}
                 <TableHead>Route</TableHead>
                 <TableHead>Company</TableHead>
-                <TableHead>Driver ₹</TableHead>
-                <TableHead>Commission ₹</TableHead>
-                <TableHead>Tolls ₹</TableHead>
-                <TableHead>Fuel ₹</TableHead>
-                <TableHead>Trip ₹</TableHead>
-                <TableHead>Profit ₹</TableHead>
+                <TableHead className="text-right">Driver ₹</TableHead>
+                <TableHead className="text-right">Commission</TableHead>
+                <TableHead className="text-right">Tolls</TableHead>
+                <TableHead className="text-right">Fuel</TableHead>
+                <TableHead className="text-right">Trip ₹</TableHead>
+                <TableHead className="text-right">Profit</TableHead>
                 <TableHead>Status</TableHead>
                 {canEdit && <TableHead>Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {/* Totals Row at Top */}
-              {filteredTrips.length > 0 && (
-                <TableRow className="bg-muted/50 font-bold border-b-2 border-primary">
-                  <TableCell colSpan={showPhoneNumbers ? 8 : 6} className="text-right text-primary">
-                    Total ({filteredTrips.length} trips):
-                  </TableCell>
-                  <TableCell className="text-primary">{formatCurrency(filteredTotals.driver_amount)}</TableCell>
-                  <TableCell className="text-primary">{formatCurrency(filteredTotals.commission)}</TableCell>
-                  <TableCell className="text-primary">{formatCurrency(filteredTotals.tolls)}</TableCell>
-                  <TableCell className="text-primary">{formatCurrency(filteredTotals.fuel_amount)}</TableCell>
-                  <TableCell className="text-primary">{formatCurrency(filteredTotals.trip_amount)}</TableCell>
-                  <TableCell className={filteredTotals.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
-                    {formatCurrency(filteredTotals.profit)}
-                  </TableCell>
-                  <TableCell></TableCell>
-                  {canEdit && <TableCell></TableCell>}
-                </TableRow>
-              )}
-              {filteredTrips.map((trip, index) => {
+              {/* Totals Row */}
+              <TableRow className="bg-primary/10 font-bold">
+                <TableCell colSpan={showPhoneNumbers ? 6 : 4}>Totals</TableCell>
+                <TableCell></TableCell>
+                <TableCell className="text-right">{formatCurrency(filteredTotals.driver_amount)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(filteredTotals.commission)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(filteredTotals.tolls)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(filteredTotals.fuel_amount)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(filteredTotals.trip_amount)}</TableCell>
+                <TableCell className={`text-right ${filteredTotals.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(filteredTotals.profit)}
+                </TableCell>
+                <TableCell></TableCell>
+                {canEdit && <TableCell></TableCell>}
+              </TableRow>
+              {filteredTrips.map((trip) => {
                 const upcoming = isUpcomingTrip(trip.date);
                 return (
-                <TableRow 
-                  key={trip.id}
-                  className={upcoming ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-l-4 border-l-orange-500' : ''}
-                >
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {upcoming && (
-                        <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white animate-pulse flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          Upcoming
-                        </Badge>
-                      )}
-                      <span className={upcoming ? 'font-semibold text-orange-700 dark:text-orange-400' : ''}>
-                        {new Date(trip.date).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{trip.driver_name}</TableCell>
-                  {showPhoneNumbers && <TableCell className="font-mono text-sm whitespace-nowrap">{trip.driver_number}</TableCell>}
-                  <TableCell>{trip.customer_name}</TableCell>
-                  {showPhoneNumbers && <TableCell className="font-mono text-sm whitespace-nowrap">{trip.customer_number}</TableCell>}
-                  <TableCell>{trip.from_location} → {trip.to_location}</TableCell>
-                  <TableCell>{trip.company || '-'}</TableCell>
-                  <TableCell>{formatCurrency(trip.driver_amount)}</TableCell>
-                  <TableCell>{formatCurrency(trip.commission)}</TableCell>
-                  <TableCell>{formatCurrency(trip.tolls)}</TableCell>
-                  <TableCell>{formatCurrency(trip.fuel_amount)}</TableCell>
-                  <TableCell>{formatCurrency(trip.trip_amount)}</TableCell>
-                  <TableCell className={trip.profit >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                    {formatCurrency(trip.profit)}
-                  </TableCell>
-                  <TableCell>
-                    {canEdit ? (
-                      <Select 
-                        value={trip.payment_status || 'pending'} 
-                        onValueChange={(val) => updatePaymentStatus(trip.id, val)}
-                      >
-                        <SelectTrigger className="w-[100px] h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="paid">Paid</SelectItem>
-                          <SelectItem value="pending">Pending</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      getStatusBadge(trip.payment_status || 'pending')
-                    )}
-                  </TableCell>
-                  {canEdit && (
+                  <TableRow 
+                    key={trip.id}
+                    className={upcoming ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-l-4 border-l-orange-500 hover:bg-muted/30' : 'hover:bg-muted/30'}
+                  >
                     <TableCell>
-                      <div className="flex gap-1 flex-wrap">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(trip)}
-                          title="Edit Trip"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleInvoice(trip, false)}
-                          title="Send Invoice (No GST)"
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleInvoice(trip, true)}
-                          title="Send Invoice (With GST)"
-                          className="text-green-600 hover:text-green-700"
-                        >
-                          <Receipt className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm" title="Delete Trip">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete this trip record.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(trip.id)}>
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                      <div className="flex items-center gap-2">
+                        {upcoming && (
+                          <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white animate-pulse flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            Upcoming
+                          </Badge>
+                        )}
+                        <span className={upcoming ? 'font-semibold text-orange-700 dark:text-orange-400' : ''}>
+                          {new Date(trip.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
                       </div>
                     </TableCell>
-                  )}
-                </TableRow>
+                    <TableCell className="font-medium">{trip.driver_name}</TableCell>
+                    {showPhoneNumbers && <TableCell>{trip.driver_number}</TableCell>}
+                    <TableCell>{trip.customer_name}</TableCell>
+                    {showPhoneNumbers && <TableCell>{trip.customer_number}</TableCell>}
+                    <TableCell>
+                      <span className="text-xs">{trip.from_location} → {trip.to_location}</span>
+                    </TableCell>
+                    <TableCell>{trip.company || '-'}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(trip.driver_amount)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(trip.commission)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(trip.tolls)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(trip.fuel_amount)}</TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(trip.trip_amount)}</TableCell>
+                    <TableCell className={`text-right font-semibold ${trip.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatCurrency(trip.profit)}
+                    </TableCell>
+                    <TableCell>
+                      {canEdit ? (
+                        <Select 
+                          value={trip.payment_status || 'pending'} 
+                          onValueChange={(val) => updatePaymentStatus(trip.id, val)}
+                        >
+                          <SelectTrigger className="w-24 h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border shadow-lg z-50">
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="paid">Paid</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        getStatusBadge(trip.payment_status || 'pending')
+                      )}
+                    </TableCell>
+                    {canEdit && (
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => handleEdit(trip)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleInvoice(trip, false)}
+                            title="Invoice (No GST)"
+                          >
+                            <FileText className="h-4 w-4 text-blue-600" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleInvoice(trip, true)}
+                            title="Invoice (With GST)"
+                          >
+                            <Receipt className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(trip.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
                 );
               })}
             </TableBody>
           </Table>
-        </div>
-
-        {filteredTrips.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            No trips found. {searchTerm && `Try adjusting your search term "${searchTerm}".`}
-          </div>
         )}
 
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
