@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, Printer } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import signatureImage from '@/assets/signature.png';
 import companySealImage from '@/assets/company-seal.png';
 
 interface Trip {
@@ -41,12 +40,11 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
 
   const gstAmount = withGST ? (trip.trip_amount * 0.18) : 0;
   const totalAmount = trip.trip_amount + gstAmount;
-  const invoiceNumber = `BSH${format(new Date(trip.date), 'yyyyMMdd')}${trip.id.slice(-4).toUpperCase()}`;
+  const invoiceNumber = trip.id.slice(-4).toUpperCase();
 
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      // Create a printable version
       const printContent = document.getElementById('invoice-content');
       if (printContent) {
         const newWindow = window.open('', '_blank');
@@ -56,20 +54,27 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
               <head>
                 <title>Invoice ${invoiceNumber}</title>
                 <style>
-                  body { font-family: Arial, sans-serif; margin: 20px; }
+                  body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
                   .invoice-container { max-width: 800px; margin: 0 auto; }
-                  .header { border-bottom: 3px solid #1e40af; padding-bottom: 20px; margin-bottom: 20px; }
-                  .company-info { text-align: right; }
-                  .company-name { font-size: 24px; font-weight: bold; color: #1e40af; }
-                  .invoice-details { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
-                  .detail-box { border: 1px solid #ddd; padding: 15px; }
-                  .detail-title { font-weight: bold; color: #1e40af; margin-bottom: 10px; }
-                  .cost-breakdown { margin: 20px 0; }
-                  .cost-table { width: 100%; border-collapse: collapse; }
-                  .cost-table th, .cost-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-                  .cost-table th { background-color: #f8f9fa; }
-                  .total-row { font-weight: bold; background-color: #e3f2fd; }
-                  .bank-details { margin-top: 30px; padding: 15px; border: 1px solid #ddd; background-color: #f8f9fa; }
+                  .header-bar { background-color: #1e3a5f; color: white; text-align: center; padding: 8px; font-size: 14px; }
+                  .company-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px; border-bottom: 2px solid #1e3a5f; }
+                  .company-name { font-size: 28px; font-weight: bold; color: #1e3a5f; }
+                  .company-details { text-align: right; font-size: 13px; color: #333; }
+                  .section-title { color: #1e3a5f; font-weight: bold; font-size: 18px; margin-bottom: 5px; }
+                  .info-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding: 15px 20px; border-bottom: 1px solid #ddd; }
+                  .info-label { color: #1e3a5f; font-weight: bold; font-size: 13px; }
+                  .info-value { color: #c0392b; font-size: 13px; }
+                  .description-table { width: 100%; border-collapse: collapse; margin: 0 20px; }
+                  .description-table th { color: #1e3a5f; font-size: 12px; text-align: left; padding: 10px 5px; }
+                  .description-table td { color: #c0392b; font-size: 12px; padding: 5px; }
+                  .grand-total-row { display: flex; justify-content: space-between; padding: 15px 20px; border-top: 2px solid #1e3a5f; margin-top: 20px; }
+                  .grand-total-label { color: #1e3a5f; font-weight: bold; font-size: 18px; }
+                  .grand-total-value { color: #1e3a5f; font-weight: bold; font-size: 20px; }
+                  .bank-seal-row { display: flex; justify-content: space-between; padding: 20px; }
+                  .bank-details { font-size: 12px; color: #333; }
+                  .seal-section { text-align: center; }
+                  .seal-image { width: 100px; height: 100px; }
+                  .footer-bar { background-color: #3498db; color: white; text-align: center; padding: 10px; font-size: 11px; margin-top: 20px; }
                   @media print { .no-print { display: none; } }
                 </style>
               </head>
@@ -99,140 +104,133 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+        <DialogHeader className="p-4 pb-0">
           <DialogTitle>Invoice {withGST ? '(With GST)' : '(No GST)'}</DialogTitle>
           <DialogDescription>
             Invoice for trip from {trip.from_location} to {trip.to_location}
           </DialogDescription>
         </DialogHeader>
         
-        <div id="invoice-content" className="p-6 bg-white">
-          {/* Header */}
-          <div className="border-b-4 border-primary pb-6 mb-6">
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-2xl">
-                  BSH
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-primary">BSH TAXI SERVICES</h1>
-                  <p className="text-sm text-muted-foreground">Your Trusted Travel Partner</p>
-                </div>
-              </div>
-              <div className="text-right text-sm">
-                <p className="font-semibold">www.bshtaxiservices.com</p>
-                <p>📞 +91 8886803322, +91 9640241216</p>
-                <p>📧 bshtaxiservices@gmail.com</p>
-                <p>📍 36-92-242-532/1, Palanati colony,</p>
-                <p>kancharapelam,</p>
-                <p>Visakhapatnam, 530008.</p>
-                <p>LIN: AP-03-46-005-03355176</p>
-              </div>
+        <div id="invoice-content" className="bg-white">
+          {/* Header Bar */}
+          <div className="bg-[#1e3a5f] text-white text-center py-2 text-sm">
+            www.bshtaxiservices.com
+          </div>
+
+          {/* Company Header */}
+          <div className="flex justify-between items-start p-5 border-b-2 border-[#1e3a5f]">
+            <div className="flex items-center gap-4">
+              <img src={companySealImage} alt="BSH Logo" className="h-20 w-20 object-contain" />
+              <span className="text-3xl font-bold text-[#1e3a5f]">BSH TAXI SERVICES</span>
+            </div>
+            <div className="text-right text-sm text-gray-700">
+              <p>36-92-242-532/1, Palanati colony,</p>
+              <p>kancharapelam,</p>
+              <p>Visakhapatnam, 530008.</p>
+              <p>LIN: <span className="text-blue-600">AP-03-46-005-03355176</span></p>
+              <p>Mob no: <span className="text-blue-600">+91 8886803322, +91 9640241216</span></p>
             </div>
           </div>
 
-          {/* Invoice Details */}
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div className="border p-4">
-              <h3 className="font-bold text-primary mb-3">Invoice For</h3>
-              <p className="font-semibold">{trip.customer_name}</p>
-              <p>{trip.customer_number}</p>
-              {trip.company && <p>{trip.company}</p>}
+          {/* Invoice Section Title */}
+          <div className="px-5 pt-4">
+            <h2 className="text-[#1e3a5f] font-bold text-xl">Invoice</h2>
+            <p className="text-gray-500 text-sm">Submitted on</p>
+          </div>
+
+          {/* Invoice For, Date, Number Row */}
+          <div className="grid grid-cols-3 gap-4 px-5 py-4 border-b border-gray-200">
+            <div>
+              <p className="text-[#1e3a5f] font-bold text-sm">Invoice For</p>
+              <p className="text-[#c0392b] text-sm">{trip.customer_name}</p>
             </div>
-            <div className="border p-4">
-              <h3 className="font-bold text-primary mb-3">Invoice Details</h3>
-              <div className="space-y-1">
-                <div className="flex justify-between">
-                  <span>Invoice Date:</span>
-                  <span>{format(new Date(trip.date), 'dd/MM/yyyy')}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Invoice #:</span>
-                  <span className="font-semibold">{invoiceNumber}</span>
-                </div>
-              </div>
+            <div>
+              <p className="text-[#1e3a5f] font-bold text-sm">Invoice Date</p>
+              <p className="text-gray-700 text-sm">{format(new Date(trip.date), 'dd/MM/yyyy')}</p>
+            </div>
+            <div>
+              <p className="text-[#1e3a5f] font-bold text-sm">Invoice #</p>
+              <p className="text-[#c0392b] text-sm">{invoiceNumber}</p>
             </div>
           </div>
 
-          {/* Trip Details */}
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div className="border p-4">
-              <h3 className="font-bold text-primary mb-3">From & To</h3>
-              <p><strong>From:</strong> {trip.from_location}</p>
-              <p><strong>To:</strong> {trip.to_location}</p>
+          {/* From & To, Starting & Ending Date, Car No Row */}
+          <div className="grid grid-cols-3 gap-4 px-5 py-4 border-b border-gray-200">
+            <div>
+              <p className="text-[#1e3a5f] font-bold text-sm">From & To</p>
+              <p className="text-[#c0392b] text-sm">{trip.from_location} to {trip.to_location}</p>
             </div>
-            <div className="border p-4">
-              <h3 className="font-bold text-primary mb-3">Starting & Ending Date</h3>
-              <p>{format(new Date(trip.date), 'dd/MM/yyyy')}</p>
+            <div>
+              <p className="text-[#1e3a5f] font-bold text-sm">Starting & Ending Date</p>
+              <p className="text-gray-700 text-sm">{format(new Date(trip.date), 'dd/MM/yyyy')} to {format(new Date(trip.date), 'dd/MM/yyyy')}</p>
+            </div>
+            <div>
+              <p className="text-[#1e3a5f] font-bold text-sm">Car No</p>
+              <p className="text-[#c0392b] text-sm">{trip.company || 'N/A'}</p>
             </div>
           </div>
 
-          {/* Service Details */}
-          <div className="mb-6">
-            <h3 className="font-bold text-primary mb-3">Description</h3>
-            <table className="w-full border-collapse border">
+          {/* Description Table */}
+          <div className="px-5 py-4">
+            <table className="w-full">
               <thead>
-                <tr className="bg-gray-50">
-                  <th className="border p-3 text-left">Service</th>
-                  <th className="border p-3 text-left">Driver</th>
-                  <th className="border p-3 text-left">Payment Mode</th>
-                  <th className="border p-3 text-right">Total Price</th>
+                <tr className="border-b border-gray-200">
+                  <th className="text-[#1e3a5f] font-bold text-sm text-left py-2">Description</th>
+                  <th className="text-[#1e3a5f] font-bold text-sm text-left py-2">Total HR's or km's</th>
+                  <th className="text-[#1e3a5f] font-bold text-sm text-left py-2">Cost</th>
+                  <th className="text-[#1e3a5f] font-bold text-sm text-right py-2">Total Price</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className="border p-3">Taxi Service ({trip.fuel_type})</td>
-                  <td className="border p-3">{trip.driver_name}<br/>{trip.driver_number}</td>
-                  <td className="border p-3">{trip.payment_mode}</td>
-                  <td className="border p-3 text-right">₹{trip.trip_amount.toFixed(2)}</td>
+                  <td className="text-[#c0392b] text-sm py-2">Taxi Service ({trip.fuel_type})</td>
+                  <td className="text-[#c0392b] text-sm py-2">-</td>
+                  <td className="text-[#c0392b] text-sm py-2">₹{trip.trip_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  <td className="text-[#c0392b] text-sm text-right py-2">₹{trip.trip_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                 </tr>
                 {withGST && (
                   <tr>
-                    <td className="border p-3" colSpan={3}><strong>GST (18%)</strong></td>
-                    <td className="border p-3 text-right"><strong>₹{gstAmount.toFixed(2)}</strong></td>
+                    <td className="text-[#c0392b] text-sm py-2">GST (18%)</td>
+                    <td className="text-[#c0392b] text-sm py-2">-</td>
+                    <td className="text-[#c0392b] text-sm py-2">₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                    <td className="text-[#c0392b] text-sm text-right py-2">₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                   </tr>
                 )}
-                <tr className="bg-blue-50">
-                  <td className="border p-3" colSpan={3}><strong>Grand Total</strong></td>
-                  <td className="border p-3 text-right text-xl font-bold">₹{totalAmount.toFixed(2)}</td>
-                </tr>
               </tbody>
             </table>
           </div>
 
-          {/* Bank Details */}
-          <div className="border p-4 bg-gray-50 mb-6">
-            <h3 className="font-bold text-primary mb-3">Bank Account Details:</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p><strong>Mode of Payment:</strong> IMPS/NEFT</p>
-                <p><strong>Account Holder Name:</strong> BANDARU SATEESH</p>
-                <p><strong>Bank Name:</strong> State Bank Of India</p>
-              </div>
-              <div>
-                <p><strong>A/C No:</strong> 32647106186</p>
-                <p><strong>IFSC:</strong> SBIN0020861</p>
-                <p><strong>Branch Name:</strong> Saligramapuram Vizag</p>
-              </div>
+          {/* Grand Total */}
+          <div className="flex justify-between items-center px-5 py-4 border-t-2 border-[#1e3a5f] mt-4">
+            <span className="text-[#1e3a5f] font-bold text-lg">Grand Total</span>
+            <span className="text-[#1e3a5f] font-bold text-xl">₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+          </div>
+
+          {/* Bank Details and Seal */}
+          <div className="flex justify-between items-start px-5 py-4">
+            <div className="text-sm text-gray-700">
+              <p className="font-bold text-[#1e3a5f] mb-2">Bank Account Details:</p>
+              <p>Mode of Payment: IMPS/NEFT</p>
+              <p>Account Holder Nme: BANDARU SATEESH</p>
+              <p>Brach Name: Saligramapuram Vizag</p>
+              <p>Bank Name: State Bank Of India</p>
+              <p>Current Account Number: 32647106168</p>
+              <p>IFSC: SBIN0020861</p>
+            </div>
+            <div className="text-center">
+              <img src={companySealImage} alt="Company Seal" className="h-24 w-24 object-contain mx-auto" />
+              <p className="text-sm text-gray-600 mt-1">Authorised Sign</p>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="text-center text-sm text-muted-foreground border-t pt-4">
-            <p><strong>Customers are requested to check their belongings before leaving the cab. The Travel Officer/Owner/Driver is not responsible for any loss.</strong></p>
-            <div className="mt-4 flex justify-end items-end">
-              <div className="flex flex-col items-center">
-                <img src={companySealImage} alt="Company Seal" className="h-20 w-20 mb-2" />
-                <div className="text-xs text-center">
-                  <div className="font-bold">Company Seal</div>
-                </div>
-              </div>
-            </div>
+          <div className="bg-[#3498db] text-white text-center py-3 text-xs px-4">
+            <p>Customers are requested to check their belongings before leaving the cab. The Travel Office/Car Owner?Driver is not responsible for the loss of any belongings</p>
           </div>
         </div>
 
-        <div className="flex gap-2 justify-end no-print">
+        <div className="flex gap-2 justify-end p-4 no-print">
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
