@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Download, Plus, Trash2 } from 'lucide-react';
+import { Download, Plus, Trash2, Edit2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import companySealImage from '@/assets/company-seal.png';
 import bshLogo from '@/assets/bsh-logo.png';
@@ -35,6 +35,23 @@ interface LineItem {
   cost: number;
 }
 
+interface InvoiceData {
+  customerName: string;
+  invoiceDate: string;
+  invoiceNumber: string;
+  fromTo: string;
+  startDate: string;
+  endDate: string;
+  carNo: string;
+  baseDescription: string;
+  baseAmount: number;
+  bankAccountHolder: string;
+  bankBranch: string;
+  bankName: string;
+  bankAccountNumber: string;
+  bankIFSC: string;
+}
+
 interface InvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -45,15 +62,56 @@ interface InvoiceModalProps {
 export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalProps) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [invoiceData, setInvoiceData] = useState<InvoiceData>({
+    customerName: '',
+    invoiceDate: '',
+    invoiceNumber: '',
+    fromTo: '',
+    startDate: '',
+    endDate: '',
+    carNo: '',
+    baseDescription: '',
+    baseAmount: 0,
+    bankAccountHolder: 'BANDARU SATEESH',
+    bankBranch: 'Saligramapuram Vizag',
+    bankName: 'State Bank Of India',
+    bankAccountNumber: '32647106168',
+    bankIFSC: 'SBIN0020861',
+  });
+
+  // Initialize invoice data when trip changes
+  useEffect(() => {
+    if (trip) {
+      setInvoiceData({
+        customerName: trip.customer_name,
+        invoiceDate: format(new Date(trip.date), 'dd/MM/yyyy'),
+        invoiceNumber: trip.id.slice(-4).toUpperCase(),
+        fromTo: `${trip.from_location} to ${trip.to_location}`,
+        startDate: format(new Date(trip.date), 'dd/MM/yyyy'),
+        endDate: format(new Date(trip.date), 'dd/MM/yyyy'),
+        carNo: trip.company || 'N/A',
+        baseDescription: `Taxi Service (${trip.fuel_type})`,
+        baseAmount: trip.trip_amount,
+        bankAccountHolder: 'BANDARU SATEESH',
+        bankBranch: 'Saligramapuram Vizag',
+        bankName: 'State Bank Of India',
+        bankAccountNumber: '32647106168',
+        bankIFSC: 'SBIN0020861',
+      });
+    }
+  }, [trip]);
+
+  const updateInvoiceData = (field: keyof InvoiceData, value: string | number) => {
+    setInvoiceData(prev => ({ ...prev, [field]: value }));
+  };
 
   if (!trip) return null;
 
-  const baseAmount = trip.trip_amount;
   const extraChargesTotal = lineItems.reduce((sum, item) => sum + item.cost, 0);
-  const subtotal = baseAmount + extraChargesTotal;
+  const subtotal = invoiceData.baseAmount + extraChargesTotal;
   const gstAmount = withGST ? (subtotal * 0.18) : 0;
   const totalAmount = subtotal + gstAmount;
-  const invoiceNumber = trip.id.slice(-4).toUpperCase();
 
   const addLineItem = () => {
     setLineItems([
@@ -82,7 +140,7 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
           newWindow.document.write(`
             <html>
               <head>
-                <title>Invoice ${invoiceNumber}</title>
+                <title>Invoice ${invoiceData.invoiceNumber}</title>
                 <style>
                   body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
                   .invoice-container { max-width: 800px; margin: 0 auto; }
@@ -137,10 +195,23 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
         <DialogHeader className="p-4 pb-0">
-          <DialogTitle>Invoice {withGST ? '(With GST)' : '(No GST)'}</DialogTitle>
-          <DialogDescription>
-            Invoice for trip from {trip.from_location} to {trip.to_location}
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle>Invoice {withGST ? '(With GST)' : '(No GST)'}</DialogTitle>
+              <DialogDescription>
+                Invoice for trip from {trip.from_location} to {trip.to_location}
+              </DialogDescription>
+            </div>
+            <Button 
+              variant={isEditing ? "default" : "outline"} 
+              size="sm" 
+              onClick={() => setIsEditing(!isEditing)}
+              className="gap-1"
+            >
+              <Edit2 className="w-4 h-4" />
+              {isEditing ? 'Done Editing' : 'Edit Invoice'}
+            </Button>
+          </div>
         </DialogHeader>
         
         <div id="invoice-content" className="bg-white">
@@ -174,15 +245,40 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
           <div className="grid grid-cols-3 gap-4 px-5 py-4 border-b border-gray-200">
             <div>
               <p className="text-[#1e3a5f] font-bold text-sm">Invoice For</p>
-              <p className="text-[#c0392b] text-sm">{trip.customer_name}</p>
+              {isEditing ? (
+                <Input 
+                  value={invoiceData.customerName} 
+                  onChange={(e) => updateInvoiceData('customerName', e.target.value)}
+                  className="h-7 text-sm mt-1"
+                />
+              ) : (
+                <p className="text-[#c0392b] text-sm">{invoiceData.customerName}</p>
+              )}
             </div>
             <div>
               <p className="text-[#1e3a5f] font-bold text-sm">Invoice Date</p>
-              <p className="text-gray-700 text-sm">{format(new Date(trip.date), 'dd/MM/yyyy')}</p>
+              {isEditing ? (
+                <Input 
+                  value={invoiceData.invoiceDate} 
+                  onChange={(e) => updateInvoiceData('invoiceDate', e.target.value)}
+                  className="h-7 text-sm mt-1"
+                  placeholder="dd/mm/yyyy"
+                />
+              ) : (
+                <p className="text-gray-700 text-sm">{invoiceData.invoiceDate}</p>
+              )}
             </div>
             <div>
               <p className="text-[#1e3a5f] font-bold text-sm">Invoice #</p>
-              <p className="text-[#c0392b] text-sm">{invoiceNumber}</p>
+              {isEditing ? (
+                <Input 
+                  value={invoiceData.invoiceNumber} 
+                  onChange={(e) => updateInvoiceData('invoiceNumber', e.target.value)}
+                  className="h-7 text-sm mt-1"
+                />
+              ) : (
+                <p className="text-[#c0392b] text-sm">{invoiceData.invoiceNumber}</p>
+              )}
             </div>
           </div>
 
@@ -190,15 +286,49 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
           <div className="grid grid-cols-3 gap-4 px-5 py-4 border-b border-gray-200">
             <div>
               <p className="text-[#1e3a5f] font-bold text-sm">From & To</p>
-              <p className="text-[#c0392b] text-sm">{trip.from_location} to {trip.to_location}</p>
+              {isEditing ? (
+                <Input 
+                  value={invoiceData.fromTo} 
+                  onChange={(e) => updateInvoiceData('fromTo', e.target.value)}
+                  className="h-7 text-sm mt-1"
+                />
+              ) : (
+                <p className="text-[#c0392b] text-sm">{invoiceData.fromTo}</p>
+              )}
             </div>
             <div>
               <p className="text-[#1e3a5f] font-bold text-sm">Starting & Ending Date</p>
-              <p className="text-gray-700 text-sm">{format(new Date(trip.date), 'dd/MM/yyyy')} to {format(new Date(trip.date), 'dd/MM/yyyy')}</p>
+              {isEditing ? (
+                <div className="flex gap-1 mt-1">
+                  <Input 
+                    value={invoiceData.startDate} 
+                    onChange={(e) => updateInvoiceData('startDate', e.target.value)}
+                    className="h-7 text-sm"
+                    placeholder="Start"
+                  />
+                  <span className="text-sm self-center">to</span>
+                  <Input 
+                    value={invoiceData.endDate} 
+                    onChange={(e) => updateInvoiceData('endDate', e.target.value)}
+                    className="h-7 text-sm"
+                    placeholder="End"
+                  />
+                </div>
+              ) : (
+                <p className="text-gray-700 text-sm">{invoiceData.startDate} to {invoiceData.endDate}</p>
+              )}
             </div>
             <div>
               <p className="text-[#1e3a5f] font-bold text-sm">Car No</p>
-              <p className="text-[#c0392b] text-sm">{trip.company || 'N/A'}</p>
+              {isEditing ? (
+                <Input 
+                  value={invoiceData.carNo} 
+                  onChange={(e) => updateInvoiceData('carNo', e.target.value)}
+                  className="h-7 text-sm mt-1"
+                />
+              ) : (
+                <p className="text-[#c0392b] text-sm">{invoiceData.carNo}</p>
+              )}
             </div>
           </div>
 
@@ -215,10 +345,31 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
               </thead>
               <tbody>
                 <tr>
-                  <td className="text-[#c0392b] text-sm py-2">Taxi Service ({trip.fuel_type})</td>
+                  <td className="text-[#c0392b] text-sm py-2">
+                    {isEditing ? (
+                      <Input 
+                        value={invoiceData.baseDescription} 
+                        onChange={(e) => updateInvoiceData('baseDescription', e.target.value)}
+                        className="h-7 text-sm"
+                      />
+                    ) : (
+                      invoiceData.baseDescription
+                    )}
+                  </td>
                   <td className="text-[#c0392b] text-sm py-2">-</td>
-                  <td className="text-[#c0392b] text-sm py-2">₹{baseAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                  <td className="text-[#c0392b] text-sm text-right py-2">₹{baseAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  <td className="text-[#c0392b] text-sm py-2">
+                    {isEditing ? (
+                      <Input 
+                        type="number"
+                        value={invoiceData.baseAmount || ''} 
+                        onChange={(e) => updateInvoiceData('baseAmount', Number(e.target.value))}
+                        className="h-7 text-sm w-28"
+                      />
+                    ) : (
+                      `₹${invoiceData.baseAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+                    )}
+                  </td>
+                  <td className="text-[#c0392b] text-sm text-right py-2">₹{invoiceData.baseAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                 </tr>
                 {lineItems.map((item) => (
                   <tr key={item.id}>
@@ -302,11 +453,58 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
             <div className="text-sm text-gray-700">
               <p className="font-bold text-[#1e3a5f] mb-2">Bank Account Details:</p>
               <p>Mode of Payment: IMPS/NEFT</p>
-              <p>Account Holder Nme: BANDARU SATEESH</p>
-              <p>Brach Name: Saligramapuram Vizag</p>
-              <p>Bank Name: State Bank Of India</p>
-              <p>Current Account Number: 32647106168</p>
-              <p>IFSC: SBIN0020861</p>
+              {isEditing ? (
+                <div className="space-y-1 mt-2">
+                  <div className="flex gap-2 items-center">
+                    <span className="w-32">Account Holder:</span>
+                    <Input 
+                      value={invoiceData.bankAccountHolder} 
+                      onChange={(e) => updateInvoiceData('bankAccountHolder', e.target.value)}
+                      className="h-7 text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <span className="w-32">Branch Name:</span>
+                    <Input 
+                      value={invoiceData.bankBranch} 
+                      onChange={(e) => updateInvoiceData('bankBranch', e.target.value)}
+                      className="h-7 text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <span className="w-32">Bank Name:</span>
+                    <Input 
+                      value={invoiceData.bankName} 
+                      onChange={(e) => updateInvoiceData('bankName', e.target.value)}
+                      className="h-7 text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <span className="w-32">Account Number:</span>
+                    <Input 
+                      value={invoiceData.bankAccountNumber} 
+                      onChange={(e) => updateInvoiceData('bankAccountNumber', e.target.value)}
+                      className="h-7 text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <span className="w-32">IFSC:</span>
+                    <Input 
+                      value={invoiceData.bankIFSC} 
+                      onChange={(e) => updateInvoiceData('bankIFSC', e.target.value)}
+                      className="h-7 text-sm"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p>Account Holder Name: {invoiceData.bankAccountHolder}</p>
+                  <p>Branch Name: {invoiceData.bankBranch}</p>
+                  <p>Bank Name: {invoiceData.bankName}</p>
+                  <p>Current Account Number: {invoiceData.bankAccountNumber}</p>
+                  <p>IFSC: {invoiceData.bankIFSC}</p>
+                </>
+              )}
             </div>
             <div className="text-center">
               <img src={companySealImage} alt="Company Seal" className="h-24 w-24 object-contain mx-auto" />
