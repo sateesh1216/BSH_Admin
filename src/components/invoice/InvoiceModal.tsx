@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Download, Plus, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import companySealImage from '@/assets/company-seal.png';
+import bshLogo from '@/assets/bsh-logo.png';
 
 interface Trip {
   id: string;
@@ -26,6 +28,13 @@ interface Trip {
   profit?: number;
 }
 
+interface LineItem {
+  id: string;
+  description: string;
+  quantity: string;
+  cost: number;
+}
+
 interface InvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -35,12 +44,33 @@ interface InvoiceModalProps {
 
 export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalProps) => {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
 
   if (!trip) return null;
 
-  const gstAmount = withGST ? (trip.trip_amount * 0.18) : 0;
-  const totalAmount = trip.trip_amount + gstAmount;
+  const baseAmount = trip.trip_amount;
+  const extraChargesTotal = lineItems.reduce((sum, item) => sum + item.cost, 0);
+  const subtotal = baseAmount + extraChargesTotal;
+  const gstAmount = withGST ? (subtotal * 0.18) : 0;
+  const totalAmount = subtotal + gstAmount;
   const invoiceNumber = trip.id.slice(-4).toUpperCase();
+
+  const addLineItem = () => {
+    setLineItems([
+      ...lineItems,
+      { id: Date.now().toString(), description: '', quantity: '', cost: 0 }
+    ]);
+  };
+
+  const updateLineItem = (id: string, field: keyof LineItem, value: string | number) => {
+    setLineItems(lineItems.map(item => 
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const removeLineItem = (id: string) => {
+    setLineItems(lineItems.filter(item => item.id !== id));
+  };
 
   const handleDownload = async () => {
     setIsDownloading(true);
@@ -75,7 +105,8 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
                   .seal-section { text-align: center; }
                   .seal-image { width: 100px; height: 100px; }
                   .footer-bar { background-color: #3498db; color: white; text-align: center; padding: 10px; font-size: 11px; margin-top: 20px; }
-                  @media print { .no-print { display: none; } }
+                  .no-print { display: none !important; }
+                  @media print { .no-print { display: none !important; } }
                 </style>
               </head>
               <body>
@@ -121,7 +152,7 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
           {/* Company Header */}
           <div className="flex justify-between items-start p-5 border-b-2 border-[#1e3a5f]">
             <div className="flex items-center gap-4">
-              <img src={companySealImage} alt="BSH Logo" className="h-20 w-20 object-contain" />
+              <img src={bshLogo} alt="BSH Logo" className="h-24 w-24 object-contain" />
               <span className="text-3xl font-bold text-[#1e3a5f]">BSH TAXI SERVICES</span>
             </div>
             <div className="text-right text-sm text-gray-700">
@@ -186,9 +217,17 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
                 <tr>
                   <td className="text-[#c0392b] text-sm py-2">Taxi Service ({trip.fuel_type})</td>
                   <td className="text-[#c0392b] text-sm py-2">-</td>
-                  <td className="text-[#c0392b] text-sm py-2">₹{trip.trip_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                  <td className="text-[#c0392b] text-sm text-right py-2">₹{trip.trip_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  <td className="text-[#c0392b] text-sm py-2">₹{baseAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  <td className="text-[#c0392b] text-sm text-right py-2">₹{baseAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                 </tr>
+                {lineItems.map((item) => (
+                  <tr key={item.id}>
+                    <td className="text-[#c0392b] text-sm py-2">{item.description || 'Custom Item'}</td>
+                    <td className="text-[#c0392b] text-sm py-2">{item.quantity || '-'}</td>
+                    <td className="text-[#c0392b] text-sm py-2">₹{item.cost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                    <td className="text-[#c0392b] text-sm text-right py-2">₹{item.cost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                ))}
                 {withGST && (
                   <tr>
                     <td className="text-[#c0392b] text-sm py-2">GST (18%)</td>
@@ -199,6 +238,57 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Add Line Item Section - Hidden in Print */}
+          <div className="px-5 py-2 no-print">
+            <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700">Add Extra Charges</h3>
+                <Button variant="outline" size="sm" onClick={addLineItem} className="gap-1">
+                  <Plus className="w-4 h-4" />
+                  Add Item
+                </Button>
+              </div>
+              {lineItems.length > 0 && (
+                <div className="space-y-2">
+                  {lineItems.map((item) => (
+                    <div key={item.id} className="flex gap-2 items-center">
+                      <Input
+                        placeholder="Description (e.g., Extra Hours, Km's)"
+                        value={item.description}
+                        onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
+                        className="flex-1"
+                      />
+                      <Input
+                        placeholder="Qty/Hrs/Kms"
+                        value={item.quantity}
+                        onChange={(e) => updateLineItem(item.id, 'quantity', e.target.value)}
+                        className="w-28"
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Cost"
+                        value={item.cost || ''}
+                        onChange={(e) => updateLineItem(item.id, 'cost', Number(e.target.value))}
+                        className="w-28"
+                      />
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => removeLineItem(item.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {lineItems.length === 0 && (
+                <p className="text-sm text-gray-500 text-center">Click "Add Item" to add extra charges like hours, kilometers, or other fees</p>
+              )}
+            </div>
           </div>
 
           {/* Grand Total */}
@@ -226,7 +316,7 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
 
           {/* Footer */}
           <div className="bg-[#3498db] text-white text-center py-3 text-xs px-4">
-            <p>Customers are requested to check their belongings before leaving the cab. The Travel Office/Car Owner?Driver is not responsible for the loss of any belongings</p>
+            <p>Customers are requested to check their belongings before leaving the cab. The Travel Office/Car Owner/Driver is not responsible for the loss of any belongings</p>
           </div>
         </div>
 
