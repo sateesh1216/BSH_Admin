@@ -58,7 +58,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
       fromLocation: editData?.from_location || '',
       toLocation: editData?.to_location || '',
       company: editData?.company || '',
-      carNumber: editData?.car_number || '',
+      carNumber: editData?.car_number || 'AP39UF1216 DEFALATE',
       fuelType: editData?.fuel_type || 'Petrol',
       paymentMode: editData?.payment_mode || 'Cash',
       paymentStatus: editData?.payment_status || 'pending',
