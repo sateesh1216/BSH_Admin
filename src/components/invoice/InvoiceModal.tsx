@@ -3,8 +3,9 @@ import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Download, Plus, Trash2, Edit2 } from 'lucide-react';
+import { Download, Plus, Trash2, Edit2, Mail, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import companySealImage from '@/assets/company-seal.png';
 import bshLogo from '@/assets/bsh-logo.png';
 
@@ -18,6 +19,7 @@ interface Trip {
   from_location: string;
   to_location: string;
   company?: string;
+  car_number?: string;
   fuel_type: string;
   payment_mode: string;
   driver_amount: number;
@@ -61,6 +63,8 @@ interface InvoiceModalProps {
 
 export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalProps) => {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [customerEmail, setCustomerEmail] = useState('');
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [invoiceData, setInvoiceData] = useState<InvoiceData>({
@@ -90,7 +94,7 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
         fromTo: `${trip.from_location} to ${trip.to_location}`,
         startDate: format(new Date(trip.date), 'dd/MM/yyyy'),
         endDate: format(new Date(trip.date), 'dd/MM/yyyy'),
-        carNo: trip.company || 'N/A',
+        carNo: trip.car_number || 'N/A',
         baseDescription: `Taxi Service (${trip.fuel_type})`,
         baseAmount: trip.trip_amount,
         bankAccountHolder: 'BANDARU SATEESH',
@@ -188,6 +192,48 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
       });
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!customerEmail) {
+      toast({
+        title: "Email Required",
+        description: "Please enter the customer's email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-invoice-email', {
+        body: {
+          customerEmail,
+          customerName: invoiceData.customerName,
+          invoiceNumber: invoiceData.invoiceNumber,
+          totalAmount: totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+          fromTo: invoiceData.fromTo,
+          invoiceDate: invoiceData.invoiceDate,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Email Sent!",
+        description: `Invoice sent successfully to ${customerEmail}`,
+      });
+      setCustomerEmail('');
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send invoice email",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -518,14 +564,41 @@ export const InvoiceModal = ({ isOpen, onClose, trip, withGST }: InvoiceModalPro
           </div>
         </div>
 
-        <div className="flex gap-2 justify-end p-4 no-print">
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-          <Button onClick={handleDownload} disabled={isDownloading}>
-            <Download className="w-4 h-4 mr-2" />
-            {isDownloading ? 'Generating...' : 'Download/Print'}
-          </Button>
+        <div className="flex flex-col gap-3 p-4 no-print border-t">
+          {/* Email Section */}
+          <div className="flex gap-2 items-center">
+            <Input
+              type="email"
+              placeholder="Customer email address"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              className="flex-1"
+            />
+            <Button onClick={handleSendEmail} disabled={isSendingEmail} variant="secondary">
+              {isSendingEmail ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Send Email
+                </>
+              )}
+            </Button>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+            <Button onClick={handleDownload} disabled={isDownloading}>
+              <Download className="w-4 h-4 mr-2" />
+              {isDownloading ? 'Generating...' : 'Download/Print'}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
