@@ -73,6 +73,7 @@ export type Database = {
       }
       outside_vehicle_trips: {
         Row: {
+          car_number: string | null
           created_at: string | null
           created_by: string | null
           date: string
@@ -91,6 +92,7 @@ export type Database = {
           vehicle_type: string
         }
         Insert: {
+          car_number?: string | null
           created_at?: string | null
           created_by?: string | null
           date: string
@@ -109,6 +111,7 @@ export type Database = {
           vehicle_type: string
         }
         Update: {
+          car_number?: string | null
           created_at?: string | null
           created_by?: string | null
           date?: string
@@ -157,6 +160,7 @@ export type Database = {
       }
       trips: {
         Row: {
+          car_number: string | null
           commission: number
           company: string | null
           created_at: string | null
@@ -180,6 +184,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          car_number?: string | null
           commission?: number
           company?: string | null
           created_at?: string | null
@@ -203,6 +208,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          car_number?: string | null
           commission?: number
           company?: string | null
           created_at?: string | null
