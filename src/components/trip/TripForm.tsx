@@ -25,6 +25,7 @@ const tripSchema = z.object({
   fromLocation: z.string().min(1, 'From location is required'),
   toLocation: z.string().min(1, 'To location is required'),
   company: z.string().optional(),
+  carNumber: z.string().optional(),
   fuelType: z.enum(['Petrol', 'Diesel', 'CNG', 'EV']),
   paymentMode: z.enum(['Cash', 'UPI', 'Online', 'Credit Card', 'Other']),
   paymentStatus: z.enum(['paid', 'pending']),
@@ -57,6 +58,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
       fromLocation: editData?.from_location || '',
       toLocation: editData?.to_location || '',
       company: editData?.company || '',
+      carNumber: editData?.car_number || '',
       fuelType: editData?.fuel_type || 'Petrol',
       paymentMode: editData?.payment_mode || 'Cash',
       paymentStatus: editData?.payment_status || 'pending',
@@ -87,6 +89,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
         from_location: data.fromLocation,
         to_location: data.toLocation,
         company: data.company || null,
+        car_number: data.carNumber || null,
         fuel_type: data.fuelType,
         payment_mode: data.paymentMode,
         payment_status: data.paymentStatus,
@@ -243,6 +246,15 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
                 id="company"
                 {...form.register('company')}
                 placeholder="Company name (optional)"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="carNumber">Car Number</Label>
+              <Input
+                id="carNumber"
+                {...form.register('carNumber')}
+                placeholder="e.g., AP 31 AB 1234"
               />
             </div>
 
