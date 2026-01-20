@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Pencil, Trash2, Download, FileText, Receipt, Phone, PhoneOff, AlertCircle, Clock } from 'lucide-react';
-import { isAfter, startOfDay, parseISO } from 'date-fns';
+import { Pencil, Trash2, Download, FileText, Receipt, Phone, PhoneOff, AlertCircle, Clock, ChevronDown, ChevronRight } from 'lucide-react';
+import { isAfter, startOfDay, parseISO, format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TripForm } from './TripForm';
 import { InvoiceModal } from '../invoice/InvoiceModal';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,6 +53,7 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
   const [invoiceWithGST, setInvoiceWithGST] = useState(false);
   const [showPhoneNumbers, setShowPhoneNumbers] = useState(false);
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
+  const [expandedMonths, setExpandedMonths] = useState<string[]>([]);
 
   const filteredTrips = useMemo(() => {
     return trips.filter(trip => {
@@ -67,6 +69,45 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
       return matchesSearch && matchesPayment;
     });
   }, [trips, searchTerm, paymentFilter]);
+
+  // Group trips by month
+  const groupedByMonth = useMemo(() => {
+    const groups: { [key: string]: { trips: Trip[]; totals: { driver_amount: number; commission: number; tolls: number; fuel_amount: number; trip_amount: number; profit: number } } } = {};
+    
+    filteredTrips.forEach(trip => {
+      const monthKey = format(new Date(trip.date), 'MMMM yyyy');
+      if (!groups[monthKey]) {
+        groups[monthKey] = { 
+          trips: [], 
+          totals: { driver_amount: 0, commission: 0, tolls: 0, fuel_amount: 0, trip_amount: 0, profit: 0 } 
+        };
+      }
+      groups[monthKey].trips.push(trip);
+      groups[monthKey].totals.driver_amount += trip.driver_amount || 0;
+      groups[monthKey].totals.commission += trip.commission || 0;
+      groups[monthKey].totals.tolls += trip.tolls || 0;
+      groups[monthKey].totals.fuel_amount += trip.fuel_amount || 0;
+      groups[monthKey].totals.trip_amount += trip.trip_amount || 0;
+      groups[monthKey].totals.profit += trip.profit || 0;
+    });
+
+    // Sort months in descending order (most recent first)
+    const sortedGroups = Object.entries(groups).sort((a, b) => {
+      const dateA = new Date(a[1].trips[0].date);
+      const dateB = new Date(b[1].trips[0].date);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    return sortedGroups;
+  }, [filteredTrips]);
+
+  const toggleMonth = (month: string) => {
+    setExpandedMonths(prev => 
+      prev.includes(month) 
+        ? prev.filter(m => m !== month)
+        : [...prev, month]
+    );
+  };
 
   // Calculate totals for filtered trips
   const filteredTotals = useMemo(() => {
@@ -251,135 +292,172 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-4 overflow-x-auto">
+      <CardContent className="pt-4">
         {filteredTrips.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
             No trips found. {searchTerm && `Try adjusting your search term "${searchTerm}".`}
           </p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead>Date</TableHead>
-                <TableHead>Driver</TableHead>
-                {showPhoneNumbers && <TableHead>Phone</TableHead>}
-                <TableHead>Customer</TableHead>
-                {showPhoneNumbers && <TableHead>Phone</TableHead>}
-                <TableHead>Route</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead className="text-right">Driver ₹</TableHead>
-                <TableHead className="text-right">Commission</TableHead>
-                <TableHead className="text-right">Tolls</TableHead>
-                <TableHead className="text-right">Fuel</TableHead>
-                <TableHead className="text-right">Trip ₹</TableHead>
-                <TableHead className="text-right">Profit</TableHead>
-                <TableHead>Status</TableHead>
-                {canEdit && <TableHead>Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {/* Totals Row */}
-              <TableRow className="bg-primary/10 font-bold">
-                <TableCell colSpan={showPhoneNumbers ? 6 : 4}>Totals</TableCell>
-                <TableCell></TableCell>
-                <TableCell className="text-right">{formatCurrency(filteredTotals.driver_amount)}</TableCell>
-                <TableCell className="text-right">{formatCurrency(filteredTotals.commission)}</TableCell>
-                <TableCell className="text-right">{formatCurrency(filteredTotals.tolls)}</TableCell>
-                <TableCell className="text-right">{formatCurrency(filteredTotals.fuel_amount)}</TableCell>
-                <TableCell className="text-right">{formatCurrency(filteredTotals.trip_amount)}</TableCell>
-                <TableCell className={`text-right ${filteredTotals.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(filteredTotals.profit)}
-                </TableCell>
-                <TableCell></TableCell>
-                {canEdit && <TableCell></TableCell>}
-              </TableRow>
-              {filteredTrips.map((trip) => {
-                const upcoming = isUpcomingTrip(trip.date);
-                return (
-                  <TableRow 
-                    key={trip.id}
-                    className={upcoming ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-l-4 border-l-orange-500 hover:bg-muted/30' : 'hover:bg-muted/30'}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {upcoming && (
-                          <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white animate-pulse flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            Upcoming
-                          </Badge>
-                        )}
-                        <span className={upcoming ? 'font-semibold text-orange-700 dark:text-orange-400' : ''}>
-                          {new Date(trip.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{trip.driver_name}</TableCell>
-                    {showPhoneNumbers && <TableCell>{trip.driver_number}</TableCell>}
-                    <TableCell>{trip.customer_name}</TableCell>
-                    {showPhoneNumbers && <TableCell>{trip.customer_number}</TableCell>}
-                    <TableCell>
-                      <span className="text-xs">{trip.from_location} → {trip.to_location}</span>
-                    </TableCell>
-                    <TableCell>{trip.company || '-'}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(trip.driver_amount)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(trip.commission)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(trip.tolls)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(trip.fuel_amount)}</TableCell>
-                    <TableCell className="text-right font-semibold">{formatCurrency(trip.trip_amount)}</TableCell>
-                    <TableCell className={`text-right font-semibold ${trip.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(trip.profit)}
-                    </TableCell>
-                    <TableCell>
-                      {canEdit ? (
-                        <Select 
-                          value={trip.payment_status || 'pending'} 
-                          onValueChange={(val) => updatePaymentStatus(trip.id, val)}
-                        >
-                          <SelectTrigger className="w-24 h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border shadow-lg z-50">
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="paid">Paid</SelectItem>
-                          </SelectContent>
-                        </Select>
+          <div className="space-y-3">
+            {groupedByMonth.map(([month, { trips: monthTrips, totals }]) => (
+              <Collapsible
+                key={month}
+                open={expandedMonths.includes(month)}
+                onOpenChange={() => toggleMonth(month)}
+              >
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-2">
+                      {expandedMonths.includes(month) ? (
+                        <ChevronDown className="h-5 w-5 text-primary" />
                       ) : (
-                        getStatusBadge(trip.payment_status || 'pending')
+                        <ChevronRight className="h-5 w-5 text-primary" />
                       )}
-                    </TableCell>
-                    {canEdit && (
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => handleEdit(trip)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleInvoice(trip, false)}
-                            title="Invoice (No GST)"
-                          >
-                            <FileText className="h-4 w-4 text-blue-600" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleInvoice(trip, true)}
-                            title="Invoice (With GST)"
-                          >
-                            <Receipt className="h-4 w-4 text-green-600" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDelete(trip.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      <span className="font-semibold text-lg">{month}</span>
+                      <span className="text-muted-foreground">
+                        ({monthTrips.length} trip{monthTrips.length !== 1 ? 's' : ''})
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm text-muted-foreground">
+                        Revenue: <span className="font-semibold text-foreground">{formatCurrency(totals.trip_amount)}</span>
+                      </span>
+                      <span className={`font-bold text-lg ${totals.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        Profit: {formatCurrency(totals.profit)}
+                      </span>
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="overflow-x-auto mt-2">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/20">
+                          <TableHead>Date</TableHead>
+                          <TableHead>Driver</TableHead>
+                          {showPhoneNumbers && <TableHead>Phone</TableHead>}
+                          <TableHead>Customer</TableHead>
+                          {showPhoneNumbers && <TableHead>Phone</TableHead>}
+                          <TableHead>Route</TableHead>
+                          <TableHead>Company</TableHead>
+                          <TableHead className="text-right">Driver ₹</TableHead>
+                          <TableHead className="text-right">Commission</TableHead>
+                          <TableHead className="text-right">Tolls</TableHead>
+                          <TableHead className="text-right">Fuel</TableHead>
+                          <TableHead className="text-right">Trip ₹</TableHead>
+                          <TableHead className="text-right">Profit</TableHead>
+                          <TableHead>Status</TableHead>
+                          {canEdit && <TableHead>Actions</TableHead>}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {/* Month Totals Row */}
+                        <TableRow className="bg-primary/10 font-bold">
+                          <TableCell colSpan={showPhoneNumbers ? 6 : 4}>Month Totals</TableCell>
+                          <TableCell></TableCell>
+                          <TableCell className="text-right">{formatCurrency(totals.driver_amount)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(totals.commission)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(totals.tolls)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(totals.fuel_amount)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(totals.trip_amount)}</TableCell>
+                          <TableCell className={`text-right ${totals.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatCurrency(totals.profit)}
+                          </TableCell>
+                          <TableCell></TableCell>
+                          {canEdit && <TableCell></TableCell>}
+                        </TableRow>
+                        {monthTrips.map((trip) => {
+                          const upcoming = isUpcomingTrip(trip.date);
+                          return (
+                            <TableRow 
+                              key={trip.id}
+                              className={upcoming ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-l-4 border-l-orange-500 hover:bg-muted/30' : 'hover:bg-muted/30'}
+                            >
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  {upcoming && (
+                                    <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white animate-pulse flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      Upcoming
+                                    </Badge>
+                                  )}
+                                  <span className={upcoming ? 'font-semibold text-orange-700 dark:text-orange-400' : ''}>
+                                    {new Date(trip.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="font-medium">{trip.driver_name}</TableCell>
+                              {showPhoneNumbers && <TableCell>{trip.driver_number}</TableCell>}
+                              <TableCell>{trip.customer_name}</TableCell>
+                              {showPhoneNumbers && <TableCell>{trip.customer_number}</TableCell>}
+                              <TableCell>
+                                <span className="text-xs">{trip.from_location} → {trip.to_location}</span>
+                              </TableCell>
+                              <TableCell>{trip.company || '-'}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(trip.driver_amount)}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(trip.commission)}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(trip.tolls)}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(trip.fuel_amount)}</TableCell>
+                              <TableCell className="text-right font-semibold">{formatCurrency(trip.trip_amount)}</TableCell>
+                              <TableCell className={`text-right font-semibold ${trip.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {formatCurrency(trip.profit)}
+                              </TableCell>
+                              <TableCell>
+                                {canEdit ? (
+                                  <Select 
+                                    value={trip.payment_status || 'pending'} 
+                                    onValueChange={(val) => updatePaymentStatus(trip.id, val)}
+                                  >
+                                    <SelectTrigger className="w-24 h-8">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-background border shadow-lg z-50">
+                                      <SelectItem value="pending">Pending</SelectItem>
+                                      <SelectItem value="paid">Paid</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  getStatusBadge(trip.payment_status || 'pending')
+                                )}
+                              </TableCell>
+                              {canEdit && (
+                                <TableCell>
+                                  <div className="flex gap-1">
+                                    <Button variant="ghost" size="sm" onClick={() => handleEdit(trip)}>
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => handleInvoice(trip, false)}
+                                      title="Invoice (No GST)"
+                                    >
+                                      <FileText className="h-4 w-4 text-blue-600" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => handleInvoice(trip, true)}
+                                      title="Invoice (With GST)"
+                                    >
+                                      <Receipt className="h-4 w-4 text-green-600" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => handleDelete(trip.id)}>
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            ))}
+          </div>
         )}
 
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
