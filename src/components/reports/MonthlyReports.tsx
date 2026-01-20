@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { ReportsCharts } from './ReportsCharts';
 
 interface MonthlyData {
   totalTrips: number;
@@ -288,6 +289,9 @@ export const MonthlyReports = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Graphical Reports Section */}
+      <ReportsCharts />
     </div>
   );
 };

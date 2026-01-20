@@ -25,6 +25,7 @@ const maintenanceSchema = z.object({
   driverNumber: z.string().min(10, 'Valid phone number is required'),
   company: z.string().optional(),
   maintenanceType: z.string().min(1, 'Maintenance type is required'),
+  customMaintenanceType: z.string().optional(),
   description: z.string().optional(),
   amount: z.number().min(0, 'Amount must be positive'),
   paymentMode: z.enum(['Cash', 'UPI', 'Online', 'Credit Card', 'Other']),
@@ -81,7 +82,8 @@ export const MaintenanceForm = ({ onSuccess, editData }: MaintenanceFormProps) =
       driverName: editData?.driver_name || '',
       driverNumber: editData?.driver_number || '',
       company: editData?.company || '',
-      maintenanceType: editData?.maintenance_type || '',
+      maintenanceType: maintenanceTypes.includes(editData?.maintenance_type) ? editData?.maintenance_type : (editData?.maintenance_type ? 'Other' : ''),
+      customMaintenanceType: !maintenanceTypes.includes(editData?.maintenance_type) ? editData?.maintenance_type : '',
       description: editData?.description || '',
       amount: editData?.amount || 0,
       paymentMode: editData?.payment_mode || 'Cash',
@@ -90,6 +92,8 @@ export const MaintenanceForm = ({ onSuccess, editData }: MaintenanceFormProps) =
       originalOdometerKm: editData?.original_odometer_km || undefined,
     },
   });
+
+  const watchedMaintenanceType = form.watch('maintenanceType');
 
   useEffect(() => {
     fetchMaintenance();
@@ -129,13 +133,17 @@ export const MaintenanceForm = ({ onSuccess, editData }: MaintenanceFormProps) =
 
   const onSubmit = async (data: MaintenanceFormData) => {
     try {
+      const actualMaintenanceType = data.maintenanceType === 'Other' && data.customMaintenanceType 
+        ? data.customMaintenanceType 
+        : data.maintenanceType;
+      
       const maintenanceData = {
         date: format(data.date, 'yyyy-MM-dd'),
         vehicle_number: data.vehicleNumber,
         driver_name: data.driverName,
         driver_number: data.driverNumber,
         company: data.company || null,
-        maintenance_type: data.maintenanceType,
+        maintenance_type: actualMaintenanceType,
         description: data.description || null,
         amount: data.amount,
         payment_mode: data.paymentMode,
@@ -292,6 +300,17 @@ export const MaintenanceForm = ({ onSuccess, editData }: MaintenanceFormProps) =
                 </SelectContent>
               </Select>
             </div>
+
+            {watchedMaintenanceType === 'Other' && (
+              <div className="space-y-2">
+                <Label htmlFor="customMaintenanceType">Specify Maintenance Type *</Label>
+                <Input
+                  id="customMaintenanceType"
+                  {...form.register('customMaintenanceType')}
+                  placeholder="Enter custom maintenance type"
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="maintenanceCost">Maintenance Cost (₹) *</Label>

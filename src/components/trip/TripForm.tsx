@@ -250,12 +250,18 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="carNumber">Car Number</Label>
-              <Input
-                id="carNumber"
-                {...form.register('carNumber')}
-                placeholder="e.g., AP 31 AB 1234"
-              />
+              <Label>Car Number</Label>
+              <Select onValueChange={(value) => form.setValue('carNumber', value)} value={form.watch('carNumber')}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select car number" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AP39UF1216">AP39UF1216</SelectItem>
+                  <SelectItem value="AP39UB7671">AP39UB7671</SelectItem>
+                  <SelectItem value="AP39TZ0492">AP39TZ0492</SelectItem>
+                  <SelectItem value="AP39UE9498">AP39UE9498</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
