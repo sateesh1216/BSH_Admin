@@ -63,18 +63,21 @@ const DashboardSummaryComponent = ({ data, onCardClick }: DashboardSummaryProps)
       value: (data.totalOutsideVehicleTrips ?? 0).toString(),
       icon: Bus,
       color: 'text-purple-600',
+      type: 'outsideTrips' as DetailType,
     },
     {
       title: 'Outside Vehicle Amount',
       value: formatCurrency.format(data.totalOutsideVehicleMoney ?? 0),
       icon: DollarSign,
       color: 'text-purple-600',
+      type: 'outsideAmount' as DetailType,
     },
     {
       title: 'Outside Pending',
       value: formatCurrency.format(data.pendingOutsideVehicleMoney ?? 0),
       icon: Clock,
       color: 'text-red-600',
+      type: 'outsidePending' as DetailType,
     },
   ], [data.totalOutsideVehicleTrips, data.totalOutsideVehicleMoney, data.pendingOutsideVehicleMoney, formatCurrency]);
 
@@ -109,10 +112,14 @@ const DashboardSummaryComponent = ({ data, onCardClick }: DashboardSummaryProps)
       {(data.totalOutsideVehicleTrips !== undefined && data.totalOutsideVehicleTrips > 0) && (
         <div className="grid grid-cols-3 gap-4">
           {outsideVehicleCards.map((card, index) => (
-            <Card key={index} className="border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 hover:shadow-md transition-all duration-200">
+            <Card 
+              key={index} 
+              className="border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 hover:shadow-md transition-all duration-200 cursor-pointer group"
+              onClick={() => onCardClick?.(card.type)}
+            >
               <CardContent className="p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <card.icon className={`h-4 w-4 ${card.color}`} />
+                  <card.icon className={`h-4 w-4 ${card.color} group-hover:scale-110 transition-transform`} />
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-xs font-medium text-muted-foreground">
