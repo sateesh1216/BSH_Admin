@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DashboardSummary } from '@/components/dashboard/DashboardSummary';
+import { SummaryDetailModal, DetailType } from '@/components/dashboard/SummaryDetailModal';
 import { TripForm } from '@/components/trip/TripForm';
 import { TripsTable } from '@/components/trip/TripsTable';
 import { FileUpload } from '@/components/upload/FileUpload';
@@ -87,6 +88,7 @@ export const Dashboard = () => {
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
   const [showOutsideVehicleTripForm, setShowOutsideVehicleTripForm] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilterOptions>({ type: 'all' });
+  const [summaryDetailType, setSummaryDetailType] = useState<DetailType>(null);
 
   const isAdmin = userRole === 'admin';
 
@@ -456,8 +458,18 @@ export const Dashboard = () => {
 
         {/* Summary Cards */}
         <div className="mt-4">
-          <DashboardSummary data={calculateSummary} />
+          <DashboardSummary data={calculateSummary} onCardClick={setSummaryDetailType} />
         </div>
+
+        {/* Summary Detail Modal */}
+        <SummaryDetailModal
+          open={summaryDetailType !== null}
+          onOpenChange={(open) => !open && setSummaryDetailType(null)}
+          detailType={summaryDetailType}
+          trips={trips}
+          maintenance={maintenance}
+          summary={calculateSummary}
+        />
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">

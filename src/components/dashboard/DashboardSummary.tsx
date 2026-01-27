@@ -1,6 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { DollarSign, Car, TrendingUp, Calculator, Bus, Clock } from 'lucide-react';
 import { memo, useMemo } from 'react';
+import { DetailType } from './SummaryDetailModal';
 
 interface SummaryData {
   totalTrips: number;
@@ -14,9 +15,10 @@ interface SummaryData {
 
 interface DashboardSummaryProps {
   data: SummaryData;
+  onCardClick?: (type: DetailType) => void;
 }
 
-const DashboardSummaryComponent = ({ data }: DashboardSummaryProps) => {
+const DashboardSummaryComponent = ({ data, onCardClick }: DashboardSummaryProps) => {
   const formatCurrency = useMemo(() => 
     new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -30,24 +32,28 @@ const DashboardSummaryComponent = ({ data }: DashboardSummaryProps) => {
       value: data.totalTrips.toString(),
       icon: Car,
       color: 'text-primary',
+      type: 'trips' as DetailType,
     },
     {
       title: 'Total Trip Money',
       value: formatCurrency.format(data.totalTripMoney),
       icon: DollarSign,
       color: 'text-blue-600',
+      type: 'tripMoney' as DetailType,
     },
     {
       title: 'Total Expenses',
       value: formatCurrency.format(data.totalExpenses),
       icon: Calculator,
       color: 'text-orange-600',
+      type: 'expenses' as DetailType,
     },
     {
       title: 'Total Profit',
       value: formatCurrency.format(data.totalProfit),
       icon: TrendingUp,
       color: 'text-green-600',
+      type: 'profit' as DetailType,
     },
   ], [data.totalTrips, data.totalTripMoney, data.totalExpenses, data.totalProfit, formatCurrency]);
 
@@ -77,10 +83,14 @@ const DashboardSummaryComponent = ({ data }: DashboardSummaryProps) => {
       {/* Main Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {mainSummaryCards.map((card, index) => (
-          <Card key={index} className="border-border bg-card hover:bg-accent/50 transition-all duration-200 shadow-sm hover:shadow-md">
+          <Card 
+            key={index} 
+            className="border-border bg-card hover:bg-accent/50 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer group"
+            onClick={() => onCardClick?.(card.type)}
+          >
             <CardContent className="p-3">
               <div className="flex items-center justify-between mb-2">
-                <card.icon className={`h-4 w-4 ${card.color}`} />
+                <card.icon className={`h-4 w-4 ${card.color} group-hover:scale-110 transition-transform`} />
               </div>
               <div className="space-y-0.5">
                 <p className="text-xs font-medium text-muted-foreground">
