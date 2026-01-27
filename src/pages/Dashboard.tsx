@@ -468,6 +468,7 @@ export const Dashboard = () => {
           detailType={summaryDetailType}
           trips={trips}
           maintenance={maintenance}
+          outsideVehicleTrips={outsideVehicleTrips}
           summary={calculateSummary}
         />
 
