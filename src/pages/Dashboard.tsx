@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus } from 'lucide-react';
+import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Users } from 'lucide-react';
 import { startOfDay, parseISO, isAfter } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -16,6 +16,7 @@ import { MaintenanceForm } from '@/components/maintenance/MaintenanceForm';
 import { MaintenanceTable } from '@/components/maintenance/MaintenanceTable';
 import { OutsideVehicleTripForm } from '@/components/outside-vehicle/OutsideVehicleTripForm';
 import { OutsideVehicleTripsTable } from '@/components/outside-vehicle/OutsideVehicleTripsTable';
+import { UserManagement } from '@/components/admin/UserManagement';
 import { DateFilter, DateFilterOptions } from '@/components/filters/DateFilter';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -474,7 +475,7 @@ export const Dashboard = () => {
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-          <TabsList className="grid w-full grid-cols-5 mb-4">
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-5'} mb-4`}>
             <TabsTrigger value="trips" className="flex items-center gap-1 text-xs sm:text-sm">
               <Car className="h-4 w-4" />
               <span className="hidden sm:inline">Trips</span>
@@ -495,6 +496,12 @@ export const Dashboard = () => {
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Reports</span>
             </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="users" className="flex items-center gap-1 text-xs sm:text-sm">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Users</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Trips Tab */}
@@ -559,6 +566,13 @@ export const Dashboard = () => {
             <MonthlyReports />
             <ExpensesReports />
           </TabsContent>
+
+          {/* Users Tab (Admin Only) */}
+          {isAdmin && (
+            <TabsContent value="users" className="space-y-4">
+              <UserManagement />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>

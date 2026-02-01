@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { PhoneAuthForm } from './PhoneAuthForm';
 import { Phone, Mail } from 'lucide-react';
+import { detectEmailTypo } from '@/utils/emailValidation';
 
 const authSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -24,6 +25,7 @@ type AuthFormData = z.infer<typeof authSchema>;
 export const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
+  const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
   const { signIn, signUp } = useAuth();
   
   const form = useForm<AuthFormData>({
@@ -36,7 +38,24 @@ export const AuthForm = () => {
     },
   });
 
+  const handleEmailChange = (email: string) => {
+    form.setValue('email', email);
+    const suggestion = detectEmailTypo(email);
+    setEmailSuggestion(suggestion);
+  };
+
   const onSubmit = async (data: AuthFormData) => {
+    // Check for email typos before submitting
+    const suggestion = detectEmailTypo(data.email);
+    if (suggestion) {
+      toast({
+        title: "Email Typo Detected",
+        description: `Did you mean ${suggestion}?`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       if (isLogin) {
         const { error } = await signIn(data.email, data.password);
@@ -124,7 +143,22 @@ export const AuthForm = () => {
                 type="email"
                 placeholder="Enter your email"
                 {...form.register('email')}
+                onChange={(e) => handleEmailChange(e.target.value)}
               />
+              {emailSuggestion && (
+                <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                  Did you mean <button 
+                    type="button"
+                    className="font-semibold underline"
+                    onClick={() => {
+                      form.setValue('email', emailSuggestion);
+                      setEmailSuggestion(null);
+                    }}
+                  >
+                    {emailSuggestion}
+                  </button>?
+                </p>
+              )}
               {form.formState.errors.email && (
                 <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
               )}

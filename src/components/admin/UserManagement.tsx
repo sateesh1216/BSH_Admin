@@ -1,0 +1,345 @@
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { UserPlus, Shield, Users, Pencil } from 'lucide-react';
+import { detectEmailTypo } from '@/utils/emailValidation';
+
+const createUserSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  fullName: z.string().min(1, 'Full name is required'),
+  role: z.enum(['admin', 'driver1', 'driver2', 'driver3']),
+});
+
+type CreateUserFormData = z.infer<typeof createUserSchema>;
+
+interface Profile {
+  id: string;
+  username: string;
+  full_name: string | null;
+  role: 'admin' | 'driver1' | 'driver2' | 'driver3' | null;
+  created_at: string | null;
+}
+
+export const UserManagement = () => {
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<Profile | null>(null);
+  const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const form = useForm<CreateUserFormData>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      fullName: '',
+      role: 'driver1',
+    },
+  });
+
+  // Fetch all users
+  const { data: users, isLoading } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as Profile[];
+    },
+  });
+
+  // Create new user mutation
+  const createUserMutation = useMutation({
+    mutationFn: async (data: CreateUserFormData) => {
+      // Check for email typos
+      const suggestion = detectEmailTypo(data.email);
+      if (suggestion) {
+        throw new Error(`Did you mean ${suggestion}? The domain appears to have a typo.`);
+      }
+
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            full_name: data.fullName,
+            role: data.role,
+          }
+        }
+      });
+
+      if (authError) throw authError;
+
+      // Update the profile with the correct role if user was created
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ role: data.role, full_name: data.fullName })
+          .eq('id', authData.user.id);
+        
+        if (profileError) throw profileError;
+      }
+
+      return authData;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "User account created successfully! They will receive a verification email.",
+      });
+      form.reset();
+      setIsCreateDialogOpen(false);
+      setEmailSuggestion(null);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update user role mutation
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: role as 'admin' | 'driver1' | 'driver2' | 'driver3' })
+        .eq('id', userId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "User role updated successfully!",
+      });
+      setEditingUser(null);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: CreateUserFormData) => {
+    createUserMutation.mutate(data);
+  };
+
+  const handleEmailChange = (email: string) => {
+    form.setValue('email', email);
+    const suggestion = detectEmailTypo(email);
+    setEmailSuggestion(suggestion);
+  };
+
+  const getRoleBadgeVariant = (role: string | null) => {
+    switch (role) {
+      case 'admin':
+        return 'default';
+      case 'driver1':
+        return 'secondary';
+      case 'driver2':
+        return 'outline';
+      case 'driver3':
+        return 'outline';
+      default:
+        return 'secondary';
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            <CardTitle>User Management</CardTitle>
+          </div>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <UserPlus className="h-4 w-4" />
+                Create User
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New User</DialogTitle>
+                <DialogDescription>
+                  Create a new user account. They will receive a verification email.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter email address"
+                    {...form.register('email')}
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                  />
+                  {emailSuggestion && (
+                    <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                      Did you mean <button 
+                        type="button"
+                        className="font-semibold underline"
+                        onClick={() => {
+                          form.setValue('email', emailSuggestion);
+                          setEmailSuggestion(null);
+                        }}
+                      >
+                        {emailSuggestion}
+                      </button>?
+                    </p>
+                  )}
+                  {form.formState.errors.email && (
+                    <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter password"
+                    {...form.register('password')}
+                  />
+                  {form.formState.errors.password && (
+                    <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Enter full name"
+                    {...form.register('fullName')}
+                  />
+                  {form.formState.errors.fullName && (
+                    <p className="text-sm text-destructive">{form.formState.errors.fullName.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Select 
+                    onValueChange={(value) => form.setValue('role', value as any)} 
+                    defaultValue="driver1"
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          Admin
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="driver1">Driver 1</SelectItem>
+                      <SelectItem value="driver2">Driver 2</SelectItem>
+                      <SelectItem value="driver3">Driver 3</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={createUserMutation.isPending}
+                >
+                  {createUserMutation.isPending ? 'Creating...' : 'Create User'}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+        <CardDescription>Manage user accounts and their roles</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="text-center py-4">Loading users...</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users?.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{user.full_name || '-'}</TableCell>
+                  <TableCell>{user.username}</TableCell>
+                  <TableCell>
+                    {editingUser?.id === user.id ? (
+                      <Select 
+                        defaultValue={user.role || 'driver1'}
+                        onValueChange={(value) => {
+                          updateRoleMutation.mutate({ userId: user.id, role: value });
+                        }}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="driver1">Driver 1</SelectItem>
+                          <SelectItem value="driver2">Driver 2</SelectItem>
+                          <SelectItem value="driver3">Driver 3</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant={getRoleBadgeVariant(user.role)}>
+                        {user.role === 'admin' && <Shield className="h-3 w-3 mr-1" />}
+                        {user.role || 'driver1'}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingUser(editingUser?.id === user.id ? null : user)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
