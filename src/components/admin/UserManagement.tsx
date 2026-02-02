@@ -63,7 +63,7 @@ export const UserManagement = () => {
     },
   });
 
-  // Create new user mutation
+  // Create new user mutation - calls edge function
   const createUserMutation = useMutation({
     mutationFn: async (data: CreateUserFormData) => {
       // Check for email typos
@@ -72,43 +72,49 @@ export const UserManagement = () => {
         throw new Error(`Did you mean ${suggestion}? The domain appears to have a typo.`);
       }
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: data.fullName,
-            role: data.role,
-          }
-        }
-      });
-
-      if (authError) throw authError;
-
-      // Update the profile with the correct role if user was created
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ role: data.role, full_name: data.fullName })
-          .eq('id', authData.user.id);
-        
-        if (profileError) throw profileError;
+      // Get current session token
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        throw new Error('You must be logged in to create users');
       }
 
-      return authData;
+      // Call edge function
+      const response = await fetch(
+        'https://hecnhsynlpachotmpmjg.supabase.co/functions/v1/admin-create-user',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionData.session.access_token}`,
+          },
+          body: JSON.stringify({
+            email: data.email,
+            password: data.password,
+            fullName: data.fullName,
+            role: data.role,
+          }),
+        }
+      );
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create user');
+      }
+
+      return result;
     },
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "User account created successfully! They will receive a verification email.",
+        description: "User account created successfully! They can now log in immediately.",
       });
       form.reset();
       setIsCreateDialogOpen(false);
       setEmailSuggestion(null);
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message,
@@ -135,7 +141,7 @@ export const UserManagement = () => {
       setEditingUser(null);
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message,
@@ -188,7 +194,7 @@ export const UserManagement = () => {
               <DialogHeader>
                 <DialogTitle>Create New User</DialogTitle>
                 <DialogDescription>
-                  Create a new user account. They will receive a verification email.
+                  Create a new user account. They will be able to log in immediately without email verification.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -202,7 +208,7 @@ export const UserManagement = () => {
                     onChange={(e) => handleEmailChange(e.target.value)}
                   />
                   {emailSuggestion && (
-                    <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                    <p className="text-sm text-amber-600 bg-amber-100 dark:bg-amber-900/30 p-2 rounded">
                       Did you mean <button 
                         type="button"
                         className="font-semibold underline"
@@ -249,7 +255,7 @@ export const UserManagement = () => {
                 <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
                   <Select 
-                    onValueChange={(value) => form.setValue('role', value as any)} 
+                    onValueChange={(value) => form.setValue('role', value as 'admin' | 'driver1' | 'driver2' | 'driver3')} 
                     defaultValue="driver1"
                   >
                     <SelectTrigger>

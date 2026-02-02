@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { PhoneAuthForm } from './PhoneAuthForm';
@@ -16,25 +15,20 @@ import { detectEmailTypo } from '@/utils/emailValidation';
 const authSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  fullName: z.string().optional(),
-  role: z.string().optional(),
 });
 
 type AuthFormData = z.infer<typeof authSchema>;
 
 export const AuthForm = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
   
   const form = useForm<AuthFormData>({
     resolver: zodResolver(authSchema),
     defaultValues: {
       email: '',
       password: '',
-      fullName: '',
-      role: 'driver1',
     },
   });
 
@@ -57,34 +51,18 @@ export const AuthForm = () => {
     }
 
     try {
-      if (isLogin) {
-        const { error } = await signIn(data.email, data.password);
-        if (error) {
-          toast({
-            title: "Error",
-            description: error.message,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Success",
-            description: "Signed in successfully!",
-          });
-        }
+      const { error } = await signIn(data.email, data.password);
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
       } else {
-        const { error } = await signUp(data.email, data.password, data.fullName || '', data.role || 'driver1');
-        if (error) {
-          toast({
-            title: "Error",
-            description: error.message,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Success",
-            description: "Account created successfully! Please check your email for verification.",
-          });
-        }
+        toast({
+          title: "Success",
+          description: "Signed in successfully!",
+        });
       }
     } catch (error) {
       toast({
@@ -110,7 +88,7 @@ export const AuthForm = () => {
             BSH Taxi Service Management
           </CardTitle>
           <CardDescription>
-            {isLogin ? 'Sign in to your account' : 'Create a new account'}
+            Sign in to your account
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -146,7 +124,7 @@ export const AuthForm = () => {
                 onChange={(e) => handleEmailChange(e.target.value)}
               />
               {emailSuggestion && (
-                <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                <p className="text-sm text-amber-600 bg-amber-100 dark:bg-amber-900/30 p-2 rounded">
                   Did you mean <button 
                     type="button"
                     className="font-semibold underline"
@@ -177,52 +155,14 @@ export const AuthForm = () => {
               )}
             </div>
 
-            {!isLogin && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="Enter your full name"
-                    {...form.register('fullName')}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Select onValueChange={(value) => form.setValue('role', value)} defaultValue="driver1">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="driver1">Driver 1</SelectItem>
-                      <SelectItem value="driver2">Driver 2</SelectItem>
-                      <SelectItem value="driver3">Driver 3</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            )}
-
             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting 
-                ? (isLogin ? 'Signing In...' : 'Creating Account...') 
-                : (isLogin ? 'Sign In' : 'Create Account')
-              }
+              {form.formState.isSubmitting ? 'Signing In...' : 'Sign In'}
             </Button>
           </form>
 
-          <div className="mt-4 text-center">
-            <Button
-              variant="ghost"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-primary hover:text-primary/80"
-            >
-              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-            </Button>
-          </div>
+          <p className="text-center text-sm text-muted-foreground">
+            Contact your administrator if you need an account
+          </p>
         </CardContent>
       </Card>
     </div>
