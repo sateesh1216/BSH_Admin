@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserPlus, Shield, Users, Pencil } from 'lucide-react';
+import { UserPlus, Shield, Users, Pencil, Trash2, KeyRound } from 'lucide-react';
 import { detectEmailTypo } from '@/utils/emailValidation';
 
 const createUserSchema = z.object({
@@ -37,6 +38,8 @@ export const UserManagement = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
   const queryClient = useQueryClient();
 
   const form = useForm<CreateUserFormData>({
@@ -66,19 +69,16 @@ export const UserManagement = () => {
   // Create new user mutation - calls edge function
   const createUserMutation = useMutation({
     mutationFn: async (data: CreateUserFormData) => {
-      // Check for email typos
       const suggestion = detectEmailTypo(data.email);
       if (suggestion) {
         throw new Error(`Did you mean ${suggestion}? The domain appears to have a typo.`);
       }
 
-      // Get current session token
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
         throw new Error('You must be logged in to create users');
       }
 
-      // Call edge function
       const response = await fetch(
         'https://hecnhsynlpachotmpmjg.supabase.co/functions/v1/admin-create-user',
         {
@@ -113,6 +113,95 @@ export const UserManagement = () => {
       setIsCreateDialogOpen(false);
       setEmailSuggestion(null);
       queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        throw new Error('You must be logged in to delete users');
+      }
+
+      const response = await fetch(
+        'https://hecnhsynlpachotmpmjg.supabase.co/functions/v1/admin-delete-user',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionData.session.access_token}`,
+          },
+          body: JSON.stringify({ userId }),
+        }
+      );
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete user');
+      }
+
+      return result;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "User deleted successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reset password mutation
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        throw new Error('You must be logged in to reset passwords');
+      }
+
+      const response = await fetch(
+        'https://hecnhsynlpachotmpmjg.supabase.co/functions/v1/admin-reset-password',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionData.session.access_token}`,
+          },
+          body: JSON.stringify({ userId, newPassword }),
+        }
+      );
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to reset password');
+      }
+
+      return result;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Password reset successfully!",
+      });
+      setResetPasswordUserId(null);
+      setNewPassword('');
     },
     onError: (error: Error) => {
       toast({
@@ -332,13 +421,117 @@ export const UserManagement = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditingUser(editingUser?.id === user.id ? null : user)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingUser(editingUser?.id === user.id ? null : user)}
+                        title="Edit role"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      
+                      {/* Reset Password Dialog */}
+                      <Dialog 
+                        open={resetPasswordUserId === user.id} 
+                        onOpenChange={(open) => {
+                          if (!open) {
+                            setResetPasswordUserId(null);
+                            setNewPassword('');
+                          }
+                        }}
+                      >
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setResetPasswordUserId(user.id)}
+                            title="Reset password"
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Reset Password</DialogTitle>
+                            <DialogDescription>
+                              Set a new password for {user.full_name || user.username}
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="newPassword">New Password</Label>
+                              <Input
+                                id="newPassword"
+                                type="password"
+                                placeholder="Enter new password (min 6 characters)"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setResetPasswordUserId(null);
+                                setNewPassword('');
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                if (newPassword.length >= 6) {
+                                  resetPasswordMutation.mutate({ userId: user.id, newPassword });
+                                } else {
+                                  toast({
+                                    title: "Error",
+                                    description: "Password must be at least 6 characters",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                              disabled={resetPasswordMutation.isPending}
+                            >
+                              {resetPasswordMutation.isPending ? 'Resetting...' : 'Reset Password'}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+
+                      {/* Delete User Confirmation */}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            title="Delete user"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete User</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete {user.full_name || user.username}? 
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteUserMutation.mutate(user.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              {deleteUserMutation.isPending ? 'Deleting...' : 'Delete'}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
