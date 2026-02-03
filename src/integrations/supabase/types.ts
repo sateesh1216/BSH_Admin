@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      car_numbers: {
+        Row: {
+          car_number: string
+          created_at: string
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          car_number: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          car_number?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       maintenance: {
         Row: {
           amount: number

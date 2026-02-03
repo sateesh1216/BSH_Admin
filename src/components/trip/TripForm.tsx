@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { CarNumberCombobox } from '@/components/ui/car-number-combobox';
 
 const tripSchema = z.object({
   date: z.date({ required_error: 'Date is required' }),
@@ -251,17 +252,10 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
 
             <div className="space-y-2">
               <Label>Car Number</Label>
-              <Select onValueChange={(value) => form.setValue('carNumber', value)} value={form.watch('carNumber')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select car number" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AP39UF1216">AP39UF1216</SelectItem>
-                  <SelectItem value="AP39UB7671">AP39UB7671</SelectItem>
-                  <SelectItem value="AP39TZ0492">AP39TZ0492</SelectItem>
-                  <SelectItem value="AP39UE9498">AP39UE9498</SelectItem>
-                </SelectContent>
-              </Select>
+              <CarNumberCombobox
+                value={form.watch('carNumber') || ''}
+                onValueChange={(value) => form.setValue('carNumber', value)}
+              />
             </div>
 
             <div className="space-y-2">
