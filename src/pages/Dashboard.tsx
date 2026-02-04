@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Users } from 'lucide-react';
+import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings } from 'lucide-react';
 import { startOfDay, parseISO, isAfter } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -16,7 +16,7 @@ import { MaintenanceForm } from '@/components/maintenance/MaintenanceForm';
 import { MaintenanceTable } from '@/components/maintenance/MaintenanceTable';
 import { OutsideVehicleTripForm } from '@/components/outside-vehicle/OutsideVehicleTripForm';
 import { OutsideVehicleTripsTable } from '@/components/outside-vehicle/OutsideVehicleTripsTable';
-import { UserManagement } from '@/components/admin/UserManagement';
+import { AdminPanel } from '@/components/admin/AdminPanel';
 import { DateFilter, DateFilterOptions } from '@/components/filters/DateFilter';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -361,11 +361,12 @@ export const Dashboard = () => {
         <div className="px-4 py-3">
           <div className="flex justify-between items-center">
             <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">VIZAG TAXI</p>
               <h1 className="text-xl sm:text-2xl font-bold text-primary">
-                BSH Taxi Service
+                VIZAG TAXI
               </h1>
-              <p className="text-sm text-muted-foreground">
-                {user?.email} • {userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Loading...'}
+              <p className="text-xs text-muted-foreground">
+                Provider: <span className="font-semibold">BSH</span> • {user?.email} • {userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Loading...'}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -497,9 +498,9 @@ export const Dashboard = () => {
               <span className="hidden sm:inline">Reports</span>
             </TabsTrigger>
             {isAdmin && (
-              <TabsTrigger value="users" className="flex items-center gap-1 text-xs sm:text-sm">
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Users</span>
+              <TabsTrigger value="admin" className="flex items-center gap-1 text-xs sm:text-sm">
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Admin</span>
               </TabsTrigger>
             )}
           </TabsList>
@@ -567,10 +568,10 @@ export const Dashboard = () => {
             <ExpensesReports />
           </TabsContent>
 
-          {/* Users Tab (Admin Only) */}
+          {/* Admin Panel Tab (Admin Only) */}
           {isAdmin && (
-            <TabsContent value="users" className="space-y-4">
-              <UserManagement />
+            <TabsContent value="admin" className="space-y-4">
+              <AdminPanel onNavigateToReports={() => setActiveTab('reports')} />
             </TabsContent>
           )}
         </Tabs>

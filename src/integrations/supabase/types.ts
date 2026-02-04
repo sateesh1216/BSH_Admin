@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          requested_role: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          requested_role?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          requested_role?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       car_numbers: {
         Row: {
           car_number: string
@@ -32,6 +65,30 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+        }
+        Relationships: []
+      }
+      login_history: {
+        Row: {
+          id: string
+          ip_address: string | null
+          login_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          ip_address?: string | null
+          login_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          ip_address?: string | null
+          login_at?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -157,7 +214,10 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           id: string
+          last_login: string | null
+          login_count: number | null
           role: Database["public"]["Enums"]["user_role"] | null
+          status: string | null
           updated_at: string | null
           username: string
         }
@@ -165,7 +225,10 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id: string
+          last_login?: string | null
+          login_count?: number | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          status?: string | null
           updated_at?: string | null
           username: string
         }
@@ -173,7 +236,10 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id?: string
+          last_login?: string | null
+          login_count?: number | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          status?: string | null
           updated_at?: string | null
           username?: string
         }

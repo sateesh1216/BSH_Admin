@@ -83,10 +83,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    
+    // Track login if successful
+    if (!error && data?.user) {
+      try {
+        // Record login in login_history
+        await supabase.from('login_history').insert({
+          user_id: data.user.id,
+          user_agent: navigator.userAgent,
+        });
+        
+        // Update profile with last_login and increment login_count
+        await supabase.from('profiles').update({
+          last_login: new Date().toISOString(),
+          login_count: (await supabase.from('profiles').select('login_count').eq('id', data.user.id).single()).data?.login_count + 1 || 1,
+        }).eq('id', data.user.id);
+      } catch (trackError) {
+        console.error('Error tracking login:', trackError);
+      }
+    }
+    
     return { error };
   };
 
