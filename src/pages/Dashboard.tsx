@@ -361,9 +361,9 @@ export const Dashboard = () => {
         <div className="px-4 py-3">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">VIZAG TAXI</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">BSH Taxi Service</p>
               <h1 className="text-xl sm:text-2xl font-bold text-primary">
-                VIZAG TAXI
+                BSH Taxi Service
               </h1>
               <p className="text-xs text-muted-foreground">
                 Provider: <span className="font-semibold">BSH</span> • {user?.email} • <span className="font-medium">{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Loading...'}</span>
