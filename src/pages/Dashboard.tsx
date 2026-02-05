@@ -78,7 +78,7 @@ interface OutsideVehicleTrip {
 }
 
 export const Dashboard = () => {
-  const { user, userRole, signOut } = useAuth();
+  const { user, userRole, userName, signOut } = useAuth();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [maintenance, setMaintenance] = useState<Maintenance[]>([]);
   const [outsideVehicleTrips, setOutsideVehicleTrips] = useState<OutsideVehicleTrip[]>([]);
@@ -366,7 +366,7 @@ export const Dashboard = () => {
                 BSH Taxi Service
               </h1>
               <p className="text-xs text-muted-foreground">
-                Provider: <span className="font-semibold">BSH</span> • {user?.email} • <span className="font-medium">{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Loading...'}</span>
+                Provider: <span className="font-semibold">BSH</span> • {userName || user?.email} • <span className="font-medium">{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Loading...'}</span>
               </p>
             </div>
             <div className="flex items-center gap-2">
