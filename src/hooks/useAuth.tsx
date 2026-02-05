@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   userRole: string | null;
+  userName: string | null;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName: string, role: string) => Promise<{ error: any }>;
   signInWithPhone: (phone: string) => Promise<{ error: any }>;
@@ -20,6 +21,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,22 +34,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user role from profiles table
+          // Fetch user role and username from profiles table
           setTimeout(async () => {
             try {
               const { data: profile } = await supabase
                 .from('profiles')
-                .select('role')
+                .select('role, username, full_name')
                 .eq('id', session.user.id)
                 .single();
               setUserRole(profile?.role || null);
+              setUserName(profile?.full_name || profile?.username || null);
             } catch (error) {
               console.error('Error fetching user role:', error);
               setUserRole(null);
+              setUserName(null);
             }
           }, 0);
         } else {
           setUserRole(null);
+          setUserName(null);
         }
         setLoading(false);
       }
@@ -61,6 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(null);
         setUser(null);
         setUserRole(null);
+        setUserName(null);
         setLoading(false);
         return;
       }
@@ -76,6 +82,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(null);
       setUser(null);
       setUserRole(null);
+      setUserName(null);
       setLoading(false);
     });
 
@@ -167,6 +174,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     setSession(null);
     setUserRole(null);
+    setUserName(null);
   };
 
   return (
@@ -175,6 +183,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         user,
         session,
         userRole,
+        userName,
         signIn,
         signUp,
         signInWithPhone,
