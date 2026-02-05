@@ -14,8 +14,9 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserPlus, Shield, Users, Pencil, Trash2, KeyRound } from 'lucide-react';
+import { UserPlus, Shield, Users, Pencil, Trash2, KeyRound, Eye } from 'lucide-react';
 import { detectEmailTypo } from '@/utils/emailValidation';
+import { format } from 'date-fns';
 
 const createUserSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -40,6 +41,7 @@ export const UserManagement = () => {
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
+  const [viewingUser, setViewingUser] = useState<Profile | null>(null);
   const queryClient = useQueryClient();
 
   const form = useForm<CreateUserFormData>({
@@ -75,6 +77,60 @@ export const UserManagement = () => {
       if (error) throw error;
       return data as Profile[];
     },
+  });
+
+  // Fetch user's trips data when viewing a user
+  const { data: userTrips, isLoading: isLoadingTrips } = useQuery({
+    queryKey: ['user-trips', viewingUser?.id],
+    queryFn: async () => {
+      if (!viewingUser) return null;
+      const { data, error } = await supabase
+        .from('trips')
+        .select('*')
+        .eq('created_by', viewingUser.id)
+        .order('date', { ascending: false })
+        .limit(10);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!viewingUser,
+  });
+
+  // Fetch user's maintenance data when viewing a user
+  const { data: userMaintenance, isLoading: isLoadingMaintenance } = useQuery({
+    queryKey: ['user-maintenance', viewingUser?.id],
+    queryFn: async () => {
+      if (!viewingUser) return null;
+      const { data, error } = await supabase
+        .from('maintenance')
+        .select('*')
+        .eq('created_by', viewingUser.id)
+        .order('date', { ascending: false })
+        .limit(10);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!viewingUser,
+  });
+
+  // Fetch user's login history when viewing a user
+  const { data: userLoginHistory, isLoading: isLoadingLoginHistory } = useQuery({
+    queryKey: ['user-login-history', viewingUser?.id],
+    queryFn: async () => {
+      if (!viewingUser) return null;
+      const { data, error } = await supabase
+        .from('login_history')
+        .select('*')
+        .eq('user_id', viewingUser.id)
+        .order('login_at', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!viewingUser,
   });
 
   // Create new user mutation - calls edge function
@@ -419,6 +475,147 @@ export const UserManagement = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
+                      {/* View User Details Dialog */}
+                      <Dialog 
+                        open={viewingUser?.id === user.id} 
+                        onOpenChange={(open) => {
+                          if (!open) setViewingUser(null);
+                        }}
+                      >
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setViewingUser(user)}
+                            title="View user details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>User Details</DialogTitle>
+                            <DialogDescription>
+                              Detailed information for {user.full_name || user.username}
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-6 py-4">
+                            {/* Basic Info */}
+                            <div className="space-y-3">
+                              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Basic Information</h4>
+                              <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">Full Name</Label>
+                                  <p className="font-medium">{user.full_name || '-'}</p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">Email</Label>
+                                  <p className="font-medium">{user.username}</p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">Role</Label>
+                                  <Badge variant={getRoleBadgeVariant(user.role)} className="mt-1">
+                                    {user.role === 'admin' && <Shield className="h-3 w-3 mr-1" />}
+                                    {displayRole(user.role)}
+                                  </Badge>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">Member Since</Label>
+                                  <p className="font-medium">
+                                    {user.created_at ? format(new Date(user.created_at), 'MMM dd, yyyy') : '-'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Recent Logins */}
+                            <div className="space-y-3">
+                              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Recent Logins</h4>
+                              {isLoadingLoginHistory ? (
+                                <p className="text-sm text-muted-foreground">Loading...</p>
+                              ) : userLoginHistory && userLoginHistory.length > 0 ? (
+                                <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                                  {userLoginHistory.map((login) => (
+                                    <div key={login.id} className="flex justify-between text-sm">
+                                      <span>{format(new Date(login.login_at), 'MMM dd, yyyy HH:mm')}</span>
+                                      <span className="text-muted-foreground">{login.ip_address || 'Unknown IP'}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">No login history found</p>
+                              )}
+                            </div>
+
+                            {/* Recent Trips */}
+                            <div className="space-y-3">
+                              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Recent Trips</h4>
+                              {isLoadingTrips ? (
+                                <p className="text-sm text-muted-foreground">Loading...</p>
+                              ) : userTrips && userTrips.length > 0 ? (
+                                <div className="bg-muted/50 rounded-lg overflow-hidden">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="text-xs">Date</TableHead>
+                                        <TableHead className="text-xs">Route</TableHead>
+                                        <TableHead className="text-xs">Customer</TableHead>
+                                        <TableHead className="text-xs text-right">Amount</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {userTrips.map((trip) => (
+                                        <TableRow key={trip.id}>
+                                          <TableCell className="text-sm">{format(new Date(trip.date), 'MMM dd')}</TableCell>
+                                          <TableCell className="text-sm">{trip.from_location} → {trip.to_location}</TableCell>
+                                          <TableCell className="text-sm">{trip.customer_name}</TableCell>
+                                          <TableCell className="text-sm text-right">₹{trip.trip_amount}</TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">No trips found</p>
+                              )}
+                            </div>
+
+                            {/* Recent Maintenance */}
+                            <div className="space-y-3">
+                              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Recent Maintenance</h4>
+                              {isLoadingMaintenance ? (
+                                <p className="text-sm text-muted-foreground">Loading...</p>
+                              ) : userMaintenance && userMaintenance.length > 0 ? (
+                                <div className="bg-muted/50 rounded-lg overflow-hidden">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="text-xs">Date</TableHead>
+                                        <TableHead className="text-xs">Type</TableHead>
+                                        <TableHead className="text-xs">Vehicle</TableHead>
+                                        <TableHead className="text-xs text-right">Amount</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {userMaintenance.map((record) => (
+                                        <TableRow key={record.id}>
+                                          <TableCell className="text-sm">{format(new Date(record.date), 'MMM dd')}</TableCell>
+                                          <TableCell className="text-sm">{record.maintenance_type}</TableCell>
+                                          <TableCell className="text-sm">{record.vehicle_number}</TableCell>
+                                          <TableCell className="text-sm text-right">₹{record.amount}</TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">No maintenance records found</p>
+                              )}
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+
                       <Button
                         variant="ghost"
                         size="sm"
