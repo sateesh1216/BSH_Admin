@@ -21,7 +21,7 @@ const createUserSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   fullName: z.string().min(1, 'Full name is required'),
-  role: z.enum(['admin', 'driver1', 'driver2', 'driver3']),
+  role: z.enum(['admin', 'user']),
 });
 
 type CreateUserFormData = z.infer<typeof createUserSchema>;
@@ -48,9 +48,20 @@ export const UserManagement = () => {
       email: '',
       password: '',
       fullName: '',
-      role: 'driver1',
+      role: 'user',
     },
   });
+
+  // Helper to map UI role to database role
+  const mapRoleToDb = (role: string): 'admin' | 'driver1' | 'driver2' | 'driver3' => {
+    return role === 'admin' ? 'admin' : 'driver1';
+  };
+
+  // Helper to display role (merge driver1/2/3 as "User")
+  const displayRole = (role: string | null): string => {
+    if (role === 'admin') return 'Admin';
+    return 'User';
+  };
 
   // Fetch all users
   const { data: users, isLoading } = useQuery({
@@ -91,7 +102,7 @@ export const UserManagement = () => {
             email: data.email,
             password: data.password,
             fullName: data.fullName,
-            role: data.role,
+            role: mapRoleToDb(data.role),
           }),
         }
       );
@@ -215,9 +226,10 @@ export const UserManagement = () => {
   // Update user role mutation
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const dbRole = mapRoleToDb(role);
       const { error } = await supabase
         .from('profiles')
-        .update({ role: role as 'admin' | 'driver1' | 'driver2' | 'driver3' })
+        .update({ role: dbRole })
         .eq('id', userId);
       
       if (error) throw error;
@@ -249,19 +261,8 @@ export const UserManagement = () => {
     setEmailSuggestion(suggestion);
   };
 
-  const getRoleBadgeVariant = (role: string | null) => {
-    switch (role) {
-      case 'admin':
-        return 'default';
-      case 'driver1':
-        return 'secondary';
-      case 'driver2':
-        return 'outline';
-      case 'driver3':
-        return 'outline';
-      default:
-        return 'secondary';
-    }
+  const getRoleBadgeVariant = (role: string | null): "default" | "secondary" | "outline" | "destructive" => {
+    return role === 'admin' ? 'default' : 'secondary';
   };
 
   return (
@@ -344,8 +345,8 @@ export const UserManagement = () => {
                 <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
                   <Select 
-                    onValueChange={(value) => form.setValue('role', value as 'admin' | 'driver1' | 'driver2' | 'driver3')} 
-                    defaultValue="driver1"
+                    onValueChange={(value) => form.setValue('role', value as 'admin' | 'user')} 
+                    defaultValue="user"
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select role" />
@@ -357,9 +358,7 @@ export const UserManagement = () => {
                           Admin
                         </div>
                       </SelectItem>
-                      <SelectItem value="driver1">Driver 1</SelectItem>
-                      <SelectItem value="driver2">Driver 2</SelectItem>
-                      <SelectItem value="driver3">Driver 3</SelectItem>
+                      <SelectItem value="user">User</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -398,7 +397,7 @@ export const UserManagement = () => {
                   <TableCell>
                     {editingUser?.id === user.id ? (
                       <Select 
-                        defaultValue={user.role || 'driver1'}
+                        defaultValue={user.role === 'admin' ? 'admin' : 'user'}
                         onValueChange={(value) => {
                           updateRoleMutation.mutate({ userId: user.id, role: value });
                         }}
@@ -408,15 +407,13 @@ export const UserManagement = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="driver1">Driver 1</SelectItem>
-                          <SelectItem value="driver2">Driver 2</SelectItem>
-                          <SelectItem value="driver3">Driver 3</SelectItem>
+                          <SelectItem value="user">User</SelectItem>
                         </SelectContent>
                       </Select>
                     ) : (
                       <Badge variant={getRoleBadgeVariant(user.role)}>
                         {user.role === 'admin' && <Shield className="h-3 w-3 mr-1" />}
-                        {user.role || 'driver1'}
+                        {displayRole(user.role)}
                       </Badge>
                     )}
                   </TableCell>
