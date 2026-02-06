@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserPlus, Shield, Users, Pencil, Trash2, KeyRound, Eye } from 'lucide-react';
+import { UserPlus, Shield, Users, Trash2, KeyRound, Eye, Pause, Play } from 'lucide-react';
 import { detectEmailTypo } from '@/utils/emailValidation';
 import { format } from 'date-fns';
 
@@ -33,15 +33,21 @@ interface Profile {
   full_name: string | null;
   role: 'admin' | 'driver1' | 'driver2' | 'driver3' | null;
   created_at: string | null;
+  status: string | null;
 }
 
 export const UserManagement = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [viewingUser, setViewingUser] = useState<Profile | null>(null);
+  
+  // Edit form state for viewing user
+  const [editFullName, setEditFullName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editRole, setEditRole] = useState<'admin' | 'user'>('user');
+  
   const queryClient = useQueryClient();
 
   const form = useForm<CreateUserFormData>({
@@ -63,6 +69,11 @@ export const UserManagement = () => {
   const displayRole = (role: string | null): string => {
     if (role === 'admin') return 'Admin';
     return 'User';
+  };
+
+  // Helper to get UI role from db role
+  const getUiRole = (role: string | null): 'admin' | 'user' => {
+    return role === 'admin' ? 'admin' : 'user';
   };
 
   // Fetch all users
@@ -279,13 +290,13 @@ export const UserManagement = () => {
     },
   });
 
-  // Update user role mutation
-  const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+  // Update user profile mutation (name, role)
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ userId, fullName, role }: { userId: string; fullName: string; role: string }) => {
       const dbRole = mapRoleToDb(role);
       const { error } = await supabase
         .from('profiles')
-        .update({ role: dbRole })
+        .update({ full_name: fullName, role: dbRole })
         .eq('id', userId);
       
       if (error) throw error;
@@ -293,9 +304,37 @@ export const UserManagement = () => {
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "User role updated successfully!",
+        description: "User updated successfully!",
       });
-      setEditingUser(null);
+      setViewingUser(null);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Toggle user status (pause/reactivate) mutation
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ userId, currentStatus }: { userId: string; currentStatus: string | null }) => {
+      const newStatus = currentStatus === 'paused' ? 'active' : 'paused';
+      const { error } = await supabase
+        .from('profiles')
+        .update({ status: newStatus })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      return newStatus;
+    },
+    onSuccess: (newStatus) => {
+      toast({
+        title: "Success",
+        description: newStatus === 'paused' ? "User account paused!" : "User account reactivated!",
+      });
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
     onError: (error: Error) => {
@@ -317,8 +356,32 @@ export const UserManagement = () => {
     setEmailSuggestion(suggestion);
   };
 
+  const handleViewUser = (user: Profile) => {
+    setViewingUser(user);
+    setEditFullName(user.full_name || '');
+    setEditEmail(user.username);
+    setEditRole(getUiRole(user.role));
+  };
+
+  const handleSaveUser = () => {
+    if (viewingUser) {
+      updateUserMutation.mutate({
+        userId: viewingUser.id,
+        fullName: editFullName,
+        role: editRole,
+      });
+    }
+  };
+
   const getRoleBadgeVariant = (role: string | null): "default" | "secondary" | "outline" | "destructive" => {
     return role === 'admin' ? 'default' : 'secondary';
+  };
+
+  const getStatusBadge = (status: string | null) => {
+    if (status === 'paused') {
+      return <Badge variant="destructive">Paused</Badge>;
+    }
+    return <Badge variant="outline" className="text-green-600 border-green-600">Active</Badge>;
   };
 
   return (
@@ -442,6 +505,7 @@ export const UserManagement = () => {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -451,31 +515,15 @@ export const UserManagement = () => {
                   <TableCell className="font-medium">{user.full_name || '-'}</TableCell>
                   <TableCell>{user.username}</TableCell>
                   <TableCell>
-                    {editingUser?.id === user.id ? (
-                      <Select 
-                        defaultValue={user.role === 'admin' ? 'admin' : 'user'}
-                        onValueChange={(value) => {
-                          updateRoleMutation.mutate({ userId: user.id, role: value });
-                        }}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="user">User</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Badge variant={getRoleBadgeVariant(user.role)}>
-                        {user.role === 'admin' && <Shield className="h-3 w-3 mr-1" />}
-                        {displayRole(user.role)}
-                      </Badge>
-                    )}
+                    <Badge variant={getRoleBadgeVariant(user.role)}>
+                      {user.role === 'admin' && <Shield className="h-3 w-3 mr-1" />}
+                      {displayRole(user.role)}
+                    </Badge>
                   </TableCell>
+                  <TableCell>{getStatusBadge(user.status)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      {/* View User Details Dialog */}
+                      {/* View/Edit User Details Dialog */}
                       <Dialog 
                         open={viewingUser?.id === user.id} 
                         onOpenChange={(open) => {
@@ -486,42 +534,66 @@ export const UserManagement = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setViewingUser(user)}
-                            title="View user details"
+                            onClick={() => handleViewUser(user)}
+                            title="View & Edit user"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                           <DialogHeader>
-                            <DialogTitle>User Details</DialogTitle>
+                            <DialogTitle>View & Edit User</DialogTitle>
                             <DialogDescription>
-                              Detailed information for {user.full_name || user.username}
+                              View and edit details for {user.full_name || user.username}
                             </DialogDescription>
                           </DialogHeader>
                           <div className="space-y-6 py-4">
-                            {/* Basic Info */}
-                            <div className="space-y-3">
-                              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Basic Information</h4>
-                              <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
-                                <div>
-                                  <Label className="text-xs text-muted-foreground">Full Name</Label>
-                                  <p className="font-medium">{user.full_name || '-'}</p>
+                            {/* Editable Info */}
+                            <div className="space-y-4">
+                              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">User Information</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="editFullName">Full Name</Label>
+                                  <Input
+                                    id="editFullName"
+                                    value={editFullName}
+                                    onChange={(e) => setEditFullName(e.target.value)}
+                                    placeholder="Enter full name"
+                                  />
                                 </div>
-                                <div>
-                                  <Label className="text-xs text-muted-foreground">Email</Label>
-                                  <p className="font-medium">{user.username}</p>
+                                <div className="space-y-2">
+                                  <Label htmlFor="editEmail">Email</Label>
+                                  <Input
+                                    id="editEmail"
+                                    value={editEmail}
+                                    disabled
+                                    className="bg-muted"
+                                  />
+                                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
                                 </div>
-                                <div>
-                                  <Label className="text-xs text-muted-foreground">Role</Label>
-                                  <Badge variant={getRoleBadgeVariant(user.role)} className="mt-1">
-                                    {user.role === 'admin' && <Shield className="h-3 w-3 mr-1" />}
-                                    {displayRole(user.role)}
-                                  </Badge>
+                                <div className="space-y-2">
+                                  <Label htmlFor="editRole">Role</Label>
+                                  <Select 
+                                    value={editRole}
+                                    onValueChange={(value) => setEditRole(value as 'admin' | 'user')}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="admin">
+                                        <div className="flex items-center gap-2">
+                                          <Shield className="h-4 w-4" />
+                                          Admin
+                                        </div>
+                                      </SelectItem>
+                                      <SelectItem value="user">User</SelectItem>
+                                    </SelectContent>
+                                  </Select>
                                 </div>
-                                <div>
-                                  <Label className="text-xs text-muted-foreground">Member Since</Label>
-                                  <p className="font-medium">
+                                <div className="space-y-2">
+                                  <Label>Member Since</Label>
+                                  <p className="text-sm font-medium py-2">
                                     {user.created_at ? format(new Date(user.created_at), 'MMM dd, yyyy') : '-'}
                                   </p>
                                 </div>
@@ -613,16 +685,36 @@ export const UserManagement = () => {
                               )}
                             </div>
                           </div>
+                          <DialogFooter>
+                            <Button
+                              variant="outline"
+                              onClick={() => setViewingUser(null)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={handleSaveUser}
+                              disabled={updateUserMutation.isPending}
+                            >
+                              {updateUserMutation.isPending ? 'Saving...' : 'Save Changes'}
+                            </Button>
+                          </DialogFooter>
                         </DialogContent>
                       </Dialog>
 
+                      {/* Pause/Reactivate Button */}
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setEditingUser(editingUser?.id === user.id ? null : user)}
-                        title="Edit role"
+                        onClick={() => toggleStatusMutation.mutate({ userId: user.id, currentStatus: user.status })}
+                        disabled={toggleStatusMutation.isPending}
+                        title={user.status === 'paused' ? 'Reactivate account' : 'Pause account'}
                       >
-                        <Pencil className="h-4 w-4" />
+                        {user.status === 'paused' ? (
+                          <Play className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Pause className="h-4 w-4 text-amber-600" />
+                        )}
                       </Button>
                       
                       {/* Reset Password Dialog */}
