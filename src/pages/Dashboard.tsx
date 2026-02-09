@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings } from 'lucide-react';
+import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings, History } from 'lucide-react';
 import { startOfDay, parseISO, isAfter } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -14,6 +14,7 @@ import { MonthlyReports } from '@/components/reports/MonthlyReports';
 import { ExpensesReports } from '@/components/reports/ExpensesReports';
 import { MaintenanceForm } from '@/components/maintenance/MaintenanceForm';
 import { MaintenanceTable } from '@/components/maintenance/MaintenanceTable';
+import { VehicleHistoryDashboard } from '@/components/vehicle-history/VehicleHistoryDashboard';
 import { OutsideVehicleTripForm } from '@/components/outside-vehicle/OutsideVehicleTripForm';
 import { OutsideVehicleTripsTable } from '@/components/outside-vehicle/OutsideVehicleTripsTable';
 import { AdminPanel } from '@/components/admin/AdminPanel';
@@ -476,7 +477,7 @@ export const Dashboard = () => {
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-5'} mb-4`}>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-7' : 'grid-cols-6'} mb-4`}>
             <TabsTrigger value="trips" className="flex items-center gap-1 text-xs sm:text-sm">
               <Car className="h-4 w-4" />
               <span className="hidden sm:inline">Trips</span>
@@ -488,6 +489,10 @@ export const Dashboard = () => {
             <TabsTrigger value="maintenance" className="flex items-center gap-1 text-xs sm:text-sm">
               <Wrench className="h-4 w-4" />
               <span className="hidden sm:inline">Maintenance</span>
+            </TabsTrigger>
+            <TabsTrigger value="vehicle-history" className="flex items-center gap-1 text-xs sm:text-sm">
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Vehicles</span>
             </TabsTrigger>
             <TabsTrigger value="upload" className="flex items-center gap-1 text-xs sm:text-sm">
               <Upload className="h-4 w-4" />
@@ -560,6 +565,11 @@ export const Dashboard = () => {
           {/* Upload Tab */}
           <TabsContent value="upload">
             <FileUpload onUploadSuccess={refreshData} />
+          </TabsContent>
+
+          {/* Vehicle History Tab */}
+          <TabsContent value="vehicle-history" className="space-y-4">
+            <VehicleHistoryDashboard maintenance={maintenance} />
           </TabsContent>
 
           {/* Reports Tab */}
