@@ -320,6 +320,75 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_alignment: {
+        Row: {
+          alignment_interval_km: number
+          created_at: string | null
+          created_by: string | null
+          id: string
+          last_alignment_date: string | null
+          last_alignment_km: number
+          updated_at: string | null
+          vehicle_number: string
+        }
+        Insert: {
+          alignment_interval_km?: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          last_alignment_date?: string | null
+          last_alignment_km?: number
+          updated_at?: string | null
+          vehicle_number: string
+        }
+        Update: {
+          alignment_interval_km?: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          last_alignment_date?: string | null
+          last_alignment_km?: number
+          updated_at?: string | null
+          vehicle_number?: string
+        }
+        Relationships: []
+      }
+      vehicle_emi: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          emi_amount: number
+          emi_day: number
+          end_date: string
+          id: string
+          start_date: string
+          updated_at: string | null
+          vehicle_number: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          emi_amount?: number
+          emi_day?: number
+          end_date: string
+          id?: string
+          start_date: string
+          updated_at?: string | null
+          vehicle_number: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          emi_amount?: number
+          emi_day?: number
+          end_date?: string
+          id?: string
+          start_date?: string
+          updated_at?: string | null
+          vehicle_number?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       maintenance_secure: {
