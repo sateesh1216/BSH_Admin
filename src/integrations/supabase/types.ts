@@ -389,6 +389,117 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_insurance: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          expiry_date: string
+          id: string
+          insurance_company: string | null
+          policy_number: string | null
+          premium_amount: number | null
+          start_date: string
+          updated_at: string | null
+          vehicle_number: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          expiry_date: string
+          id?: string
+          insurance_company?: string | null
+          policy_number?: string | null
+          premium_amount?: number | null
+          start_date: string
+          updated_at?: string | null
+          vehicle_number: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          expiry_date?: string
+          id?: string
+          insurance_company?: string | null
+          policy_number?: string | null
+          premium_amount?: number | null
+          start_date?: string
+          updated_at?: string | null
+          vehicle_number?: string
+        }
+        Relationships: []
+      }
+      vehicle_oil_change: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          last_oil_change_date: string
+          last_oil_change_km: number
+          next_oil_change_date: string | null
+          next_oil_change_km: number | null
+          oil_type: string | null
+          updated_at: string | null
+          vehicle_number: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          last_oil_change_date: string
+          last_oil_change_km?: number
+          next_oil_change_date?: string | null
+          next_oil_change_km?: number | null
+          oil_type?: string | null
+          updated_at?: string | null
+          vehicle_number: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          last_oil_change_date?: string
+          last_oil_change_km?: number
+          next_oil_change_date?: string | null
+          next_oil_change_km?: number | null
+          oil_type?: string | null
+          updated_at?: string | null
+          vehicle_number?: string
+        }
+        Relationships: []
+      }
+      vehicle_pollution: {
+        Row: {
+          certificate_number: string | null
+          created_at: string | null
+          created_by: string | null
+          expiry_date: string
+          id: string
+          issue_date: string
+          updated_at: string | null
+          vehicle_number: string
+        }
+        Insert: {
+          certificate_number?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expiry_date: string
+          id?: string
+          issue_date: string
+          updated_at?: string | null
+          vehicle_number: string
+        }
+        Update: {
+          certificate_number?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expiry_date?: string
+          id?: string
+          issue_date?: string
+          updated_at?: string | null
+          vehicle_number?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       maintenance_secure: {
