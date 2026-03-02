@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { format, differenceInMonths, addMonths, isBefore, isAfter, startOfDay } from 'date-fns';
-import { Car, AlertTriangle, ChevronDown, ChevronRight, Wrench, Gauge, CreditCard, AlignCenter, Plus, Trash2, Edit } from 'lucide-react';
+import { format, differenceInMonths, differenceInDays, addMonths, isBefore, isAfter, startOfDay } from 'date-fns';
+import { Car, AlertTriangle, ChevronDown, ChevronRight, Wrench, Gauge, CreditCard, AlignCenter, Plus, Trash2, Edit, Droplets, Shield, Wind } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,7 +8,6 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
@@ -64,6 +63,34 @@ interface VehicleAlignment {
   last_alignment_date: string | null;
 }
 
+interface VehicleOilChange {
+  id: string;
+  vehicle_number: string;
+  last_oil_change_date: string;
+  last_oil_change_km: number;
+  next_oil_change_km: number | null;
+  next_oil_change_date: string | null;
+  oil_type: string | null;
+}
+
+interface VehicleInsurance {
+  id: string;
+  vehicle_number: string;
+  insurance_company: string | null;
+  policy_number: string | null;
+  start_date: string;
+  expiry_date: string;
+  premium_amount: number;
+}
+
+interface VehiclePollution {
+  id: string;
+  vehicle_number: string;
+  certificate_number: string | null;
+  issue_date: string;
+  expiry_date: string;
+}
+
 const getOilChangeStatus = (currentKm: number | null, nextOilChangeKm: number | null) => {
   if (!currentKm || !nextOilChangeKm) return null;
   const remaining = nextOilChangeKm - currentKm;
@@ -86,7 +113,6 @@ const getEmiStatus = (emi: VehicleEmi) => {
   const paidAmount = Math.min(paidMonths, totalMonths) * emi.emi_amount;
   const progress = Math.min(100, (paidMonths / totalMonths) * 100);
   
-  // Next EMI date
   let nextEmiDate: Date | null = null;
   if (isBefore(today, endDate)) {
     const currentMonth = new Date(today.getFullYear(), today.getMonth(), emi.emi_day);
@@ -114,14 +140,31 @@ const getAlignmentStatus = (alignment: VehicleAlignment, currentKm: number | nul
   return { status: 'ok', remaining, progress, color: 'text-green-600' };
 };
 
+const getDateExpiryStatus = (expiryDate: string) => {
+  const today = startOfDay(new Date());
+  const expiry = startOfDay(new Date(expiryDate));
+  const daysRemaining = differenceInDays(expiry, today);
+  
+  if (daysRemaining < 0) return { status: 'expired', daysRemaining, color: 'text-destructive', label: `Expired ${Math.abs(daysRemaining)} days ago` };
+  if (daysRemaining <= 15) return { status: 'expiring-soon', daysRemaining, color: 'text-orange-500', label: `Expires in ${daysRemaining} days` };
+  if (daysRemaining <= 30) return { status: 'due-soon', daysRemaining, color: 'text-yellow-600', label: `Expires in ${daysRemaining} days` };
+  return { status: 'ok', daysRemaining, color: 'text-green-600', label: `${daysRemaining} days remaining` };
+};
+
 export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboardProps) => {
   const { user } = useAuth();
   const [expandedVehicle, setExpandedVehicle] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState('vehicles');
   const [emiRecords, setEmiRecords] = useState<VehicleEmi[]>([]);
   const [alignmentRecords, setAlignmentRecords] = useState<VehicleAlignment[]>([]);
+  const [oilChangeRecords, setOilChangeRecords] = useState<VehicleOilChange[]>([]);
+  const [insuranceRecords, setInsuranceRecords] = useState<VehicleInsurance[]>([]);
+  const [pollutionRecords, setPollutionRecords] = useState<VehiclePollution[]>([]);
   const [showEmiForm, setShowEmiForm] = useState(false);
   const [showAlignmentForm, setShowAlignmentForm] = useState(false);
+  const [showOilChangeForm, setShowOilChangeForm] = useState(false);
+  const [showInsuranceForm, setShowInsuranceForm] = useState(false);
+  const [showPollutionForm, setShowPollutionForm] = useState(false);
   
   // EMI form state
   const [emiVehicle, setEmiVehicle] = useState('');
@@ -137,10 +180,38 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
   const [alignLastDate, setAlignLastDate] = useState('');
   const [editingAlignId, setEditingAlignId] = useState<string | null>(null);
 
+  // Oil Change form state
+  const [oilVehicle, setOilVehicle] = useState('');
+  const [oilLastDate, setOilLastDate] = useState('');
+  const [oilLastKm, setOilLastKm] = useState('');
+  const [oilNextKm, setOilNextKm] = useState('');
+  const [oilNextDate, setOilNextDate] = useState('');
+  const [oilType, setOilType] = useState('');
+  const [editingOilId, setEditingOilId] = useState<string | null>(null);
+
+  // Insurance form state
+  const [insVehicle, setInsVehicle] = useState('');
+  const [insCompany, setInsCompany] = useState('');
+  const [insPolicyNo, setInsPolicyNo] = useState('');
+  const [insStartDate, setInsStartDate] = useState('');
+  const [insExpiryDate, setInsExpiryDate] = useState('');
+  const [insPremium, setInsPremium] = useState('');
+  const [editingInsId, setEditingInsId] = useState<string | null>(null);
+
+  // Pollution form state
+  const [polVehicle, setPolVehicle] = useState('');
+  const [polCertNo, setPolCertNo] = useState('');
+  const [polIssueDate, setPolIssueDate] = useState('');
+  const [polExpiryDate, setPolExpiryDate] = useState('');
+  const [editingPolId, setEditingPolId] = useState<string | null>(null);
+
   useEffect(() => {
     if (user) {
       fetchEmiRecords();
       fetchAlignmentRecords();
+      fetchOilChangeRecords();
+      fetchInsuranceRecords();
+      fetchPollutionRecords();
     }
   }, [user]);
 
@@ -154,100 +225,110 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
     if (!error && data) setAlignmentRecords(data as VehicleAlignment[]);
   };
 
+  const fetchOilChangeRecords = async () => {
+    const { data, error } = await supabase.from('vehicle_oil_change').select('*').order('vehicle_number');
+    if (!error && data) setOilChangeRecords(data as VehicleOilChange[]);
+  };
+
+  const fetchInsuranceRecords = async () => {
+    const { data, error } = await supabase.from('vehicle_insurance').select('*').order('vehicle_number');
+    if (!error && data) setInsuranceRecords(data as VehicleInsurance[]);
+  };
+
+  const fetchPollutionRecords = async () => {
+    const { data, error } = await supabase.from('vehicle_pollution').select('*').order('vehicle_number');
+    if (!error && data) setPollutionRecords(data as VehiclePollution[]);
+  };
+
+  // === EMI handlers ===
   const handleEmiSubmit = async () => {
     if (!emiVehicle || !emiAmount) {
       toast({ title: 'Error', description: 'Vehicle number and EMI amount are required', variant: 'destructive' });
       return;
     }
-    const payload = {
-      vehicle_number: emiVehicle,
-      emi_amount: parseFloat(emiAmount),
-      emi_day: 20,
-      start_date: emiStartDate,
-      end_date: emiEndDate,
-      created_by: user?.id,
-    };
-    
-    let result;
-    if (editingEmiId) {
-      result = await supabase.from('vehicle_emi').update(payload).eq('id', editingEmiId);
-    } else {
-      result = await supabase.from('vehicle_emi').insert([payload]);
-    }
-    
-    if (result.error) {
-      toast({ title: 'Error', description: result.error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Success', description: `EMI record ${editingEmiId ? 'updated' : 'added'} successfully` });
-      resetEmiForm();
-      fetchEmiRecords();
-    }
+    const payload = { vehicle_number: emiVehicle, emi_amount: parseFloat(emiAmount), emi_day: 20, start_date: emiStartDate, end_date: emiEndDate, created_by: user?.id };
+    const result = editingEmiId
+      ? await supabase.from('vehicle_emi').update(payload).eq('id', editingEmiId)
+      : await supabase.from('vehicle_emi').insert([payload]);
+    if (result.error) { toast({ title: 'Error', description: result.error.message, variant: 'destructive' }); }
+    else { toast({ title: 'Success', description: `EMI record ${editingEmiId ? 'updated' : 'added'} successfully` }); resetEmiForm(); fetchEmiRecords(); }
   };
 
+  const resetEmiForm = () => { setEmiVehicle(''); setEmiAmount(''); setEmiStartDate('2022-07-20'); setEmiEndDate('2026-06-20'); setEditingEmiId(null); setShowEmiForm(false); };
+  const handleDeleteEmi = async (id: string) => { const { error } = await supabase.from('vehicle_emi').delete().eq('id', id); if (!error) { toast({ title: 'Deleted', description: 'EMI record removed' }); fetchEmiRecords(); } };
+  const handleEditEmi = (emi: VehicleEmi) => { setEmiVehicle(emi.vehicle_number); setEmiAmount(String(emi.emi_amount)); setEmiStartDate(emi.start_date); setEmiEndDate(emi.end_date); setEditingEmiId(emi.id); setShowEmiForm(true); };
+
+  // === Alignment handlers ===
   const handleAlignmentSubmit = async () => {
     if (!alignVehicle || !alignLastKm) {
       toast({ title: 'Error', description: 'Vehicle number and last alignment KM are required', variant: 'destructive' });
       return;
     }
-    const payload = {
-      vehicle_number: alignVehicle,
-      last_alignment_km: parseInt(alignLastKm),
-      alignment_interval_km: parseInt(alignInterval),
-      last_alignment_date: alignLastDate || null,
-      created_by: user?.id,
-    };
-    
-    let result;
-    if (editingAlignId) {
-      result = await supabase.from('vehicle_alignment').update(payload).eq('id', editingAlignId);
-    } else {
-      result = await supabase.from('vehicle_alignment').insert([payload]);
+    const payload = { vehicle_number: alignVehicle, last_alignment_km: parseInt(alignLastKm), alignment_interval_km: parseInt(alignInterval), last_alignment_date: alignLastDate || null, created_by: user?.id };
+    const result = editingAlignId
+      ? await supabase.from('vehicle_alignment').update(payload).eq('id', editingAlignId)
+      : await supabase.from('vehicle_alignment').insert([payload]);
+    if (result.error) { toast({ title: 'Error', description: result.error.message, variant: 'destructive' }); }
+    else { toast({ title: 'Success', description: `Alignment record ${editingAlignId ? 'updated' : 'added'} successfully` }); resetAlignmentForm(); fetchAlignmentRecords(); }
+  };
+
+  const resetAlignmentForm = () => { setAlignVehicle(''); setAlignLastKm(''); setAlignInterval('10000'); setAlignLastDate(''); setEditingAlignId(null); setShowAlignmentForm(false); };
+  const handleDeleteAlignment = async (id: string) => { const { error } = await supabase.from('vehicle_alignment').delete().eq('id', id); if (!error) { toast({ title: 'Deleted', description: 'Alignment record removed' }); fetchAlignmentRecords(); } };
+  const handleEditAlignment = (a: VehicleAlignment) => { setAlignVehicle(a.vehicle_number); setAlignLastKm(String(a.last_alignment_km)); setAlignInterval(String(a.alignment_interval_km)); setAlignLastDate(a.last_alignment_date || ''); setEditingAlignId(a.id); setShowAlignmentForm(true); };
+
+  // === Oil Change handlers ===
+  const handleOilChangeSubmit = async () => {
+    if (!oilVehicle || !oilLastDate) {
+      toast({ title: 'Error', description: 'Vehicle number and last oil change date are required', variant: 'destructive' });
+      return;
     }
-    
-    if (result.error) {
-      toast({ title: 'Error', description: result.error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Success', description: `Alignment record ${editingAlignId ? 'updated' : 'added'} successfully` });
-      resetAlignmentForm();
-      fetchAlignmentRecords();
+    const payload = { vehicle_number: oilVehicle, last_oil_change_date: oilLastDate, last_oil_change_km: parseInt(oilLastKm) || 0, next_oil_change_km: oilNextKm ? parseInt(oilNextKm) : null, next_oil_change_date: oilNextDate || null, oil_type: oilType || null, created_by: user?.id };
+    const result = editingOilId
+      ? await supabase.from('vehicle_oil_change').update(payload).eq('id', editingOilId)
+      : await supabase.from('vehicle_oil_change').insert([payload]);
+    if (result.error) { toast({ title: 'Error', description: result.error.message, variant: 'destructive' }); }
+    else { toast({ title: 'Success', description: `Oil change record ${editingOilId ? 'updated' : 'added'} successfully` }); resetOilChangeForm(); fetchOilChangeRecords(); }
+  };
+
+  const resetOilChangeForm = () => { setOilVehicle(''); setOilLastDate(''); setOilLastKm(''); setOilNextKm(''); setOilNextDate(''); setOilType(''); setEditingOilId(null); setShowOilChangeForm(false); };
+  const handleDeleteOilChange = async (id: string) => { const { error } = await supabase.from('vehicle_oil_change').delete().eq('id', id); if (!error) { toast({ title: 'Deleted', description: 'Oil change record removed' }); fetchOilChangeRecords(); } };
+  const handleEditOilChange = (o: VehicleOilChange) => { setOilVehicle(o.vehicle_number); setOilLastDate(o.last_oil_change_date); setOilLastKm(String(o.last_oil_change_km)); setOilNextKm(o.next_oil_change_km ? String(o.next_oil_change_km) : ''); setOilNextDate(o.next_oil_change_date || ''); setOilType(o.oil_type || ''); setEditingOilId(o.id); setShowOilChangeForm(true); };
+
+  // === Insurance handlers ===
+  const handleInsuranceSubmit = async () => {
+    if (!insVehicle || !insStartDate || !insExpiryDate) {
+      toast({ title: 'Error', description: 'Vehicle number, start date and expiry date are required', variant: 'destructive' });
+      return;
     }
+    const payload = { vehicle_number: insVehicle, insurance_company: insCompany || null, policy_number: insPolicyNo || null, start_date: insStartDate, expiry_date: insExpiryDate, premium_amount: insPremium ? parseFloat(insPremium) : 0, created_by: user?.id };
+    const result = editingInsId
+      ? await supabase.from('vehicle_insurance').update(payload).eq('id', editingInsId)
+      : await supabase.from('vehicle_insurance').insert([payload]);
+    if (result.error) { toast({ title: 'Error', description: result.error.message, variant: 'destructive' }); }
+    else { toast({ title: 'Success', description: `Insurance record ${editingInsId ? 'updated' : 'added'} successfully` }); resetInsuranceForm(); fetchInsuranceRecords(); }
   };
 
-  const resetEmiForm = () => {
-    setEmiVehicle(''); setEmiAmount(''); setEmiStartDate('2022-07-20'); setEmiEndDate('2026-06-20'); setEditingEmiId(null); setShowEmiForm(false);
+  const resetInsuranceForm = () => { setInsVehicle(''); setInsCompany(''); setInsPolicyNo(''); setInsStartDate(''); setInsExpiryDate(''); setInsPremium(''); setEditingInsId(null); setShowInsuranceForm(false); };
+  const handleDeleteInsurance = async (id: string) => { const { error } = await supabase.from('vehicle_insurance').delete().eq('id', id); if (!error) { toast({ title: 'Deleted', description: 'Insurance record removed' }); fetchInsuranceRecords(); } };
+  const handleEditInsurance = (i: VehicleInsurance) => { setInsVehicle(i.vehicle_number); setInsCompany(i.insurance_company || ''); setInsPolicyNo(i.policy_number || ''); setInsStartDate(i.start_date); setInsExpiryDate(i.expiry_date); setInsPremium(String(i.premium_amount)); setEditingInsId(i.id); setShowInsuranceForm(true); };
+
+  // === Pollution handlers ===
+  const handlePollutionSubmit = async () => {
+    if (!polVehicle || !polIssueDate || !polExpiryDate) {
+      toast({ title: 'Error', description: 'Vehicle number, issue date and expiry date are required', variant: 'destructive' });
+      return;
+    }
+    const payload = { vehicle_number: polVehicle, certificate_number: polCertNo || null, issue_date: polIssueDate, expiry_date: polExpiryDate, created_by: user?.id };
+    const result = editingPolId
+      ? await supabase.from('vehicle_pollution').update(payload).eq('id', editingPolId)
+      : await supabase.from('vehicle_pollution').insert([payload]);
+    if (result.error) { toast({ title: 'Error', description: result.error.message, variant: 'destructive' }); }
+    else { toast({ title: 'Success', description: `Pollution record ${editingPolId ? 'updated' : 'added'} successfully` }); resetPollutionForm(); fetchPollutionRecords(); }
   };
 
-  const resetAlignmentForm = () => {
-    setAlignVehicle(''); setAlignLastKm(''); setAlignInterval('10000'); setAlignLastDate(''); setEditingAlignId(null); setShowAlignmentForm(false);
-  };
-
-  const handleDeleteEmi = async (id: string) => {
-    const { error } = await supabase.from('vehicle_emi').delete().eq('id', id);
-    if (!error) { toast({ title: 'Deleted', description: 'EMI record removed' }); fetchEmiRecords(); }
-  };
-
-  const handleDeleteAlignment = async (id: string) => {
-    const { error } = await supabase.from('vehicle_alignment').delete().eq('id', id);
-    if (!error) { toast({ title: 'Deleted', description: 'Alignment record removed' }); fetchAlignmentRecords(); }
-  };
-
-  const handleEditEmi = (emi: VehicleEmi) => {
-    setEmiVehicle(emi.vehicle_number);
-    setEmiAmount(String(emi.emi_amount));
-    setEmiStartDate(emi.start_date);
-    setEmiEndDate(emi.end_date);
-    setEditingEmiId(emi.id);
-    setShowEmiForm(true);
-  };
-
-  const handleEditAlignment = (a: VehicleAlignment) => {
-    setAlignVehicle(a.vehicle_number);
-    setAlignLastKm(String(a.last_alignment_km));
-    setAlignInterval(String(a.alignment_interval_km));
-    setAlignLastDate(a.last_alignment_date || '');
-    setEditingAlignId(a.id);
-    setShowAlignmentForm(true);
-  };
+  const resetPollutionForm = () => { setPolVehicle(''); setPolCertNo(''); setPolIssueDate(''); setPolExpiryDate(''); setEditingPolId(null); setShowPollutionForm(false); };
+  const handleDeletePollution = async (id: string) => { const { error } = await supabase.from('vehicle_pollution').delete().eq('id', id); if (!error) { toast({ title: 'Deleted', description: 'Pollution record removed' }); fetchPollutionRecords(); } };
+  const handleEditPollution = (p: VehiclePollution) => { setPolVehicle(p.vehicle_number); setPolCertNo(p.certificate_number || ''); setPolIssueDate(p.issue_date); setPolExpiryDate(p.expiry_date); setEditingPolId(p.id); setShowPollutionForm(true); };
 
   const vehicleSummaries = useMemo(() => {
     const vehicleMap: { [key: string]: VehicleSummary } = {};
@@ -275,43 +356,146 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
     return Object.values(vehicleMap).sort((a, b) => a.vehicleNumber.localeCompare(b.vehicleNumber));
   }, [maintenance]);
 
-  // Get latest KM for a vehicle from maintenance records
   const getLatestKmForVehicle = (vehicleNumber: string): number | null => {
     const vehicle = vehicleSummaries.find(v => v.vehicleNumber === vehicleNumber);
     return vehicle?.latestKm || null;
   };
 
-  if (maintenance.length === 0 && emiRecords.length === 0 && alignmentRecords.length === 0) {
+  if (maintenance.length === 0 && emiRecords.length === 0 && alignmentRecords.length === 0 && oilChangeRecords.length === 0 && insuranceRecords.length === 0 && pollutionRecords.length === 0) {
     return (
       <Card className="shadow-lg border-primary/20">
         <CardContent className="py-12">
           <div className="text-center">
             <Car className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-muted-foreground mb-2">No vehicle records found</h3>
-            <p className="text-sm text-muted-foreground">Add maintenance records, EMI, or alignment data to see vehicle history here.</p>
+            <p className="text-sm text-muted-foreground">Add maintenance records, EMI, or tracking data to see vehicle history here.</p>
           </div>
         </CardContent>
       </Card>
     );
   }
 
+  // Reusable expiry-based tracking tab renderer
+  const renderExpiryTrackingTab = <T extends { id: string; vehicle_number: string }>(
+    config: {
+      records: T[];
+      icon: React.ReactNode;
+      title: string;
+      emptyText: string;
+      showForm: boolean;
+      onAdd: () => void;
+      onDelete: (id: string) => void;
+      onEdit: (record: T) => void;
+      getExpiryDate: (record: T) => string;
+      renderForm: () => React.ReactNode;
+      renderCardDetails: (record: T) => React.ReactNode;
+      deleteTitle: string;
+    }
+  ) => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-primary flex items-center gap-2">
+          {config.icon}
+          {config.title}
+        </h2>
+        <Button size="sm" onClick={config.onAdd}>
+          <Plus className="h-4 w-4 mr-1" />Add
+        </Button>
+      </div>
+
+      {config.showForm && config.renderForm()}
+
+      {config.records.length === 0 ? (
+        <Card className="shadow-md border-primary/20">
+          <CardContent className="py-8 text-center text-muted-foreground">
+            {config.icon}
+            <p className="mt-3">{config.emptyText}</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {config.records.map(record => {
+            const expiryStatus = getDateExpiryStatus(config.getExpiryDate(record));
+            return (
+              <Card key={record.id} className={`shadow-md border-primary/20 ${expiryStatus.status === 'expired' ? 'border-destructive/50' : expiryStatus.status === 'expiring-soon' ? 'border-orange-400/50' : ''}`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center justify-between text-base">
+                    <span className="flex items-center gap-2 text-primary">
+                      <Car className="h-4 w-4" />
+                      {record.vehicle_number}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {expiryStatus.status === 'expired' && <Badge variant="destructive" className="text-xs animate-pulse">Expired</Badge>}
+                      {expiryStatus.status === 'expiring-soon' && <Badge className="bg-orange-500 text-white text-xs">Expiring Soon</Badge>}
+                      {expiryStatus.status === 'due-soon' && <Badge className="bg-yellow-500 text-white text-xs">Due Soon</Badge>}
+                      {expiryStatus.status === 'ok' && <Badge className="bg-green-600 text-white text-xs">Active</Badge>}
+                      <Button variant="ghost" size="sm" onClick={() => config.onEdit(record)}>
+                        <Edit className="h-3.5 w-3.5" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm"><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete {config.deleteTitle}?</AlertDialogTitle>
+                            <AlertDialogDescription>This will permanently delete this record.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => config.onDelete(record.id)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {config.renderCardDetails(record)}
+                  <div className={`p-2 rounded-lg text-center ${expiryStatus.status === 'expired' ? 'bg-destructive/10' : expiryStatus.status === 'expiring-soon' ? 'bg-orange-500/10' : 'bg-green-500/10'}`}>
+                    <p className={`text-xs font-medium ${expiryStatus.color}`}>{expiryStatus.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Expiry: {format(new Date(config.getExpiryDate(record)), 'dd MMM yyyy')}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
-        <TabsList className="grid w-full grid-cols-3 mb-4">
-          <TabsTrigger value="vehicles" className="flex items-center gap-1 text-xs sm:text-sm">
-            <Car className="h-4 w-4" />
-            <span>Vehicles</span>
-          </TabsTrigger>
-          <TabsTrigger value="emi" className="flex items-center gap-1 text-xs sm:text-sm">
-            <CreditCard className="h-4 w-4" />
-            <span>EMI Tracking</span>
-          </TabsTrigger>
-          <TabsTrigger value="alignment" className="flex items-center gap-1 text-xs sm:text-sm">
-            <AlignCenter className="h-4 w-4" />
-            <span>Alignment</span>
-          </TabsTrigger>
-        </TabsList>
+        <ScrollArea className="w-full">
+          <TabsList className="inline-flex w-auto min-w-full mb-4">
+            <TabsTrigger value="vehicles" className="flex items-center gap-1 text-xs">
+              <Car className="h-3.5 w-3.5" />
+              <span>Vehicles</span>
+            </TabsTrigger>
+            <TabsTrigger value="emi" className="flex items-center gap-1 text-xs">
+              <CreditCard className="h-3.5 w-3.5" />
+              <span>EMI</span>
+            </TabsTrigger>
+            <TabsTrigger value="alignment" className="flex items-center gap-1 text-xs">
+              <AlignCenter className="h-3.5 w-3.5" />
+              <span>Alignment</span>
+            </TabsTrigger>
+            <TabsTrigger value="oil-change" className="flex items-center gap-1 text-xs">
+              <Droplets className="h-3.5 w-3.5" />
+              <span>Oil Change</span>
+            </TabsTrigger>
+            <TabsTrigger value="insurance" className="flex items-center gap-1 text-xs">
+              <Shield className="h-3.5 w-3.5" />
+              <span>Insurance</span>
+            </TabsTrigger>
+            <TabsTrigger value="pollution" className="flex items-center gap-1 text-xs">
+              <Wind className="h-3.5 w-3.5" />
+              <span>PUC</span>
+            </TabsTrigger>
+          </TabsList>
+        </ScrollArea>
 
         {/* Vehicles Sub-Tab */}
         <TabsContent value="vehicles">
@@ -324,6 +508,10 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               const oilStatus = getOilChangeStatus(vehicle.latestKm, vehicle.nextOilChangeKm);
               const alignment = alignmentRecords.find(a => a.vehicle_number === vehicle.vehicleNumber);
               const alignStatus = alignment ? getAlignmentStatus(alignment, vehicle.latestKm) : null;
+              const insurance = insuranceRecords.find(i => i.vehicle_number === vehicle.vehicleNumber);
+              const insStatus = insurance ? getDateExpiryStatus(insurance.expiry_date) : null;
+              const pollution = pollutionRecords.find(p => p.vehicle_number === vehicle.vehicleNumber);
+              const polStatus = pollution ? getDateExpiryStatus(pollution.expiry_date) : null;
               const isExpanded = expandedVehicle === vehicle.vehicleNumber;
 
               return (
@@ -338,7 +526,7 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                         <Car className="h-4 w-4" />
                         {vehicle.vehicleNumber}
                       </span>
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1 flex-wrap">
                         {oilStatus?.status === 'overdue' && (
                           <Badge variant="destructive" className="text-xs animate-pulse">
                             <AlertTriangle className="h-3 w-3 mr-1" />Oil Overdue
@@ -357,6 +545,26 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                         {alignStatus?.status === 'due-soon' && (
                           <Badge className="bg-orange-500 text-white text-xs">
                             <AlignCenter className="h-3 w-3 mr-1" />Align Soon
+                          </Badge>
+                        )}
+                        {insStatus?.status === 'expired' && (
+                          <Badge variant="destructive" className="text-xs animate-pulse">
+                            <Shield className="h-3 w-3 mr-1" />Ins Expired
+                          </Badge>
+                        )}
+                        {insStatus?.status === 'expiring-soon' && (
+                          <Badge className="bg-orange-500 text-white text-xs">
+                            <Shield className="h-3 w-3 mr-1" />Ins Expiring
+                          </Badge>
+                        )}
+                        {polStatus?.status === 'expired' && (
+                          <Badge variant="destructive" className="text-xs animate-pulse">
+                            <Wind className="h-3 w-3 mr-1" />PUC Expired
+                          </Badge>
+                        )}
+                        {polStatus?.status === 'expiring-soon' && (
+                          <Badge className="bg-orange-500 text-white text-xs">
+                            <Wind className="h-3 w-3 mr-1" />PUC Expiring
                           </Badge>
                         )}
                         {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -417,6 +625,26 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                           <p className={`text-xs font-medium ${alignStatus.color}`}>
                             {alignStatus.remaining <= 0 ? `Overdue by ${Math.abs(alignStatus.remaining).toLocaleString()} km` : `${alignStatus.remaining.toLocaleString()} km remaining`}
                           </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Insurance Status */}
+                    {insurance && insStatus && (
+                      <div className="p-3 bg-muted/20 rounded-lg space-y-1 mb-2">
+                        <div className="flex items-center justify-between text-xs font-medium">
+                          <span className="flex items-center gap-2"><Shield className="h-3.5 w-3.5 text-primary" />Insurance</span>
+                          <span className={insStatus.color}>{insStatus.label}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pollution Status */}
+                    {pollution && polStatus && (
+                      <div className="p-3 bg-muted/20 rounded-lg space-y-1 mb-2">
+                        <div className="flex items-center justify-between text-xs font-medium">
+                          <span className="flex items-center gap-2"><Wind className="h-3.5 w-3.5 text-primary" />PUC</span>
+                          <span className={polStatus.color}>{polStatus.label}</span>
                         </div>
                       </div>
                     )}
@@ -485,7 +713,6 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               </Button>
             </div>
 
-            {/* EMI Form */}
             {showEmiForm && (
               <Card className="shadow-md border-primary/20">
                 <CardContent className="pt-6">
@@ -515,7 +742,6 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               </Card>
             )}
 
-            {/* EMI Cards */}
             {emiRecords.length === 0 ? (
               <Card className="shadow-md border-primary/20">
                 <CardContent className="py-8 text-center text-muted-foreground">
@@ -626,7 +852,6 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               </Button>
             </div>
 
-            {/* Alignment Form */}
             {showAlignmentForm && (
               <Card className="shadow-md border-primary/20">
                 <CardContent className="pt-6">
@@ -656,7 +881,6 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               </Card>
             )}
 
-            {/* Alignment Cards */}
             {alignmentRecords.length === 0 ? (
               <Card className="shadow-md border-primary/20">
                 <CardContent className="py-8 text-center text-muted-foreground">
@@ -737,6 +961,201 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               </div>
             )}
           </div>
+        </TabsContent>
+
+        {/* Oil Change Tracking Sub-Tab */}
+        <TabsContent value="oil-change">
+          {renderExpiryTrackingTab<VehicleOilChange>({
+            records: oilChangeRecords,
+            icon: <Droplets className="h-5 w-5" />,
+            title: 'Oil Change Tracking',
+            emptyText: 'No oil change records yet. Click "Add" to start tracking.',
+            showForm: showOilChangeForm,
+            onAdd: () => { resetOilChangeForm(); setShowOilChangeForm(true); },
+            onDelete: handleDeleteOilChange,
+            onEdit: handleEditOilChange,
+            getExpiryDate: (r) => r.next_oil_change_date || r.last_oil_change_date,
+            deleteTitle: 'Oil Change Record',
+            renderForm: () => (
+              <Card className="shadow-md border-primary/20">
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Vehicle Number *</Label>
+                      <Input value={oilVehicle} onChange={e => setOilVehicle(e.target.value)} placeholder="e.g. MH12AB1234" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Last Oil Change Date *</Label>
+                      <Input type="date" value={oilLastDate} onChange={e => setOilLastDate(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Last Oil Change KM</Label>
+                      <Input type="number" value={oilLastKm} onChange={e => setOilLastKm(e.target.value)} placeholder="0" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Next Oil Change KM</Label>
+                      <Input type="number" value={oilNextKm} onChange={e => setOilNextKm(e.target.value)} placeholder="0" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Next Oil Change Date</Label>
+                      <Input type="date" value={oilNextDate} onChange={e => setOilNextDate(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Oil Type</Label>
+                      <Input value={oilType} onChange={e => setOilType(e.target.value)} placeholder="e.g. 5W-30" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button onClick={handleOilChangeSubmit}>{editingOilId ? 'Update' : 'Save'}</Button>
+                    <Button variant="outline" onClick={resetOilChangeForm}>Cancel</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ),
+            renderCardDetails: (r) => (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-2 bg-muted/30 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Last Change</p>
+                    <p className="font-bold text-sm">{format(new Date(r.last_oil_change_date), 'dd MMM yy')}</p>
+                  </div>
+                  <div className="p-2 bg-muted/30 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">At KM</p>
+                    <p className="font-bold text-sm">{r.last_oil_change_km.toLocaleString()}</p>
+                  </div>
+                </div>
+                {r.oil_type && <p className="text-xs text-muted-foreground text-center">Oil Type: {r.oil_type}</p>}
+                {r.next_oil_change_km && <p className="text-xs text-muted-foreground text-center">Next at: {r.next_oil_change_km.toLocaleString()} km</p>}
+              </>
+            ),
+          })}
+        </TabsContent>
+
+        {/* Insurance Tracking Sub-Tab */}
+        <TabsContent value="insurance">
+          {renderExpiryTrackingTab<VehicleInsurance>({
+            records: insuranceRecords,
+            icon: <Shield className="h-5 w-5" />,
+            title: 'Insurance Renewal Tracking',
+            emptyText: 'No insurance records yet. Click "Add" to start tracking.',
+            showForm: showInsuranceForm,
+            onAdd: () => { resetInsuranceForm(); setShowInsuranceForm(true); },
+            onDelete: handleDeleteInsurance,
+            onEdit: handleEditInsurance,
+            getExpiryDate: (r) => r.expiry_date,
+            deleteTitle: 'Insurance Record',
+            renderForm: () => (
+              <Card className="shadow-md border-primary/20">
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Vehicle Number *</Label>
+                      <Input value={insVehicle} onChange={e => setInsVehicle(e.target.value)} placeholder="e.g. MH12AB1234" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Insurance Company</Label>
+                      <Input value={insCompany} onChange={e => setInsCompany(e.target.value)} placeholder="e.g. ICICI Lombard" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Policy Number</Label>
+                      <Input value={insPolicyNo} onChange={e => setInsPolicyNo(e.target.value)} placeholder="Policy No." />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Start Date *</Label>
+                      <Input type="date" value={insStartDate} onChange={e => setInsStartDate(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Expiry Date *</Label>
+                      <Input type="date" value={insExpiryDate} onChange={e => setInsExpiryDate(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Premium Amount (₹)</Label>
+                      <Input type="number" value={insPremium} onChange={e => setInsPremium(e.target.value)} placeholder="0" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button onClick={handleInsuranceSubmit}>{editingInsId ? 'Update' : 'Save'}</Button>
+                    <Button variant="outline" onClick={resetInsuranceForm}>Cancel</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ),
+            renderCardDetails: (r) => (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-2 bg-muted/30 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Start</p>
+                    <p className="font-bold text-sm">{format(new Date(r.start_date), 'dd MMM yy')}</p>
+                  </div>
+                  <div className="p-2 bg-muted/30 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Premium</p>
+                    <p className="font-bold text-sm text-primary">₹{r.premium_amount.toLocaleString()}</p>
+                  </div>
+                </div>
+                {r.insurance_company && <p className="text-xs text-muted-foreground text-center">{r.insurance_company}</p>}
+                {r.policy_number && <p className="text-xs text-muted-foreground text-center">Policy: {r.policy_number}</p>}
+              </>
+            ),
+          })}
+        </TabsContent>
+
+        {/* Pollution (PUC) Tracking Sub-Tab */}
+        <TabsContent value="pollution">
+          {renderExpiryTrackingTab<VehiclePollution>({
+            records: pollutionRecords,
+            icon: <Wind className="h-5 w-5" />,
+            title: 'Pollution (PUC) Certificate Tracking',
+            emptyText: 'No PUC records yet. Click "Add" to start tracking.',
+            showForm: showPollutionForm,
+            onAdd: () => { resetPollutionForm(); setShowPollutionForm(true); },
+            onDelete: handleDeletePollution,
+            onEdit: handleEditPollution,
+            getExpiryDate: (r) => r.expiry_date,
+            deleteTitle: 'PUC Record',
+            renderForm: () => (
+              <Card className="shadow-md border-primary/20">
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label>Vehicle Number *</Label>
+                      <Input value={polVehicle} onChange={e => setPolVehicle(e.target.value)} placeholder="e.g. MH12AB1234" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Certificate Number</Label>
+                      <Input value={polCertNo} onChange={e => setPolCertNo(e.target.value)} placeholder="Certificate No." />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Issue Date *</Label>
+                      <Input type="date" value={polIssueDate} onChange={e => setPolIssueDate(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Expiry Date *</Label>
+                      <Input type="date" value={polExpiryDate} onChange={e => setPolExpiryDate(e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button onClick={handlePollutionSubmit}>{editingPolId ? 'Update' : 'Save'}</Button>
+                    <Button variant="outline" onClick={resetPollutionForm}>Cancel</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ),
+            renderCardDetails: (r) => (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-2 bg-muted/30 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Issue Date</p>
+                    <p className="font-bold text-sm">{format(new Date(r.issue_date), 'dd MMM yy')}</p>
+                  </div>
+                  <div className="p-2 bg-muted/30 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Expiry</p>
+                    <p className="font-bold text-sm">{format(new Date(r.expiry_date), 'dd MMM yy')}</p>
+                  </div>
+                </div>
+                {r.certificate_number && <p className="text-xs text-muted-foreground text-center">Cert: {r.certificate_number}</p>}
+              </>
+            ),
+          })}
         </TabsContent>
       </Tabs>
     </div>
