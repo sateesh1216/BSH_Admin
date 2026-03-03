@@ -965,18 +965,18 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
 
         {/* Oil Change Tracking Sub-Tab */}
         <TabsContent value="oil-change">
-          {renderExpiryTrackingTab<VehicleOilChange>({
-            records: oilChangeRecords,
-            icon: <Droplets className="h-5 w-5" />,
-            title: 'Oil Change Tracking',
-            emptyText: 'No oil change records yet. Click "Add" to start tracking.',
-            showForm: showOilChangeForm,
-            onAdd: () => { resetOilChangeForm(); setShowOilChangeForm(true); },
-            onDelete: handleDeleteOilChange,
-            onEdit: handleEditOilChange,
-            getExpiryDate: (r) => r.next_oil_change_date || r.last_oil_change_date,
-            deleteTitle: 'Oil Change Record',
-            renderForm: () => (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-primary flex items-center gap-2">
+                <Droplets className="h-5 w-5" />
+                Oil Change Tracking
+              </h2>
+              <Button size="sm" onClick={() => { resetOilChangeForm(); setShowOilChangeForm(true); }}>
+                <Plus className="h-4 w-4 mr-1" />Add
+              </Button>
+            </div>
+
+            {showOilChangeForm && (
               <Card className="shadow-md border-primary/20">
                 <CardContent className="pt-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1011,24 +1011,118 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                   </div>
                 </CardContent>
               </Card>
-            ),
-            renderCardDetails: (r) => (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-2 bg-muted/30 rounded-lg text-center">
-                    <p className="text-xs text-muted-foreground">Last Change</p>
-                    <p className="font-bold text-sm">{format(new Date(r.last_oil_change_date), 'dd MMM yy')}</p>
-                  </div>
-                  <div className="p-2 bg-muted/30 rounded-lg text-center">
-                    <p className="text-xs text-muted-foreground">At KM</p>
-                    <p className="font-bold text-sm">{r.last_oil_change_km.toLocaleString()}</p>
-                  </div>
-                </div>
-                {r.oil_type && <p className="text-xs text-muted-foreground text-center">Oil Type: {r.oil_type}</p>}
-                {r.next_oil_change_km && <p className="text-xs text-muted-foreground text-center">Next at: {r.next_oil_change_km.toLocaleString()} km</p>}
-              </>
-            ),
-          })}
+            )}
+
+            {oilChangeRecords.length === 0 ? (
+              <Card className="shadow-md border-primary/20">
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  <Droplets className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                  <p>No oil change records yet. Click "Add" to start tracking.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {oilChangeRecords.map(r => {
+                  const currentKm = getLatestKmForVehicle(r.vehicle_number);
+                  const kmStatus = r.next_oil_change_km && currentKm ? (() => {
+                    const remaining = r.next_oil_change_km - currentKm;
+                    const interval = r.next_oil_change_km - r.last_oil_change_km;
+                    const progress = interval > 0 ? Math.max(0, Math.min(100, ((currentKm - r.last_oil_change_km) / interval) * 100)) : 0;
+                    if (remaining <= 0) return { status: 'overdue', remaining, progress: 100, color: 'text-destructive' };
+                    if (remaining <= 1000) return { status: 'due-soon', remaining, progress, color: 'text-orange-500' };
+                    return { status: 'ok', remaining, progress, color: 'text-green-600' };
+                  })() : null;
+                  const dateStatus = r.next_oil_change_date ? getDateExpiryStatus(r.next_oil_change_date) : null;
+
+                  return (
+                    <Card key={r.id} className={`shadow-md border-primary/20 ${kmStatus?.status === 'overdue' || dateStatus?.status === 'expired' ? 'border-destructive/50' : kmStatus?.status === 'due-soon' || dateStatus?.status === 'expiring-soon' ? 'border-orange-400/50' : ''}`}>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center justify-between text-base">
+                          <span className="flex items-center gap-2 text-primary">
+                            <Car className="h-4 w-4" />
+                            {r.vehicle_number}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {kmStatus?.status === 'overdue' && <Badge variant="destructive" className="text-xs animate-pulse">KM Overdue</Badge>}
+                            {kmStatus?.status === 'due-soon' && <Badge className="bg-orange-500 text-white text-xs">KM Due Soon</Badge>}
+                            {kmStatus?.status === 'ok' && <Badge className="bg-green-600 text-white text-xs">OK</Badge>}
+                            {!kmStatus && dateStatus?.status === 'expired' && <Badge variant="destructive" className="text-xs animate-pulse">Expired</Badge>}
+                            {!kmStatus && dateStatus?.status === 'expiring-soon' && <Badge className="bg-orange-500 text-white text-xs">Expiring Soon</Badge>}
+                            {!kmStatus && dateStatus?.status === 'ok' && <Badge className="bg-green-600 text-white text-xs">Active</Badge>}
+                            <Button variant="ghost" size="sm" onClick={() => handleEditOilChange(r)}>
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm"><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Oil Change Record?</AlertDialogTitle>
+                                  <AlertDialogDescription>This will permanently delete this oil change tracking record.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteOilChange(r.id)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-2 bg-muted/30 rounded-lg text-center">
+                            <p className="text-xs text-muted-foreground">Last Change</p>
+                            <p className="font-bold text-sm">{format(new Date(r.last_oil_change_date), 'dd MMM yy')}</p>
+                          </div>
+                          <div className="p-2 bg-muted/30 rounded-lg text-center">
+                            <p className="text-xs text-muted-foreground">At KM</p>
+                            <p className="font-bold text-sm">{r.last_oil_change_km.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        {r.oil_type && <p className="text-xs text-muted-foreground text-center">Oil Type: {r.oil_type}</p>}
+
+                        {/* KM-based progress tracking from maintenance */}
+                        {r.next_oil_change_km && (
+                          <div className="p-3 bg-muted/20 rounded-lg space-y-2">
+                            <div className="flex items-center gap-2 text-xs font-medium">
+                              <Gauge className="h-3.5 w-3.5 text-primary" />
+                              KM Tracking (from Maintenance)
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span>Current: <strong>{currentKm ? currentKm.toLocaleString() : 'N/A'} km</strong></span>
+                              <span>Next Oil: <strong>{r.next_oil_change_km.toLocaleString()} km</strong></span>
+                            </div>
+                            {kmStatus ? (
+                              <div className="space-y-1">
+                                <Progress value={kmStatus.progress} className="h-2" />
+                                <p className={`text-xs font-medium text-center ${kmStatus.color}`}>
+                                  {kmStatus.remaining <= 0 ? `Overdue by ${Math.abs(kmStatus.remaining).toLocaleString()} km` : `${kmStatus.remaining.toLocaleString()} km remaining`}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground text-center">
+                                Add KM data in maintenance to enable tracking
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Date-based expiry */}
+                        {dateStatus && r.next_oil_change_date && (
+                          <div className={`p-2 rounded-lg text-center ${dateStatus.status === 'expired' ? 'bg-destructive/10' : dateStatus.status === 'expiring-soon' ? 'bg-orange-500/10' : 'bg-green-500/10'}`}>
+                            <p className={`text-xs font-medium ${dateStatus.color}`}>{dateStatus.label}</p>
+                            <p className="text-xs text-muted-foreground mt-1">Next Date: {format(new Date(r.next_oil_change_date), 'dd MMM yyyy')}</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </TabsContent>
 
         {/* Insurance Tracking Sub-Tab */}
