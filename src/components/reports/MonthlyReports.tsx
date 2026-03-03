@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Calendar, Download, TrendingUp, TrendingDown } from 'lucide-react';
+import { Calendar, Download, TrendingUp, TrendingDown, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,6 +10,8 @@ import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { ReportsCharts } from './ReportsCharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface MonthlyData {
   totalTrips: number;
@@ -18,6 +20,31 @@ interface MonthlyData {
   totalMaintenance: number;
   netProfit: number;
   avgTripValue: number;
+}
+
+interface TripRecord {
+  date: string;
+  driver_name: string;
+  customer_name: string;
+  from_location: string;
+  to_location: string;
+  trip_amount: number;
+  driver_amount: number;
+  commission: number;
+  fuel_amount: number;
+  tolls: number;
+  profit: number;
+  payment_mode: string;
+  payment_status: string;
+}
+
+interface MaintenanceRecord {
+  date: string;
+  vehicle_number: string;
+  maintenance_type: string;
+  description: string | null;
+  amount: number;
+  payment_mode: string;
 }
 
 export const MonthlyReports = () => {
@@ -34,7 +61,6 @@ export const MonthlyReports = () => {
       const startDate = `${selectedMonth}-01`;
       const endDate = `${selectedMonth}-31`;
 
-      // Fetch trips data
       const { data: trips, error: tripsError } = await supabase
         .from('trips')
         .select('*')
@@ -43,7 +69,6 @@ export const MonthlyReports = () => {
 
       if (tripsError) throw tripsError;
 
-      // Fetch maintenance data
       const { data: maintenance, error: maintenanceError } = await supabase
         .from('maintenance')
         .select('*')
@@ -52,7 +77,6 @@ export const MonthlyReports = () => {
 
       if (maintenanceError) throw maintenanceError;
 
-      // Calculate metrics
       const totalTrips = trips?.length || 0;
       const totalRevenue = trips?.reduce((sum, trip) => sum + (trip.trip_amount || 0), 0) || 0;
       const totalExpenses = trips?.reduce((sum, trip) => 
@@ -92,7 +116,6 @@ export const MonthlyReports = () => {
       const startDate = `${selectedMonth}-01`;
       const endDate = `${selectedMonth}-31`;
 
-      // Fetch detailed data for export
       const { data: trips } = await supabase
         .from('trips')
         .select('*')
@@ -105,10 +128,8 @@ export const MonthlyReports = () => {
         .gte('date', startDate)
         .lte('date', endDate);
 
-      // Create workbook
       const wb = XLSX.utils.book_new();
 
-      // Summary sheet
       const summaryData = [
         ['Monthly Report Summary', ''],
         ['Month', selectedMonth],
@@ -123,19 +144,16 @@ export const MonthlyReports = () => {
       const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
       XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
 
-      // Trips sheet
       if (trips && trips.length > 0) {
         const tripsWs = XLSX.utils.json_to_sheet(trips);
         XLSX.utils.book_append_sheet(wb, tripsWs, 'Trips');
       }
 
-      // Maintenance sheet
       if (maintenance && maintenance.length > 0) {
         const maintenanceWs = XLSX.utils.json_to_sheet(maintenance);
         XLSX.utils.book_append_sheet(wb, maintenanceWs, 'Maintenance');
       }
 
-      // Save file
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([wbout], { type: 'application/octet-stream' });
       saveAs(blob, `monthly-report-${selectedMonth}.xlsx`);
@@ -148,6 +166,171 @@ export const MonthlyReports = () => {
       toast({
         title: "Error",
         description: "Failed to download report",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadPDF = async () => {
+    if (!selectedMonth || !data) return;
+
+    try {
+      const startDate = `${selectedMonth}-01`;
+      const endDate = `${selectedMonth}-31`;
+      const monthLabel = format(new Date(selectedMonth + '-01'), 'MMMM yyyy');
+
+      const { data: trips } = await supabase
+        .from('trips')
+        .select('date, driver_name, customer_name, from_location, to_location, trip_amount, driver_amount, commission, fuel_amount, tolls, profit, payment_mode, payment_status')
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date', { ascending: true });
+
+      const { data: maintenance } = await supabase
+        .from('maintenance')
+        .select('date, vehicle_number, maintenance_type, description, amount, payment_mode')
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date', { ascending: true });
+
+      const doc = new jsPDF('landscape', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // Title
+      doc.setFontSize(20);
+      doc.setTextColor(33, 37, 41);
+      doc.text('BSH Taxi Service', pageWidth / 2, 18, { align: 'center' });
+      doc.setFontSize(14);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Monthly Report - ${monthLabel}`, pageWidth / 2, 26, { align: 'center' });
+
+      // Summary section
+      doc.setFontSize(11);
+      doc.setTextColor(33, 37, 41);
+      let y = 36;
+      const summaryItems = [
+        ['Total Trips', String(data.totalTrips)],
+        ['Total Revenue', `₹${data.totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
+        ['Trip Profit', `₹${data.totalProfit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
+        ['Maintenance Cost', `₹${data.totalMaintenance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
+        ['Net Profit', `₹${data.netProfit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
+        ['Avg Trip Value', `₹${data.avgTripValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
+      ];
+
+      // Summary table
+      autoTable(doc, {
+        startY: y,
+        head: [['Metric', 'Value']],
+        body: summaryItems,
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+        styles: { fontSize: 10, cellPadding: 3 },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 60 }, 1: { halign: 'right', cellWidth: 60 } },
+        margin: { left: (pageWidth - 120) / 2 },
+        tableWidth: 120,
+      });
+
+      // Trips table
+      if (trips && trips.length > 0) {
+        const tripsY = (doc as any).lastAutoTable?.finalY + 10 || y + 60;
+        
+        doc.setFontSize(13);
+        doc.setTextColor(33, 37, 41);
+        doc.text('Trip Details', 14, tripsY);
+
+        autoTable(doc, {
+          startY: tripsY + 4,
+          head: [['Date', 'Driver', 'Customer', 'From', 'To', 'Amount', 'Expenses', 'Profit', 'Payment', 'Status']],
+          body: (trips as TripRecord[]).map(t => [
+            format(new Date(t.date), 'dd/MM/yy'),
+            t.driver_name,
+            t.customer_name,
+            t.from_location,
+            t.to_location,
+            `₹${t.trip_amount.toLocaleString('en-IN')}`,
+            `₹${(t.driver_amount + t.commission + t.fuel_amount + t.tolls).toLocaleString('en-IN')}`,
+            `₹${t.profit.toLocaleString('en-IN')}`,
+            t.payment_mode,
+            t.payment_status,
+          ]),
+          theme: 'striped',
+          headStyles: { fillColor: [39, 174, 96], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+          styles: { fontSize: 7, cellPadding: 2 },
+          didDrawPage: (d) => {
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`BSH Taxi Service - ${monthLabel}`, 14, doc.internal.pageSize.getHeight() - 8);
+            doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - 14, doc.internal.pageSize.getHeight() - 8, { align: 'right' });
+          },
+        });
+      }
+
+      // Maintenance table
+      if (maintenance && maintenance.length > 0) {
+        const maintY = (doc as any).lastAutoTable?.finalY + 10 || 100;
+
+        // Check if we need a new page
+        if (maintY > doc.internal.pageSize.getHeight() - 40) {
+          doc.addPage();
+          doc.setFontSize(13);
+          doc.text('Maintenance Details', 14, 18);
+          autoTable(doc, {
+            startY: 22,
+            head: [['Date', 'Vehicle', 'Type', 'Description', 'Amount', 'Payment']],
+            body: (maintenance as MaintenanceRecord[]).map(m => [
+              format(new Date(m.date), 'dd/MM/yy'),
+              m.vehicle_number,
+              m.maintenance_type,
+              m.description || '-',
+              `₹${m.amount.toLocaleString('en-IN')}`,
+              m.payment_mode,
+            ]),
+            theme: 'striped',
+            headStyles: { fillColor: [231, 76, 60], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+            styles: { fontSize: 7, cellPadding: 2 },
+          });
+        } else {
+          doc.setFontSize(13);
+          doc.text('Maintenance Details', 14, maintY);
+          autoTable(doc, {
+            startY: maintY + 4,
+            head: [['Date', 'Vehicle', 'Type', 'Description', 'Amount', 'Payment']],
+            body: (maintenance as MaintenanceRecord[]).map(m => [
+              format(new Date(m.date), 'dd/MM/yy'),
+              m.vehicle_number,
+              m.maintenance_type,
+              m.description || '-',
+              `₹${m.amount.toLocaleString('en-IN')}`,
+              m.payment_mode,
+            ]),
+            theme: 'striped',
+            headStyles: { fillColor: [231, 76, 60], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+            styles: { fontSize: 7, cellPadding: 2 },
+          });
+        }
+      }
+
+      // Footer on last page
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`BSH Taxi Service - ${monthLabel}`, 14, doc.internal.pageSize.getHeight() - 8);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, doc.internal.pageSize.getHeight() - 8, { align: 'right' });
+      }
+
+      doc.save(`monthly-report-${selectedMonth}.pdf`);
+
+      toast({
+        title: "Success",
+        description: "PDF report downloaded successfully",
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF report",
         variant: "destructive",
       });
     }
@@ -192,9 +375,18 @@ export const MonthlyReports = () => {
               onClick={downloadReport} 
               disabled={!data || loading}
               className="flex items-center gap-2"
+              variant="outline"
             >
               <Download className="h-4 w-4" />
-              Download Report
+              Excel
+            </Button>
+            <Button 
+              onClick={downloadPDF} 
+              disabled={!data || loading}
+              className="flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Download PDF
             </Button>
           </div>
 
