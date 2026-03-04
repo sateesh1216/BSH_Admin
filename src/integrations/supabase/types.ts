@@ -258,6 +258,7 @@ export type Database = {
           driver_amount: number
           driver_name: string
           driver_number: string
+          ending_km: number | null
           from_location: string
           fuel_amount: number
           fuel_type: string
@@ -265,6 +266,7 @@ export type Database = {
           payment_mode: string
           payment_status: string
           profit: number | null
+          starting_km: number | null
           to_location: string
           tolls: number
           trip_amount: number
@@ -282,6 +284,7 @@ export type Database = {
           driver_amount?: number
           driver_name: string
           driver_number: string
+          ending_km?: number | null
           from_location: string
           fuel_amount?: number
           fuel_type: string
@@ -289,6 +292,7 @@ export type Database = {
           payment_mode: string
           payment_status?: string
           profit?: number | null
+          starting_km?: number | null
           to_location: string
           tolls?: number
           trip_amount?: number
@@ -306,6 +310,7 @@ export type Database = {
           driver_amount?: number
           driver_name?: string
           driver_number?: string
+          ending_km?: number | null
           from_location?: string
           fuel_amount?: number
           fuel_type?: string
@@ -313,6 +318,7 @@ export type Database = {
           payment_mode?: string
           payment_status?: string
           profit?: number | null
+          starting_km?: number | null
           to_location?: string
           tolls?: number
           trip_amount?: number
