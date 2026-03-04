@@ -160,6 +160,7 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
   const [oilChangeRecords, setOilChangeRecords] = useState<VehicleOilChange[]>([]);
   const [insuranceRecords, setInsuranceRecords] = useState<VehicleInsurance[]>([]);
   const [pollutionRecords, setPollutionRecords] = useState<VehiclePollution[]>([]);
+  const [vehicleLatestTripKm, setVehicleLatestTripKm] = useState<Record<string, number>>({});
   const [showEmiForm, setShowEmiForm] = useState(false);
   const [showAlignmentForm, setShowAlignmentForm] = useState(false);
   const [showOilChangeForm, setShowOilChangeForm] = useState(false);
@@ -212,8 +213,28 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
       fetchOilChangeRecords();
       fetchInsuranceRecords();
       fetchPollutionRecords();
+      fetchLatestTripKms();
     }
   }, [user]);
+
+  const fetchLatestTripKms = async () => {
+    const { data, error } = await supabase
+      .from('trips')
+      .select('car_number, ending_km')
+      .not('ending_km', 'is', null)
+      .not('car_number', 'is', null)
+      .order('date', { ascending: false });
+    
+    if (!error && data) {
+      const kmMap: Record<string, number> = {};
+      data.forEach((trip: any) => {
+        if (trip.car_number && trip.ending_km && !kmMap[trip.car_number]) {
+          kmMap[trip.car_number] = trip.ending_km;
+        }
+      });
+      setVehicleLatestTripKm(kmMap);
+    }
+  };
 
   const fetchEmiRecords = async () => {
     const { data, error } = await supabase.from('vehicle_emi').select('*').order('vehicle_number');
@@ -358,7 +379,12 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
 
   const getLatestKmForVehicle = (vehicleNumber: string): number | null => {
     const vehicle = vehicleSummaries.find(v => v.vehicleNumber === vehicleNumber);
-    return vehicle?.latestKm || null;
+    const maintenanceKm = vehicle?.latestKm || null;
+    const tripKm = vehicleLatestTripKm[vehicleNumber] || null;
+    
+    // Return the higher of maintenance KM or trip ending KM
+    if (maintenanceKm && tripKm) return Math.max(maintenanceKm, tripKm);
+    return tripKm || maintenanceKm;
   };
 
   if (maintenance.length === 0 && emiRecords.length === 0 && alignmentRecords.length === 0 && oilChangeRecords.length === 0 && insuranceRecords.length === 0 && pollutionRecords.length === 0) {
