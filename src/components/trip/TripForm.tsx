@@ -393,6 +393,35 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="startingKm">Starting KM</Label>
+              <Input
+                id="startingKm"
+                type="number"
+                {...form.register('startingKm', { valueAsNumber: true })}
+                placeholder="0"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="endingKm">Ending KM</Label>
+              <Input
+                id="endingKm"
+                type="number"
+                {...form.register('endingKm', { valueAsNumber: true })}
+                placeholder="0"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Total KM</Label>
+              <div className="text-lg font-semibold p-3 rounded-lg border bg-muted/50">
+                {((form.watch('endingKm') || 0) - (form.watch('startingKm') || 0)) > 0 
+                  ? `${(form.watch('endingKm') || 0) - (form.watch('startingKm') || 0)} km`
+                  : '0 km'}
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <Label>Total Profit</Label>
               <div className={`text-2xl font-bold p-3 rounded-lg border ${profit >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
                 ₹{profit.toFixed(2)}
