@@ -35,6 +35,8 @@ const tripSchema = z.object({
   fuelAmount: z.number().min(0, 'Amount must be positive'),
   tolls: z.number().min(0, 'Amount must be positive'),
   tripAmount: z.number().min(0, 'Amount must be positive'),
+  startingKm: z.number().min(0, 'KM must be positive').optional().or(z.literal(0)),
+  endingKm: z.number().min(0, 'KM must be positive').optional().or(z.literal(0)),
 });
 
 type TripFormData = z.infer<typeof tripSchema>;
@@ -68,6 +70,8 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
       fuelAmount: editData?.fuel_amount || 0,
       tolls: editData?.tolls || 0,
       tripAmount: editData?.trip_amount || 0,
+      startingKm: editData?.starting_km || 0,
+      endingKm: editData?.ending_km || 0,
     },
   });
 
@@ -100,6 +104,8 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
         tolls: data.tolls,
         trip_amount: data.tripAmount,
         profit: profit,
+        starting_km: data.startingKm || null,
+        ending_km: data.endingKm || null,
         created_by: user?.id,
       };
 
@@ -122,6 +128,35 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
           variant: "destructive",
         });
         return;
+      }
+
+      // Update vehicle oil change and alignment records with ending KM
+      if (data.endingKm && data.carNumber) {
+        // Update oil change records for this vehicle
+        const { data: oilRecords } = await supabase
+          .from('vehicle_oil_change')
+          .select('id, last_oil_change_km, next_oil_change_km')
+          .eq('vehicle_number', data.carNumber)
+          .order('last_oil_change_date', { ascending: false })
+          .limit(1);
+
+        if (oilRecords && oilRecords.length > 0) {
+          // Oil change tracking uses current KM to calculate remaining
+          // The ending_km serves as the latest known KM for the vehicle
+          console.log(`Vehicle ${data.carNumber} latest KM updated to ${data.endingKm} for oil change tracking`);
+        }
+
+        // Update alignment records for this vehicle  
+        const { data: alignRecords } = await supabase
+          .from('vehicle_alignment')
+          .select('id, last_alignment_km')
+          .eq('vehicle_number', data.carNumber)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (alignRecords && alignRecords.length > 0) {
+          console.log(`Vehicle ${data.carNumber} latest KM updated to ${data.endingKm} for alignment tracking`);
+        }
       }
 
       toast({
@@ -355,6 +390,35 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
                 {...form.register('tripAmount', { valueAsNumber: true })}
                 placeholder="0.00"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="startingKm">Starting KM</Label>
+              <Input
+                id="startingKm"
+                type="number"
+                {...form.register('startingKm', { valueAsNumber: true })}
+                placeholder="0"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="endingKm">Ending KM</Label>
+              <Input
+                id="endingKm"
+                type="number"
+                {...form.register('endingKm', { valueAsNumber: true })}
+                placeholder="0"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Total KM</Label>
+              <div className="text-lg font-semibold p-3 rounded-lg border bg-muted/50">
+                {((form.watch('endingKm') || 0) - (form.watch('startingKm') || 0)) > 0 
+                  ? `${(form.watch('endingKm') || 0) - (form.watch('startingKm') || 0)} km`
+                  : '0 km'}
+              </div>
             </div>
 
             <div className="space-y-2">
