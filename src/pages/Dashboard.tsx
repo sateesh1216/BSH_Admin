@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings, History } from 'lucide-react';
+import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings, History, ChevronRight, User, Menu } from 'lucide-react';
 import { startOfDay, parseISO, isAfter } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DashboardSummary } from '@/components/dashboard/DashboardSummary';
 import { SummaryDetailModal, DetailType } from '@/components/dashboard/SummaryDetailModal';
 import { TripForm } from '@/components/trip/TripForm';
@@ -24,6 +23,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loading } from '@/components/ui/loading';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import bshLogo from '@/assets/bsh-logo.png';
 
 interface Trip {
   id: string;
@@ -78,31 +80,41 @@ interface OutsideVehicleTrip {
   trip_amount: number;
 }
 
+type Section = 'trips' | 'outside-vehicle' | 'maintenance' | 'vehicle-history' | 'upload' | 'reports' | 'admin';
+
+const navItems: { key: Section; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
+  { key: 'trips', label: 'Trips', icon: Car },
+  { key: 'outside-vehicle', label: 'Outside Vehicles', icon: Bus },
+  { key: 'maintenance', label: 'Maintenance', icon: Wrench },
+  { key: 'vehicle-history', label: 'Vehicles', icon: History },
+  { key: 'upload', label: 'Upload Data', icon: Upload },
+  { key: 'reports', label: 'Reports', icon: BarChart3 },
+  { key: 'admin', label: 'Admin Panel', icon: Settings, adminOnly: true },
+];
+
 export const Dashboard = () => {
   const { user, userRole, userName, signOut } = useAuth();
+  const isMobile = useIsMobile();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [maintenance, setMaintenance] = useState<Maintenance[]>([]);
   const [outsideVehicleTrips, setOutsideVehicleTrips] = useState<OutsideVehicleTrip[]>([]);
   const [allPendingTotal, setAllPendingTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('trips');
+  const [activeSection, setActiveSection] = useState<Section>('trips');
   const [showTripForm, setShowTripForm] = useState(false);
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
   const [showOutsideVehicleTripForm, setShowOutsideVehicleTripForm] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilterOptions>({ type: 'all' });
   const [summaryDetailType, setSummaryDetailType] = useState<DetailType>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const isAdmin = userRole === 'admin';
 
   const fetchTrips = useCallback(async () => {
     try {
       let query = supabase.from('trips').select('*');
-      
-      if (!isAdmin && user) {
-        query = query.eq('created_by', user.id);
-      }
-
-      // Apply date filtering
+      if (!isAdmin && user) query = query.eq('created_by', user.id);
       if (dateFilter.type === 'monthly' && dateFilter.month) {
         const [year, month] = dateFilter.month.split('-');
         const startOfMonth = `${dateFilter.month}-01`;
@@ -111,63 +123,26 @@ export const Dashboard = () => {
       } else if (dateFilter.type === 'yearly' && dateFilter.year) {
         query = query.gte('date', `${dateFilter.year}-01-01`).lte('date', `${dateFilter.year}-12-31`);
       }
-      
       const { data, error } = await query.order('date', { ascending: false });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
       setTrips(data || []);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch trips",
-        variant: "destructive",
-      });
-    }
+    } catch { toast({ title: "Error", description: "Failed to fetch trips", variant: "destructive" }); }
   }, [isAdmin, user, dateFilter]);
 
-  // Fetch all pending bills total (regardless of date filter)
   const fetchAllPendingTotal = useCallback(async () => {
     try {
-      let query = supabase
-        .from('trips')
-        .select('trip_amount')
-        .eq('payment_status', 'pending');
-      
-      if (!isAdmin && user) {
-        query = query.eq('created_by', user.id);
-      }
-      
+      let query = supabase.from('trips').select('trip_amount').eq('payment_status', 'pending');
+      if (!isAdmin && user) query = query.eq('created_by', user.id);
       const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching pending total:', error);
-        return;
-      }
-
-      const total = (data || []).reduce((sum, t) => sum + (t.trip_amount || 0), 0);
-      setAllPendingTotal(total);
-    } catch (error) {
-      console.error('Failed to fetch pending total:', error);
-    }
+      if (error) { console.error('Error fetching pending total:', error); return; }
+      setAllPendingTotal((data || []).reduce((sum, t) => sum + (t.trip_amount || 0), 0));
+    } catch (error) { console.error('Failed to fetch pending total:', error); }
   }, [isAdmin, user]);
 
   const fetchMaintenance = useCallback(async () => {
     try {
       let query = supabase.from('maintenance').select('*');
-      
-      if (!isAdmin && user) {
-        query = query.eq('created_by', user.id);
-      }
-
-      // Apply date filtering
+      if (!isAdmin && user) query = query.eq('created_by', user.id);
       if (dateFilter.type === 'monthly' && dateFilter.month) {
         const [year, month] = dateFilter.month.split('-');
         const startOfMonth = `${dateFilter.month}-01`;
@@ -176,37 +151,16 @@ export const Dashboard = () => {
       } else if (dateFilter.type === 'yearly' && dateFilter.year) {
         query = query.gte('date', `${dateFilter.year}-01-01`).lte('date', `${dateFilter.year}-12-31`);
       }
-      
       const { data, error } = await query.order('date', { ascending: false });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
       setMaintenance(data || []);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch maintenance records",
-        variant: "destructive",
-      });
-    }
+    } catch { toast({ title: "Error", description: "Failed to fetch maintenance records", variant: "destructive" }); }
   }, [isAdmin, user, dateFilter]);
 
   const fetchOutsideVehicleTrips = useCallback(async () => {
     try {
       let query = supabase.from('outside_vehicle_trips').select('*');
-      
-      if (!isAdmin && user) {
-        query = query.eq('created_by', user.id);
-      }
-
-      // Apply date filtering
+      if (!isAdmin && user) query = query.eq('created_by', user.id);
       if (dateFilter.type === 'monthly' && dateFilter.month) {
         const [year, month] = dateFilter.month.split('-');
         const startOfMonth = `${dateFilter.month}-01`;
@@ -215,136 +169,59 @@ export const Dashboard = () => {
       } else if (dateFilter.type === 'yearly' && dateFilter.year) {
         query = query.gte('date', `${dateFilter.year}-01-01`).lte('date', `${dateFilter.year}-12-31`);
       }
-      
       const { data, error } = await query.order('date', { ascending: false });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
       setOutsideVehicleTrips(data || []);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch outside vehicle trips",
-        variant: "destructive",
-      });
-    }
+    } catch { toast({ title: "Error", description: "Failed to fetch outside vehicle trips", variant: "destructive" }); }
   }, [isAdmin, user, dateFilter]);
 
-  // Track if initial data has been loaded
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
-  // Fetch data on mount only
   useEffect(() => {
     if (user && !initialLoadComplete) {
       const fetchData = async () => {
         setLoading(true);
-        try {
-          await Promise.all([fetchTrips(), fetchMaintenance(), fetchOutsideVehicleTrips(), fetchAllPendingTotal()]);
-        } finally {
-          setLoading(false);
-          setInitialLoadComplete(true);
-        }
+        try { await Promise.all([fetchTrips(), fetchMaintenance(), fetchOutsideVehicleTrips(), fetchAllPendingTotal()]); }
+        finally { setLoading(false); setInitialLoadComplete(true); }
       };
       fetchData();
     }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch data when filter changes (but not on initial load)
   useEffect(() => {
     if (user && initialLoadComplete) {
-      const fetchData = async () => {
-        try {
-          await Promise.all([fetchTrips(), fetchMaintenance(), fetchOutsideVehicleTrips()]);
-        } catch (error) {
-          // Error handled in fetch functions
-        }
-      };
-      fetchData();
+      Promise.all([fetchTrips(), fetchMaintenance(), fetchOutsideVehicleTrips()]).catch(() => {});
     }
   }, [dateFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const calculateSummary = useMemo(() => {
     const totalTrips = trips.length;
     const totalTripMoney = trips.reduce((sum, trip) => sum + trip.trip_amount, 0);
-    const tripExpenses = trips.reduce((sum, trip) => 
-      sum + trip.driver_amount + trip.commission + trip.fuel_amount + trip.tolls, 0);
+    const tripExpenses = trips.reduce((sum, trip) => sum + trip.driver_amount + trip.commission + trip.fuel_amount + trip.tolls, 0);
     const maintenanceExpenses = maintenance.reduce((sum, record) => sum + record.amount, 0);
     const totalExpenses = tripExpenses + maintenanceExpenses;
     const totalProfit = trips.reduce((sum, trip) => sum + trip.profit, 0) - maintenanceExpenses;
-
-    // Outside Vehicle Trips summary
     const totalOutsideVehicleTrips = outsideVehicleTrips.length;
     const totalOutsideVehicleMoney = outsideVehicleTrips.reduce((sum, trip) => sum + trip.trip_amount, 0);
-    const pendingOutsideVehicleMoney = outsideVehicleTrips
-      .filter(trip => trip.payment_status === 'pending')
-      .reduce((sum, trip) => sum + trip.trip_amount, 0);
-
-    return {
-      totalTrips,
-      totalTripMoney,
-      totalExpenses,
-      totalProfit,
-      totalMaintenance: maintenance.length,
-      maintenanceExpenses,
-      totalOutsideVehicleTrips,
-      totalOutsideVehicleMoney,
-      pendingOutsideVehicleMoney,
-    };
+    const pendingOutsideVehicleMoney = outsideVehicleTrips.filter(trip => trip.payment_status === 'pending').reduce((sum, trip) => sum + trip.trip_amount, 0);
+    return { totalTrips, totalTripMoney, totalExpenses, totalProfit, totalMaintenance: maintenance.length, maintenanceExpenses, totalOutsideVehicleTrips, totalOutsideVehicleMoney, pendingOutsideVehicleMoney };
   }, [trips, maintenance, outsideVehicleTrips]);
 
-  // Get upcoming trips
   const upcomingTrips = useMemo(() => {
     const today = startOfDay(new Date());
-    return trips.filter(trip => {
-      const tripDay = startOfDay(parseISO(trip.date));
-      return isAfter(tripDay, today);
-    }).sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
+    return trips.filter(trip => isAfter(startOfDay(parseISO(trip.date)), today)).sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
   }, [trips]);
 
   const upcomingTripsCount = upcomingTrips.length;
 
-  const handleTripFormSuccess = useCallback(() => {
-    setShowTripForm(false);
-    fetchTrips();
-    fetchAllPendingTotal();
-  }, [fetchTrips, fetchAllPendingTotal]);
-
-  const handleMaintenanceFormSuccess = useCallback(() => {
-    setShowMaintenanceForm(false);
-    fetchMaintenance();
-  }, [fetchMaintenance]);
-
-  const handleOutsideVehicleTripFormSuccess = useCallback(() => {
-    setShowOutsideVehicleTripForm(false);
-    fetchOutsideVehicleTrips();
-  }, [fetchOutsideVehicleTrips]);
-
-  const handleSignOut = useCallback(async () => {
-    await signOut();
-    toast({
-      title: "Success",
-      description: "Signed out successfully",
-    });
-  }, [signOut]);
-
+  const handleTripFormSuccess = useCallback(() => { setShowTripForm(false); fetchTrips(); fetchAllPendingTotal(); }, [fetchTrips, fetchAllPendingTotal]);
+  const handleMaintenanceFormSuccess = useCallback(() => { setShowMaintenanceForm(false); fetchMaintenance(); }, [fetchMaintenance]);
+  const handleOutsideVehicleTripFormSuccess = useCallback(() => { setShowOutsideVehicleTripForm(false); fetchOutsideVehicleTrips(); }, [fetchOutsideVehicleTrips]);
+  const handleSignOut = useCallback(async () => { await signOut(); toast({ title: "Success", description: "Signed out successfully" }); }, [signOut]);
   const refreshData = useCallback(async () => {
     setLoading(true);
-    try {
-      await Promise.all([fetchTrips(), fetchMaintenance(), fetchOutsideVehicleTrips(), fetchAllPendingTotal()]);
-      toast({
-        title: "Refreshed",
-        description: "Data updated successfully",
-      });
-    } finally {
-      setLoading(false);
-    }
+    try { await Promise.all([fetchTrips(), fetchMaintenance(), fetchOutsideVehicleTrips(), fetchAllPendingTotal()]); toast({ title: "Refreshed", description: "Data updated successfully" }); }
+    finally { setLoading(false); }
   }, [fetchTrips, fetchMaintenance, fetchOutsideVehicleTrips, fetchAllPendingTotal]);
 
   if (loading) {
@@ -355,237 +232,310 @@ export const Dashboard = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/30">
-      {/* Header */}
-      <header className="bg-background shadow-lg border-b border-primary/20 sticky top-0 z-50">
-        <div className="px-4 py-3">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">BSH Taxi Service</p>
-              <h1 className="text-xl sm:text-2xl font-bold text-primary">
-                BSH Taxi Service
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                Provider: <span className="font-semibold">BSH</span> • {userName || user?.email} • <span className="font-medium">{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Loading...'}</span>
-              </p>
+  const visibleNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
+
+  const renderContent = () => {
+    switch (activeSection) {
+      case 'trips':
+        return (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Trips Management</h2>
+                <p className="text-sm text-muted-foreground">Track and manage all trip records</p>
+              </div>
+              <Button onClick={() => setShowTripForm(!showTripForm)} className="shadow-md">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Trip
+              </Button>
             </div>
+            {showTripForm && <TripForm onSuccess={handleTripFormSuccess} />}
+            <TripsTable trips={trips} onTripUpdated={() => { fetchTrips(); fetchAllPendingTotal(); }} canEdit={true} allPendingTotal={allPendingTotal} />
+          </div>
+        );
+      case 'outside-vehicle':
+        return (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Outside Vehicle Trips</h2>
+                <p className="text-sm text-muted-foreground">Manage external vehicle trip records</p>
+              </div>
+              <Button onClick={() => setShowOutsideVehicleTripForm(!showOutsideVehicleTripForm)} className="shadow-md">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Trip
+              </Button>
+            </div>
+            {showOutsideVehicleTripForm && <OutsideVehicleTripForm onSuccess={handleOutsideVehicleTripFormSuccess} />}
+            <OutsideVehicleTripsTable trips={outsideVehicleTrips} onTripUpdated={fetchOutsideVehicleTrips} canEdit={true} />
+          </div>
+        );
+      case 'maintenance':
+        return (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Maintenance Records</h2>
+                <p className="text-sm text-muted-foreground">Track vehicle maintenance and expenses</p>
+              </div>
+              <Button onClick={() => setShowMaintenanceForm(!showMaintenanceForm)} className="shadow-md">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Record
+              </Button>
+            </div>
+            {showMaintenanceForm && <MaintenanceForm onSuccess={handleMaintenanceFormSuccess} />}
+            <MaintenanceTable maintenance={maintenance} onMaintenanceUpdated={fetchMaintenance} canEdit={true} />
+          </div>
+        );
+      case 'vehicle-history':
+        return <VehicleHistoryDashboard maintenance={maintenance} />;
+      case 'upload':
+        return <FileUpload onUploadSuccess={refreshData} />;
+      case 'reports':
+        return (
+          <div className="space-y-6">
+            <MonthlyReports />
+            <ExpensesReports />
+          </div>
+        );
+      case 'admin':
+        return <AdminPanel onNavigateToReports={() => setActiveSection('reports')} />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex">
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <aside className={cn(
+          "fixed left-0 top-0 h-screen bg-card border-r border-border flex flex-col transition-all duration-300 z-40",
+          sidebarCollapsed ? "w-[68px]" : "w-[260px]"
+        )}>
+          {/* Sidebar Header / Logo */}
+          <div className={cn("p-4 border-b border-border flex items-center gap-3", sidebarCollapsed && "justify-center")}>
+            <img src={bshLogo} alt="BSH" className="h-9 w-9 rounded-lg object-contain" />
+            {!sidebarCollapsed && (
+              <div className="min-w-0">
+                <h1 className="text-base font-bold text-foreground leading-tight truncate">BSH Taxi</h1>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Service Management</p>
+              </div>
+            )}
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto py-3 px-2">
+            <div className="space-y-1">
+              {visibleNavItems.map((item) => {
+                const isActive = activeSection === item.key;
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => { setActiveSection(item.key); setMobileSidebarOpen(false); }}
+                    className={cn(
+                      "w-full flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200",
+                      sidebarCollapsed ? "justify-center p-3" : "px-3 py-2.5",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    )}
+                    title={sidebarCollapsed ? item.label : undefined}
+                  >
+                    <item.icon className={cn("h-[18px] w-[18px] shrink-0", isActive && "text-primary-foreground")} />
+                    {!sidebarCollapsed && (
+                      <>
+                        <span className="flex-1 text-left truncate">{item.label}</span>
+                        {isActive && <ChevronRight className="h-4 w-4 opacity-60" />}
+                      </>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+
+          {/* Sidebar Footer - User Info */}
+          <div className="border-t border-border p-3">
+            <div className={cn("flex items-center gap-3", sidebarCollapsed && "justify-center")}>
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <User className="h-4 w-4 text-primary" />
+              </div>
+              {!sidebarCollapsed && (
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-foreground truncate">{userName || user?.email}</p>
+                  <p className="text-[10px] text-muted-foreground capitalize">{userRole || 'User'}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Collapse Toggle */}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="absolute -right-3 top-20 h-6 w-6 rounded-full border border-border bg-card shadow-sm flex items-center justify-center hover:bg-muted transition-colors"
+          >
+            <ChevronRight className={cn("h-3 w-3 text-muted-foreground transition-transform", sidebarCollapsed ? "" : "rotate-180")} />
+          </button>
+        </aside>
+      )}
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobile && mobileSidebarOpen && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} />
+          <aside className="absolute left-0 top-0 h-full w-[260px] bg-card border-r border-border flex flex-col shadow-2xl animate-in slide-in-from-left">
+            <div className="p-4 border-b border-border flex items-center gap-3">
+              <img src={bshLogo} alt="BSH" className="h-9 w-9 rounded-lg object-contain" />
+              <div>
+                <h1 className="text-base font-bold text-foreground">BSH Taxi</h1>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Service Management</p>
+              </div>
+            </div>
+            <nav className="flex-1 overflow-y-auto py-3 px-2">
+              <div className="space-y-1">
+                {visibleNavItems.map((item) => {
+                  const isActive = activeSection === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => { setActiveSection(item.key); setMobileSidebarOpen(false); }}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                        isActive ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      )}
+                    >
+                      <item.icon className="h-[18px] w-[18px] shrink-0" />
+                      <span className="flex-1 text-left">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+            <div className="border-t border-border p-3">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-foreground truncate">{userName || user?.email}</p>
+                  <p className="text-[10px] text-muted-foreground capitalize">{userRole || 'User'}</p>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <div className={cn(
+        "flex-1 flex flex-col min-h-screen transition-all duration-300",
+        !isMobile && (sidebarCollapsed ? "ml-[68px]" : "ml-[260px]")
+      )}>
+        {/* Top Header Bar */}
+        <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border">
+          <div className="flex items-center justify-between px-4 lg:px-6 h-14">
+            <div className="flex items-center gap-3">
+              {isMobile && (
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setMobileSidebarOpen(true)}>
+                  <Menu className="h-5 w-5" />
+                </Button>
+              )}
+              <div>
+                <h2 className="text-base font-semibold text-foreground leading-tight">
+                  {visibleNavItems.find(i => i.key === activeSection)?.label || 'Dashboard'}
+                </h2>
+                {!isMobile && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {userName || user?.email} • <span className="capitalize">{userRole}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+
             <div className="flex items-center gap-2">
-              {/* Upcoming Trips Notification Bell with Dropdown */}
+              {/* Notification Bell */}
               {upcomingTripsCount > 0 && (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button
-                      className="relative flex items-center justify-center p-2 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg hover:scale-105 transition-transform animate-pulse"
-                      title={`${upcomingTripsCount} upcoming trip${upcomingTripsCount > 1 ? 's' : ''}`}
-                    >
-                      <Bell className="h-5 w-5" />
-                      <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1 text-xs font-bold bg-red-600 text-white rounded-full shadow-md">
+                    <button className="relative flex items-center justify-center h-9 w-9 rounded-lg bg-accent hover:bg-accent/80 transition-colors">
+                      <Bell className="h-4 w-4 text-foreground" />
+                      <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full">
                         {upcomingTripsCount}
                       </span>
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0 bg-background border shadow-xl z-50" align="end">
-                    <div className="p-3 border-b bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-t-md">
-                      <h3 className="font-semibold flex items-center gap-2">
+                  <PopoverContent className="w-80 p-0 bg-card border shadow-xl" align="end">
+                    <div className="p-3 border-b bg-primary text-primary-foreground rounded-t-md">
+                      <h3 className="font-semibold flex items-center gap-2 text-sm">
                         <Bell className="h-4 w-4" />
                         Upcoming Trips ({upcomingTripsCount})
                       </h3>
                     </div>
                     <ScrollArea className="max-h-72">
-                      <div className="p-2 space-y-2">
+                      <div className="p-2 space-y-1.5">
                         {upcomingTrips.slice(0, 10).map((trip) => (
-                          <div 
-                            key={trip.id} 
-                            className="p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors border-l-4 border-l-orange-500"
-                          >
+                          <div key={trip.id} className="p-2.5 rounded-md bg-muted/50 hover:bg-muted transition-colors border-l-3 border-l-primary">
                             <div className="flex justify-between items-start">
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm text-foreground truncate">
-                                  {trip.customer_name}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  {trip.from_location} → {trip.to_location}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  Driver: {trip.driver_name}
-                                </p>
+                                <p className="font-medium text-xs text-foreground truncate">{trip.customer_name}</p>
+                                <p className="text-[11px] text-muted-foreground">{trip.from_location} → {trip.to_location}</p>
                               </div>
                               <div className="text-right ml-2 shrink-0">
-                                <p className="text-xs font-medium text-orange-600 dark:text-orange-400">
-                                  {format(parseISO(trip.date), 'dd MMM')}
-                                </p>
-                                <p className="text-xs font-semibold text-primary mt-0.5">
-                                  ₹{trip.trip_amount.toLocaleString('en-IN')}
-                                </p>
+                                <p className="text-[11px] font-medium text-primary">{format(parseISO(trip.date), 'dd MMM')}</p>
+                                <p className="text-xs font-semibold">₹{trip.trip_amount.toLocaleString('en-IN')}</p>
                               </div>
                             </div>
                           </div>
                         ))}
-                        {upcomingTripsCount > 10 && (
-                          <p className="text-center text-xs text-muted-foreground py-2">
-                            +{upcomingTripsCount - 10} more upcoming trips
-                          </p>
-                        )}
                       </div>
                     </ScrollArea>
                     <div className="p-2 border-t">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => setActiveTab('trips')}
-                      >
-                        View All Trips
-                      </Button>
+                      <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setActiveSection('trips')}>View All Trips</Button>
                     </div>
                   </PopoverContent>
                 </Popover>
               )}
-              <Button onClick={refreshData} variant="outline" size="sm" title="Refresh Data">
+
+              <Button onClick={refreshData} variant="ghost" size="icon" className="h-9 w-9" title="Refresh">
                 <RefreshCw className="h-4 w-4" />
               </Button>
-              <Button onClick={handleSignOut} variant="outline" size="sm" className="border-primary/30 hover:bg-primary hover:text-primary-foreground">
+
+              <Button onClick={handleSignOut} variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline ml-2">Sign Out</span>
+                {!isMobile && <span className="ml-1.5 text-xs">Sign Out</span>}
               </Button>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="p-4 max-w-7xl mx-auto">
-        {/* Date Filter */}
-        <DateFilter currentFilter={dateFilter} onFilterChange={setDateFilter} />
+        {/* Page Content */}
+        <main className="flex-1 p-4 lg:p-6">
+          <div className="max-w-[1400px] mx-auto space-y-5">
+            {/* Date Filter */}
+            <DateFilter currentFilter={dateFilter} onFilterChange={setDateFilter} />
 
-        {/* Summary Cards */}
-        <div className="mt-4">
-          <DashboardSummary data={calculateSummary} onCardClick={setSummaryDetailType} />
-        </div>
+            {/* Summary Cards */}
+            <DashboardSummary data={calculateSummary} onCardClick={setSummaryDetailType} />
 
-        {/* Summary Detail Modal */}
-        <SummaryDetailModal
-          open={summaryDetailType !== null}
-          onOpenChange={(open) => !open && setSummaryDetailType(null)}
-          detailType={summaryDetailType}
-          trips={trips}
-          maintenance={maintenance}
-          outsideVehicleTrips={outsideVehicleTrips}
-          summary={calculateSummary}
-        />
-
-        {/* Tabs Navigation */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-7' : 'grid-cols-6'} mb-4`}>
-            <TabsTrigger value="trips" className="flex items-center gap-1 text-xs sm:text-sm">
-              <Car className="h-4 w-4" />
-              <span className="hidden sm:inline">Trips</span>
-            </TabsTrigger>
-            <TabsTrigger value="outside-vehicle" className="flex items-center gap-1 text-xs sm:text-sm">
-              <Bus className="h-4 w-4" />
-              <span className="hidden sm:inline">Outside</span>
-            </TabsTrigger>
-            <TabsTrigger value="maintenance" className="flex items-center gap-1 text-xs sm:text-sm">
-              <Wrench className="h-4 w-4" />
-              <span className="hidden sm:inline">Maintenance</span>
-            </TabsTrigger>
-            <TabsTrigger value="vehicle-history" className="flex items-center gap-1 text-xs sm:text-sm">
-              <History className="h-4 w-4" />
-              <span className="hidden sm:inline">Vehicles</span>
-            </TabsTrigger>
-            <TabsTrigger value="upload" className="flex items-center gap-1 text-xs sm:text-sm">
-              <Upload className="h-4 w-4" />
-              <span className="hidden sm:inline">Upload</span>
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-1 text-xs sm:text-sm">
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Reports</span>
-            </TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger value="admin" className="flex items-center gap-1 text-xs sm:text-sm">
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Admin</span>
-              </TabsTrigger>
-            )}
-          </TabsList>
-
-          {/* Trips Tab */}
-          <TabsContent value="trips" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-primary">Trips Management</h2>
-              <Button onClick={() => setShowTripForm(!showTripForm)} size="sm">
-                <Plus className="h-4 w-4 mr-1" />
-                Add Trip
-              </Button>
-            </div>
-            {showTripForm && <TripForm onSuccess={handleTripFormSuccess} />}
-            <TripsTable 
-              trips={trips} 
-              onTripUpdated={() => { fetchTrips(); fetchAllPendingTotal(); }}
-              canEdit={true}
-              allPendingTotal={allPendingTotal}
+            {/* Summary Detail Modal */}
+            <SummaryDetailModal
+              open={summaryDetailType !== null}
+              onOpenChange={(open) => !open && setSummaryDetailType(null)}
+              detailType={summaryDetailType}
+              trips={trips}
+              maintenance={maintenance}
+              outsideVehicleTrips={outsideVehicleTrips}
+              summary={calculateSummary}
             />
-          </TabsContent>
 
-          {/* Outside Vehicle Trips Tab */}
-          <TabsContent value="outside-vehicle" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-primary">Outside Vehicle's Trips</h2>
-              <Button onClick={() => setShowOutsideVehicleTripForm(!showOutsideVehicleTripForm)} size="sm">
-                <Plus className="h-4 w-4 mr-1" />
-                Add Trip
-              </Button>
+            {/* Active Section Content */}
+            <div className="bg-card rounded-xl border border-border shadow-sm p-4 lg:p-6">
+              {renderContent()}
             </div>
-            {showOutsideVehicleTripForm && <OutsideVehicleTripForm onSuccess={handleOutsideVehicleTripFormSuccess} />}
-            <OutsideVehicleTripsTable 
-              trips={outsideVehicleTrips} 
-              onTripUpdated={fetchOutsideVehicleTrips}
-              canEdit={true}
-            />
-          </TabsContent>
-
-          {/* Maintenance Tab */}
-          <TabsContent value="maintenance" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-primary">Maintenance Records</h2>
-              <Button onClick={() => setShowMaintenanceForm(!showMaintenanceForm)} size="sm">
-                <Plus className="h-4 w-4 mr-1" />
-                Add Record
-              </Button>
-            </div>
-            {showMaintenanceForm && <MaintenanceForm onSuccess={handleMaintenanceFormSuccess} />}
-            <MaintenanceTable 
-              maintenance={maintenance} 
-              onMaintenanceUpdated={fetchMaintenance}
-              canEdit={true}
-            />
-          </TabsContent>
-
-          {/* Upload Tab */}
-          <TabsContent value="upload">
-            <FileUpload onUploadSuccess={refreshData} />
-          </TabsContent>
-
-          {/* Vehicle History Tab */}
-          <TabsContent value="vehicle-history" className="space-y-4">
-            <VehicleHistoryDashboard maintenance={maintenance} />
-          </TabsContent>
-
-          {/* Reports Tab */}
-          <TabsContent value="reports" className="space-y-6">
-            <MonthlyReports />
-            <ExpensesReports />
-          </TabsContent>
-
-          {/* Admin Panel Tab (Admin Only) */}
-          {isAdmin && (
-            <TabsContent value="admin" className="space-y-4">
-              <AdminPanel onNavigateToReports={() => setActiveTab('reports')} />
-            </TabsContent>
-          )}
-        </Tabs>
-      </main>
+          </div>
+        </main>
+      </div>
     </div>
   );
 };
