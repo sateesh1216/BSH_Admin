@@ -26,6 +26,8 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import bshLogo from '@/assets/bsh-logo.png';
+import { MobileBottomNav } from '@/components/mobile/MobileBottomNav';
+import { MobileHeader } from '@/components/mobile/MobileHeader';
 
 interface Trip {
   id: string;
@@ -380,51 +382,13 @@ export const Dashboard = () => {
         </aside>
       )}
 
-      {/* Mobile Sidebar Overlay */}
-      {isMobile && mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} />
-          <aside className="absolute left-0 top-0 h-full w-[260px] bg-card border-r border-border flex flex-col shadow-2xl animate-in slide-in-from-left">
-            <div className="p-4 border-b border-border flex items-center gap-3">
-              <img src={bshLogo} alt="BSH" className="h-9 w-9 rounded-lg object-contain" />
-              <div>
-                <h1 className="text-base font-bold text-foreground">BSH Taxi</h1>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Service Management</p>
-              </div>
-            </div>
-            <nav className="flex-1 overflow-y-auto py-3 px-2">
-              <div className="space-y-1">
-                {visibleNavItems.map((item) => {
-                  const isActive = activeSection === item.key;
-                  return (
-                    <button
-                      key={item.key}
-                      onClick={() => { setActiveSection(item.key); setMobileSidebarOpen(false); }}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                        isActive ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      )}
-                    >
-                      <item.icon className="h-[18px] w-[18px] shrink-0" />
-                      <span className="flex-1 text-left">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </nav>
-            <div className="border-t border-border p-3">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="h-4 w-4 text-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-foreground truncate">{userName || user?.email}</p>
-                  <p className="text-[10px] text-muted-foreground capitalize">{userRole || 'User'}</p>
-                </div>
-              </div>
-            </div>
-          </aside>
-        </div>
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <MobileBottomNav
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+          isAdmin={isAdmin}
+        />
       )}
 
       {/* Main Content Area */}
@@ -432,85 +396,89 @@ export const Dashboard = () => {
         "flex-1 flex flex-col min-h-screen transition-all duration-300",
         !isMobile && (sidebarCollapsed ? "ml-[68px]" : "ml-[260px]")
       )}>
-        {/* Top Header Bar */}
-        <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border">
-          <div className="flex items-center justify-between px-4 lg:px-6 h-14">
-            <div className="flex items-center gap-3">
-              {isMobile && (
-                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setMobileSidebarOpen(true)}>
-                  <Menu className="h-5 w-5" />
-                </Button>
-              )}
-              <div>
-                <h2 className="text-base font-semibold text-foreground leading-tight">
-                  {visibleNavItems.find(i => i.key === activeSection)?.label || 'Dashboard'}
-                </h2>
-                {!isMobile && (
+        {/* Header */}
+        {isMobile ? (
+          <MobileHeader
+            userName={userName}
+            userRole={userRole}
+            userEmail={user?.email}
+            upcomingTrips={upcomingTrips}
+            onSignOut={handleSignOut}
+            onRefresh={refreshData}
+            onNavigate={(section) => setActiveSection(section as Section)}
+          />
+        ) : (
+          <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border">
+            <div className="flex items-center justify-between px-4 lg:px-6 h-14">
+              <div className="flex items-center gap-3">
+                <div>
+                  <h2 className="text-base font-semibold text-foreground leading-tight">
+                    {visibleNavItems.find(i => i.key === activeSection)?.label || 'Dashboard'}
+                  </h2>
                   <p className="text-[11px] text-muted-foreground">
                     {userName || user?.email} • <span className="capitalize">{userRole}</span>
                   </p>
-                )}
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              {/* Notification Bell */}
-              {upcomingTripsCount > 0 && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="relative flex items-center justify-center h-9 w-9 rounded-lg bg-accent hover:bg-accent/80 transition-colors">
-                      <Bell className="h-4 w-4 text-foreground" />
-                      <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full">
-                        {upcomingTripsCount}
-                      </span>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0 bg-card border shadow-xl" align="end">
-                    <div className="p-3 border-b bg-primary text-primary-foreground rounded-t-md">
-                      <h3 className="font-semibold flex items-center gap-2 text-sm">
-                        <Bell className="h-4 w-4" />
-                        Upcoming Trips ({upcomingTripsCount})
-                      </h3>
-                    </div>
-                    <ScrollArea className="max-h-72">
-                      <div className="p-2 space-y-1.5">
-                        {upcomingTrips.slice(0, 10).map((trip) => (
-                          <div key={trip.id} className="p-2.5 rounded-md bg-muted/50 hover:bg-muted transition-colors border-l-3 border-l-primary">
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-xs text-foreground truncate">{trip.customer_name}</p>
-                                <p className="text-[11px] text-muted-foreground">{trip.from_location} → {trip.to_location}</p>
-                              </div>
-                              <div className="text-right ml-2 shrink-0">
-                                <p className="text-[11px] font-medium text-primary">{format(parseISO(trip.date), 'dd MMM')}</p>
-                                <p className="text-xs font-semibold">₹{trip.trip_amount.toLocaleString('en-IN')}</p>
+              <div className="flex items-center gap-2">
+                {upcomingTripsCount > 0 && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="relative flex items-center justify-center h-9 w-9 rounded-lg bg-accent hover:bg-accent/80 transition-colors">
+                        <Bell className="h-4 w-4 text-foreground" />
+                        <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full">
+                          {upcomingTripsCount}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-0 bg-card border shadow-xl" align="end">
+                      <div className="p-3 border-b bg-primary text-primary-foreground rounded-t-md">
+                        <h3 className="font-semibold flex items-center gap-2 text-sm">
+                          <Bell className="h-4 w-4" />
+                          Upcoming Trips ({upcomingTripsCount})
+                        </h3>
+                      </div>
+                      <ScrollArea className="max-h-72">
+                        <div className="p-2 space-y-1.5">
+                          {upcomingTrips.slice(0, 10).map((trip) => (
+                            <div key={trip.id} className="p-2.5 rounded-md bg-muted/50 hover:bg-muted transition-colors border-l-3 border-l-primary">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-xs text-foreground truncate">{trip.customer_name}</p>
+                                  <p className="text-[11px] text-muted-foreground">{trip.from_location} → {trip.to_location}</p>
+                                </div>
+                                <div className="text-right ml-2 shrink-0">
+                                  <p className="text-[11px] font-medium text-primary">{format(parseISO(trip.date), 'dd MMM')}</p>
+                                  <p className="text-xs font-semibold">₹{trip.trip_amount.toLocaleString('en-IN')}</p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
+                      </ScrollArea>
+                      <div className="p-2 border-t">
+                        <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setActiveSection('trips')}>View All Trips</Button>
                       </div>
-                    </ScrollArea>
-                    <div className="p-2 border-t">
-                      <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setActiveSection('trips')}>View All Trips</Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              )}
+                    </PopoverContent>
+                  </Popover>
+                )}
 
-              <Button onClick={refreshData} variant="ghost" size="icon" className="h-9 w-9" title="Refresh">
-                <RefreshCw className="h-4 w-4" />
-              </Button>
+                <Button onClick={refreshData} variant="ghost" size="icon" className="h-9 w-9" title="Refresh">
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
 
-              <Button onClick={handleSignOut} variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                <LogOut className="h-4 w-4" />
-                {!isMobile && <span className="ml-1.5 text-xs">Sign Out</span>}
-              </Button>
+                <Button onClick={handleSignOut} variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <LogOut className="h-4 w-4" />
+                  <span className="ml-1.5 text-xs">Sign Out</span>
+                </Button>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
+        )}
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6">
+        <main className={cn("flex-1 p-4 lg:p-6", isMobile && "pb-24")}>
           <div className="max-w-[1400px] mx-auto space-y-5">
             {/* Date Filter */}
             <DateFilter currentFilter={dateFilter} onFilterChange={setDateFilter} />
