@@ -478,7 +478,7 @@ export const Dashboard = () => {
         )}
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6">
+        <main className={cn("flex-1 p-4 lg:p-6", isMobile && "pb-24")}>
           <div className="max-w-[1400px] mx-auto space-y-5">
             {/* Date Filter */}
             <DateFilter currentFilter={dateFilter} onFilterChange={setDateFilter} />
