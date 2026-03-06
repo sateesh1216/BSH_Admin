@@ -26,6 +26,8 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import bshLogo from '@/assets/bsh-logo.png';
+import { MobileBottomNav } from '@/components/mobile/MobileBottomNav';
+import { MobileHeader } from '@/components/mobile/MobileHeader';
 
 interface Trip {
   id: string;
