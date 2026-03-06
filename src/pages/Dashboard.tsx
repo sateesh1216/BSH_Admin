@@ -382,51 +382,13 @@ export const Dashboard = () => {
         </aside>
       )}
 
-      {/* Mobile Sidebar Overlay */}
-      {isMobile && mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} />
-          <aside className="absolute left-0 top-0 h-full w-[260px] bg-card border-r border-border flex flex-col shadow-2xl animate-in slide-in-from-left">
-            <div className="p-4 border-b border-border flex items-center gap-3">
-              <img src={bshLogo} alt="BSH" className="h-9 w-9 rounded-lg object-contain" />
-              <div>
-                <h1 className="text-base font-bold text-foreground">BSH Taxi</h1>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Service Management</p>
-              </div>
-            </div>
-            <nav className="flex-1 overflow-y-auto py-3 px-2">
-              <div className="space-y-1">
-                {visibleNavItems.map((item) => {
-                  const isActive = activeSection === item.key;
-                  return (
-                    <button
-                      key={item.key}
-                      onClick={() => { setActiveSection(item.key); setMobileSidebarOpen(false); }}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                        isActive ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      )}
-                    >
-                      <item.icon className="h-[18px] w-[18px] shrink-0" />
-                      <span className="flex-1 text-left">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </nav>
-            <div className="border-t border-border p-3">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="h-4 w-4 text-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-foreground truncate">{userName || user?.email}</p>
-                  <p className="text-[10px] text-muted-foreground capitalize">{userRole || 'User'}</p>
-                </div>
-              </div>
-            </div>
-          </aside>
-        </div>
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <MobileBottomNav
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+          isAdmin={isAdmin}
+        />
       )}
 
       {/* Main Content Area */}
