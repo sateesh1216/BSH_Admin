@@ -396,82 +396,86 @@ export const Dashboard = () => {
         "flex-1 flex flex-col min-h-screen transition-all duration-300",
         !isMobile && (sidebarCollapsed ? "ml-[68px]" : "ml-[260px]")
       )}>
-        {/* Top Header Bar */}
-        <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border">
-          <div className="flex items-center justify-between px-4 lg:px-6 h-14">
-            <div className="flex items-center gap-3">
-              {isMobile && (
-                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setMobileSidebarOpen(true)}>
-                  <Menu className="h-5 w-5" />
-                </Button>
-              )}
-              <div>
-                <h2 className="text-base font-semibold text-foreground leading-tight">
-                  {visibleNavItems.find(i => i.key === activeSection)?.label || 'Dashboard'}
-                </h2>
-                {!isMobile && (
+        {/* Header */}
+        {isMobile ? (
+          <MobileHeader
+            userName={userName}
+            userRole={userRole}
+            userEmail={user?.email}
+            upcomingTrips={upcomingTrips}
+            onSignOut={handleSignOut}
+            onRefresh={refreshData}
+            onNavigate={(section) => setActiveSection(section as Section)}
+          />
+        ) : (
+          <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border">
+            <div className="flex items-center justify-between px-4 lg:px-6 h-14">
+              <div className="flex items-center gap-3">
+                <div>
+                  <h2 className="text-base font-semibold text-foreground leading-tight">
+                    {visibleNavItems.find(i => i.key === activeSection)?.label || 'Dashboard'}
+                  </h2>
                   <p className="text-[11px] text-muted-foreground">
                     {userName || user?.email} • <span className="capitalize">{userRole}</span>
                   </p>
-                )}
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              {/* Notification Bell */}
-              {upcomingTripsCount > 0 && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="relative flex items-center justify-center h-9 w-9 rounded-lg bg-accent hover:bg-accent/80 transition-colors">
-                      <Bell className="h-4 w-4 text-foreground" />
-                      <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full">
-                        {upcomingTripsCount}
-                      </span>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0 bg-card border shadow-xl" align="end">
-                    <div className="p-3 border-b bg-primary text-primary-foreground rounded-t-md">
-                      <h3 className="font-semibold flex items-center gap-2 text-sm">
-                        <Bell className="h-4 w-4" />
-                        Upcoming Trips ({upcomingTripsCount})
-                      </h3>
-                    </div>
-                    <ScrollArea className="max-h-72">
-                      <div className="p-2 space-y-1.5">
-                        {upcomingTrips.slice(0, 10).map((trip) => (
-                          <div key={trip.id} className="p-2.5 rounded-md bg-muted/50 hover:bg-muted transition-colors border-l-3 border-l-primary">
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-xs text-foreground truncate">{trip.customer_name}</p>
-                                <p className="text-[11px] text-muted-foreground">{trip.from_location} → {trip.to_location}</p>
-                              </div>
-                              <div className="text-right ml-2 shrink-0">
-                                <p className="text-[11px] font-medium text-primary">{format(parseISO(trip.date), 'dd MMM')}</p>
-                                <p className="text-xs font-semibold">₹{trip.trip_amount.toLocaleString('en-IN')}</p>
+              <div className="flex items-center gap-2">
+                {upcomingTripsCount > 0 && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="relative flex items-center justify-center h-9 w-9 rounded-lg bg-accent hover:bg-accent/80 transition-colors">
+                        <Bell className="h-4 w-4 text-foreground" />
+                        <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full">
+                          {upcomingTripsCount}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-0 bg-card border shadow-xl" align="end">
+                      <div className="p-3 border-b bg-primary text-primary-foreground rounded-t-md">
+                        <h3 className="font-semibold flex items-center gap-2 text-sm">
+                          <Bell className="h-4 w-4" />
+                          Upcoming Trips ({upcomingTripsCount})
+                        </h3>
+                      </div>
+                      <ScrollArea className="max-h-72">
+                        <div className="p-2 space-y-1.5">
+                          {upcomingTrips.slice(0, 10).map((trip) => (
+                            <div key={trip.id} className="p-2.5 rounded-md bg-muted/50 hover:bg-muted transition-colors border-l-3 border-l-primary">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-xs text-foreground truncate">{trip.customer_name}</p>
+                                  <p className="text-[11px] text-muted-foreground">{trip.from_location} → {trip.to_location}</p>
+                                </div>
+                                <div className="text-right ml-2 shrink-0">
+                                  <p className="text-[11px] font-medium text-primary">{format(parseISO(trip.date), 'dd MMM')}</p>
+                                  <p className="text-xs font-semibold">₹{trip.trip_amount.toLocaleString('en-IN')}</p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
+                      </ScrollArea>
+                      <div className="p-2 border-t">
+                        <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setActiveSection('trips')}>View All Trips</Button>
                       </div>
-                    </ScrollArea>
-                    <div className="p-2 border-t">
-                      <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setActiveSection('trips')}>View All Trips</Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              )}
+                    </PopoverContent>
+                  </Popover>
+                )}
 
-              <Button onClick={refreshData} variant="ghost" size="icon" className="h-9 w-9" title="Refresh">
-                <RefreshCw className="h-4 w-4" />
-              </Button>
+                <Button onClick={refreshData} variant="ghost" size="icon" className="h-9 w-9" title="Refresh">
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
 
-              <Button onClick={handleSignOut} variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                <LogOut className="h-4 w-4" />
-                {!isMobile && <span className="ml-1.5 text-xs">Sign Out</span>}
-              </Button>
+                <Button onClick={handleSignOut} variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <LogOut className="h-4 w-4" />
+                  <span className="ml-1.5 text-xs">Sign Out</span>
+                </Button>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
+        )}
 
         {/* Page Content */}
         <main className="flex-1 p-4 lg:p-6">
