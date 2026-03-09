@@ -512,6 +512,72 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
             </div>
           </div>
 
+          {/* Vehicle Oil Change & Alignment Tracking Info */}
+          {watchedCarNumber && (oilChangeInfo || alignmentInfo) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg border bg-muted/30">
+              {oilChangeInfo && (() => {
+                const currentKm = watchedEndingKm || 0;
+                const remaining = oilChangeInfo.nextOilChangeKm ? oilChangeInfo.nextOilChangeKm - currentKm : null;
+                const interval = oilChangeInfo.nextOilChangeKm ? oilChangeInfo.nextOilChangeKm - oilChangeInfo.lastOilChangeKm : null;
+                const progress = interval && interval > 0 ? Math.max(0, Math.min(100, ((currentKm - oilChangeInfo.lastOilChangeKm) / interval) * 100)) : 0;
+                const isOverdue = remaining !== null && remaining <= 0;
+                const isDueSoon = remaining !== null && remaining > 0 && remaining <= 1000;
+
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 font-semibold text-sm">
+                      <Droplets className="h-4 w-4 text-blue-500" />
+                      Oil Change Status
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <p>Last Oil Change: <span className="font-medium">{oilChangeInfo.lastOilChangeKm.toLocaleString()} km</span></p>
+                      {oilChangeInfo.nextOilChangeKm && (
+                        <p>Next Oil Change: <span className="font-medium">{oilChangeInfo.nextOilChangeKm.toLocaleString()} km</span></p>
+                      )}
+                      {remaining !== null && currentKm > 0 && (
+                        <p className={isOverdue ? 'text-destructive font-bold' : isDueSoon ? 'text-orange-500 font-semibold' : 'text-green-600'}>
+                          {isOverdue ? `⚠️ Overdue by ${Math.abs(remaining).toLocaleString()} km` : `${remaining.toLocaleString()} km remaining`}
+                        </p>
+                      )}
+                      {interval && interval > 0 && currentKm > 0 && (
+                        <div className="w-full bg-muted rounded-full h-2 mt-1">
+                          <div 
+                            className={`h-2 rounded-full ${isOverdue ? 'bg-destructive' : isDueSoon ? 'bg-orange-500' : 'bg-green-500'}`}
+                            style={{ width: `${Math.min(progress, 100)}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {alignmentInfo && (() => {
+                const currentKm = watchedEndingKm || 0;
+                const remaining = alignmentInfo.nextAlignmentKm - currentKm;
+                const isOverdue = remaining <= 0 && currentKm > 0;
+
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 font-semibold text-sm">
+                      <Gauge className="h-4 w-4 text-purple-500" />
+                      Alignment Status
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <p>Last Alignment: <span className="font-medium">{alignmentInfo.lastAlignmentKm.toLocaleString()} km</span></p>
+                      <p>Next Alignment: <span className="font-medium">{alignmentInfo.nextAlignmentKm.toLocaleString()} km</span></p>
+                      {currentKm > 0 && (
+                        <p className={isOverdue ? 'text-destructive font-bold' : 'text-green-600'}>
+                          {isOverdue ? `⚠️ Overdue by ${Math.abs(remaining).toLocaleString()} km` : `${remaining.toLocaleString()} km remaining`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
           <div className="pt-4">
             <Button
               type="button"
