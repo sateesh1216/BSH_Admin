@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Droplets, Gauge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,6 +49,61 @@ interface TripFormProps {
 export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   const { user } = useAuth();
   const [profit, setProfit] = useState(0);
+  const [oilChangeInfo, setOilChangeInfo] = useState<{
+    lastOilChangeKm: number;
+    nextOilChangeKm: number | null;
+    lastOilChangeDate: string;
+    oilType: string | null;
+  } | null>(null);
+  const [alignmentInfo, setAlignmentInfo] = useState<{
+    lastAlignmentKm: number;
+    nextAlignmentKm: number;
+  } | null>(null);
+
+  const fetchVehicleTrackingInfo = useCallback(async (carNumber: string) => {
+    if (!carNumber) {
+      setOilChangeInfo(null);
+      setAlignmentInfo(null);
+      return;
+    }
+
+    const [oilRes, alignRes] = await Promise.all([
+      supabase
+        .from('vehicle_oil_change')
+        .select('last_oil_change_km, next_oil_change_km, last_oil_change_date, oil_type')
+        .eq('vehicle_number', carNumber)
+        .order('last_oil_change_date', { ascending: false })
+        .limit(1),
+      supabase
+        .from('vehicle_alignment')
+        .select('last_alignment_km, alignment_interval_km')
+        .eq('vehicle_number', carNumber)
+        .order('created_at', { ascending: false })
+        .limit(1),
+    ]);
+
+    if (oilRes.data && oilRes.data.length > 0) {
+      const o = oilRes.data[0];
+      setOilChangeInfo({
+        lastOilChangeKm: o.last_oil_change_km,
+        nextOilChangeKm: o.next_oil_change_km,
+        lastOilChangeDate: o.last_oil_change_date,
+        oilType: o.oil_type,
+      });
+    } else {
+      setOilChangeInfo(null);
+    }
+
+    if (alignRes.data && alignRes.data.length > 0) {
+      const a = alignRes.data[0];
+      setAlignmentInfo({
+        lastAlignmentKm: a.last_alignment_km,
+        nextAlignmentKm: a.last_alignment_km + a.alignment_interval_km,
+      });
+    } else {
+      setAlignmentInfo(null);
+    }
+  }, []);
   
   const form = useForm<TripFormData>({
     resolver: zodResolver(tripSchema),
@@ -76,12 +131,20 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   });
 
   const watchedValues = form.watch(['driverAmount', 'commission', 'fuelAmount', 'tolls', 'tripAmount']);
+  const watchedCarNumber = form.watch('carNumber');
+  const watchedEndingKm = form.watch('endingKm');
 
   useEffect(() => {
     const [driverAmount, commission, fuelAmount, tolls, tripAmount] = watchedValues;
     const calculatedProfit = (tripAmount || 0) - ((driverAmount || 0) + (commission || 0) + (fuelAmount || 0) + (tolls || 0));
     setProfit(calculatedProfit);
   }, [watchedValues]);
+
+  useEffect(() => {
+    if (watchedCarNumber) {
+      fetchVehicleTrackingInfo(watchedCarNumber);
+    }
+  }, [watchedCarNumber, fetchVehicleTrackingInfo]);
 
   const onSubmit = async (data: TripFormData, withGST: boolean = false) => {
     try {
@@ -448,6 +511,72 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
               </div>
             </div>
           </div>
+
+          {/* Vehicle Oil Change & Alignment Tracking Info */}
+          {watchedCarNumber && (oilChangeInfo || alignmentInfo) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg border bg-muted/30">
+              {oilChangeInfo && (() => {
+                const currentKm = watchedEndingKm || 0;
+                const remaining = oilChangeInfo.nextOilChangeKm ? oilChangeInfo.nextOilChangeKm - currentKm : null;
+                const interval = oilChangeInfo.nextOilChangeKm ? oilChangeInfo.nextOilChangeKm - oilChangeInfo.lastOilChangeKm : null;
+                const progress = interval && interval > 0 ? Math.max(0, Math.min(100, ((currentKm - oilChangeInfo.lastOilChangeKm) / interval) * 100)) : 0;
+                const isOverdue = remaining !== null && remaining <= 0;
+                const isDueSoon = remaining !== null && remaining > 0 && remaining <= 1000;
+
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 font-semibold text-sm">
+                      <Droplets className="h-4 w-4 text-blue-500" />
+                      Oil Change Status
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <p>Last Oil Change: <span className="font-medium">{oilChangeInfo.lastOilChangeKm.toLocaleString()} km</span></p>
+                      {oilChangeInfo.nextOilChangeKm && (
+                        <p>Next Oil Change: <span className="font-medium">{oilChangeInfo.nextOilChangeKm.toLocaleString()} km</span></p>
+                      )}
+                      {remaining !== null && currentKm > 0 && (
+                        <p className={isOverdue ? 'text-destructive font-bold' : isDueSoon ? 'text-orange-500 font-semibold' : 'text-green-600'}>
+                          {isOverdue ? `⚠️ Overdue by ${Math.abs(remaining).toLocaleString()} km` : `${remaining.toLocaleString()} km remaining`}
+                        </p>
+                      )}
+                      {interval && interval > 0 && currentKm > 0 && (
+                        <div className="w-full bg-muted rounded-full h-2 mt-1">
+                          <div 
+                            className={`h-2 rounded-full ${isOverdue ? 'bg-destructive' : isDueSoon ? 'bg-orange-500' : 'bg-green-500'}`}
+                            style={{ width: `${Math.min(progress, 100)}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {alignmentInfo && (() => {
+                const currentKm = watchedEndingKm || 0;
+                const remaining = alignmentInfo.nextAlignmentKm - currentKm;
+                const isOverdue = remaining <= 0 && currentKm > 0;
+
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 font-semibold text-sm">
+                      <Gauge className="h-4 w-4 text-purple-500" />
+                      Alignment Status
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <p>Last Alignment: <span className="font-medium">{alignmentInfo.lastAlignmentKm.toLocaleString()} km</span></p>
+                      <p>Next Alignment: <span className="font-medium">{alignmentInfo.nextAlignmentKm.toLocaleString()} km</span></p>
+                      {currentKm > 0 && (
+                        <p className={isOverdue ? 'text-destructive font-bold' : 'text-green-600'}>
+                          {isOverdue ? `⚠️ Overdue by ${Math.abs(remaining).toLocaleString()} km` : `${remaining.toLocaleString()} km remaining`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
 
           <div className="pt-4">
             <Button
