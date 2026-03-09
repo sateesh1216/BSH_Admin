@@ -49,6 +49,61 @@ interface TripFormProps {
 export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   const { user } = useAuth();
   const [profit, setProfit] = useState(0);
+  const [oilChangeInfo, setOilChangeInfo] = useState<{
+    lastOilChangeKm: number;
+    nextOilChangeKm: number | null;
+    lastOilChangeDate: string;
+    oilType: string | null;
+  } | null>(null);
+  const [alignmentInfo, setAlignmentInfo] = useState<{
+    lastAlignmentKm: number;
+    nextAlignmentKm: number;
+  } | null>(null);
+
+  const fetchVehicleTrackingInfo = useCallback(async (carNumber: string) => {
+    if (!carNumber) {
+      setOilChangeInfo(null);
+      setAlignmentInfo(null);
+      return;
+    }
+
+    const [oilRes, alignRes] = await Promise.all([
+      supabase
+        .from('vehicle_oil_change')
+        .select('last_oil_change_km, next_oil_change_km, last_oil_change_date, oil_type')
+        .eq('vehicle_number', carNumber)
+        .order('last_oil_change_date', { ascending: false })
+        .limit(1),
+      supabase
+        .from('vehicle_alignment')
+        .select('last_alignment_km, alignment_interval_km')
+        .eq('vehicle_number', carNumber)
+        .order('created_at', { ascending: false })
+        .limit(1),
+    ]);
+
+    if (oilRes.data && oilRes.data.length > 0) {
+      const o = oilRes.data[0];
+      setOilChangeInfo({
+        lastOilChangeKm: o.last_oil_change_km,
+        nextOilChangeKm: o.next_oil_change_km,
+        lastOilChangeDate: o.last_oil_change_date,
+        oilType: o.oil_type,
+      });
+    } else {
+      setOilChangeInfo(null);
+    }
+
+    if (alignRes.data && alignRes.data.length > 0) {
+      const a = alignRes.data[0];
+      setAlignmentInfo({
+        lastAlignmentKm: a.last_alignment_km,
+        nextAlignmentKm: a.last_alignment_km + a.alignment_interval_km,
+      });
+    } else {
+      setAlignmentInfo(null);
+    }
+  }, []);
   
   const form = useForm<TripFormData>({
     resolver: zodResolver(tripSchema),
