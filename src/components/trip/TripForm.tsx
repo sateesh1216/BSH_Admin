@@ -131,12 +131,20 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   });
 
   const watchedValues = form.watch(['driverAmount', 'commission', 'fuelAmount', 'tolls', 'tripAmount']);
+  const watchedCarNumber = form.watch('carNumber');
+  const watchedEndingKm = form.watch('endingKm');
 
   useEffect(() => {
     const [driverAmount, commission, fuelAmount, tolls, tripAmount] = watchedValues;
     const calculatedProfit = (tripAmount || 0) - ((driverAmount || 0) + (commission || 0) + (fuelAmount || 0) + (tolls || 0));
     setProfit(calculatedProfit);
   }, [watchedValues]);
+
+  useEffect(() => {
+    if (watchedCarNumber) {
+      fetchVehicleTrackingInfo(watchedCarNumber);
+    }
+  }, [watchedCarNumber, fetchVehicleTrackingInfo]);
 
   const onSubmit = async (data: TripFormData, withGST: boolean = false) => {
     try {
