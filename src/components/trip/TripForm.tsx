@@ -393,7 +393,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="startingKm">Starting KM</Label>
+              <Label htmlFor="startingKm">Starting Odometer KM's</Label>
               <Input
                 id="startingKm"
                 type="number"
