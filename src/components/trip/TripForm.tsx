@@ -130,9 +130,9 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
         return;
       }
 
-      // Update vehicle oil change and alignment records with ending KM
+      // Update vehicle oil change and alignment records with ending Odometer KM
       if (data.endingKm && data.carNumber) {
-        // Update oil change records for this vehicle
+        // Update the latest oil change record's next_oil_change_km tracking
         const { data: oilRecords } = await supabase
           .from('vehicle_oil_change')
           .select('id, last_oil_change_km, next_oil_change_km')
@@ -141,21 +141,27 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
           .limit(1);
 
         if (oilRecords && oilRecords.length > 0) {
-          // Oil change tracking uses current KM to calculate remaining
-          // The ending_km serves as the latest known KM for the vehicle
-          console.log(`Vehicle ${data.carNumber} latest KM updated to ${data.endingKm} for oil change tracking`);
+          const oilRecord = oilRecords[0];
+          // If the ending odometer KM exceeds or approaches next_oil_change_km, log alert
+          if (oilRecord.next_oil_change_km && data.endingKm >= oilRecord.next_oil_change_km) {
+            console.log(`⚠️ Vehicle ${data.carNumber} odometer ${data.endingKm} has reached/exceeded oil change due at ${oilRecord.next_oil_change_km} km`);
+          }
         }
 
-        // Update alignment records for this vehicle  
+        // Update alignment tracking  
         const { data: alignRecords } = await supabase
           .from('vehicle_alignment')
-          .select('id, last_alignment_km')
+          .select('id, last_alignment_km, alignment_interval_km')
           .eq('vehicle_number', data.carNumber)
           .order('created_at', { ascending: false })
           .limit(1);
 
         if (alignRecords && alignRecords.length > 0) {
-          console.log(`Vehicle ${data.carNumber} latest KM updated to ${data.endingKm} for alignment tracking`);
+          const alignRecord = alignRecords[0];
+          const nextAlignmentKm = alignRecord.last_alignment_km + alignRecord.alignment_interval_km;
+          if (data.endingKm >= nextAlignmentKm) {
+            console.log(`⚠️ Vehicle ${data.carNumber} odometer ${data.endingKm} has reached/exceeded alignment due at ${nextAlignmentKm} km`);
+          }
         }
       }
 
