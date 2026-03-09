@@ -409,7 +409,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlOdometer KM'sr="endingOdometer KM's">Ending KM</Label>
+              <Label htmlFor="endingKm">{"Ending Odometer KM's"}</Label>
               <Input
                 id="endingKm"
                 type="number"
@@ -419,7 +419,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
             </div>
 
             <div className="space-y-2">
-       's       <Label>Total KM</Label>
+              <Label>{"Total KM's"}</Label>
               <div className="text-lg font-semibold p-3 rounded-lg border bg-muted/50">
                 {((form.watch('endingKm') || 0) - (form.watch('startingKm') || 0)) > 0 
                   ? `${(form.watch('endingKm') || 0) - (form.watch('startingKm') || 0)} km`
