@@ -142,9 +142,19 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
 
         if (oilRecords && oilRecords.length > 0) {
           const oilRecord = oilRecords[0];
-          // If the ending odometer KM exceeds or approaches next_oil_change_km, log alert
+          const remainingKm = (oilRecord.next_oil_change_km || 0) - data.endingKm;
+          
           if (oilRecord.next_oil_change_km && data.endingKm >= oilRecord.next_oil_change_km) {
-            console.log(`⚠️ Vehicle ${data.carNumber} odometer ${data.endingKm} has reached/exceeded oil change due at ${oilRecord.next_oil_change_km} km`);
+            toast({
+              title: "⚠️ Oil Change Due!",
+              description: `Vehicle ${data.carNumber} odometer ${data.endingKm} km has exceeded oil change due at ${oilRecord.next_oil_change_km} km. Please schedule an oil change immediately.`,
+              variant: "destructive",
+            });
+          } else if (oilRecord.next_oil_change_km && remainingKm <= 500 && remainingKm > 0) {
+            toast({
+              title: "🔔 Oil Change Approaching",
+              description: `Vehicle ${data.carNumber} is ${remainingKm} km away from oil change due at ${oilRecord.next_oil_change_km} km.`,
+            });
           }
         }
 
@@ -160,7 +170,11 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
           const alignRecord = alignRecords[0];
           const nextAlignmentKm = alignRecord.last_alignment_km + alignRecord.alignment_interval_km;
           if (data.endingKm >= nextAlignmentKm) {
-            console.log(`⚠️ Vehicle ${data.carNumber} odometer ${data.endingKm} has reached/exceeded alignment due at ${nextAlignmentKm} km`);
+            toast({
+              title: "⚠️ Alignment Due!",
+              description: `Vehicle ${data.carNumber} odometer ${data.endingKm} km has exceeded alignment due at ${nextAlignmentKm} km.`,
+              variant: "destructive",
+            });
           }
         }
       }
