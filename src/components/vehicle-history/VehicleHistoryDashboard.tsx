@@ -531,9 +531,10 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {vehicleSummaries.map((vehicle) => {
-              const oilStatus = getOilChangeStatus(vehicle.latestKm, vehicle.nextOilChangeKm);
+              const currentVehicleKm = getLatestKmForVehicle(vehicle.vehicleNumber);
+              const oilStatus = getOilChangeStatus(currentVehicleKm, vehicle.nextOilChangeKm);
               const alignment = alignmentRecords.find(a => a.vehicle_number === vehicle.vehicleNumber);
-              const alignStatus = alignment ? getAlignmentStatus(alignment, vehicle.latestKm) : null;
+              const alignStatus = alignment ? getAlignmentStatus(alignment, currentVehicleKm) : null;
               const insurance = insuranceRecords.find(i => i.vehicle_number === vehicle.vehicleNumber);
               const insStatus = insurance ? getDateExpiryStatus(insurance.expiry_date) : null;
               const pollution = pollutionRecords.find(p => p.vehicle_number === vehicle.vehicleNumber);
