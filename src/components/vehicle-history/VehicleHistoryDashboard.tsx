@@ -531,9 +531,10 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {vehicleSummaries.map((vehicle) => {
-              const oilStatus = getOilChangeStatus(vehicle.latestKm, vehicle.nextOilChangeKm);
+              const currentVehicleKm = getLatestKmForVehicle(vehicle.vehicleNumber);
+              const oilStatus = getOilChangeStatus(currentVehicleKm, vehicle.nextOilChangeKm);
               const alignment = alignmentRecords.find(a => a.vehicle_number === vehicle.vehicleNumber);
-              const alignStatus = alignment ? getAlignmentStatus(alignment, vehicle.latestKm) : null;
+              const alignStatus = alignment ? getAlignmentStatus(alignment, currentVehicleKm) : null;
               const insurance = insuranceRecords.find(i => i.vehicle_number === vehicle.vehicleNumber);
               const insStatus = insurance ? getDateExpiryStatus(insurance.expiry_date) : null;
               const pollution = pollutionRecords.find(p => p.vehicle_number === vehicle.vehicleNumber);
@@ -614,14 +615,14 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                     </div>
 
                     {/* Oil Change KM Tracking */}
-                    {(vehicle.latestKm || vehicle.nextOilChangeKm) && (
+                    {(currentVehicleKm || vehicle.nextOilChangeKm) && (
                       <div className="p-3 bg-muted/20 rounded-lg space-y-2 mb-2">
                         <div className="flex items-center gap-2 text-xs font-medium">
                           <Gauge className="h-3.5 w-3.5 text-primary" />
                           Oil Change KM
                         </div>
                         <div className="flex justify-between text-xs">
-                          {vehicle.latestKm && <span>Current: <strong>{vehicle.latestKm.toLocaleString()} km</strong></span>}
+                          {currentVehicleKm && <span>Current: <strong>{currentVehicleKm.toLocaleString()} km</strong></span>}
                           {vehicle.nextOilChangeKm && <span>Next Oil: <strong>{vehicle.nextOilChangeKm.toLocaleString()} km</strong></span>}
                         </div>
                         {oilStatus && (
