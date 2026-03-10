@@ -615,14 +615,14 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                     </div>
 
                     {/* Oil Change KM Tracking */}
-                    {(vehicle.latestKm || vehicle.nextOilChangeKm) && (
+                    {(currentVehicleKm || vehicle.nextOilChangeKm) && (
                       <div className="p-3 bg-muted/20 rounded-lg space-y-2 mb-2">
                         <div className="flex items-center gap-2 text-xs font-medium">
                           <Gauge className="h-3.5 w-3.5 text-primary" />
                           Oil Change KM
                         </div>
                         <div className="flex justify-between text-xs">
-                          {vehicle.latestKm && <span>Current: <strong>{vehicle.latestKm.toLocaleString()} km</strong></span>}
+                          {currentVehicleKm && <span>Current: <strong>{currentVehicleKm.toLocaleString()} km</strong></span>}
                           {vehicle.nextOilChangeKm && <span>Next Oil: <strong>{vehicle.nextOilChangeKm.toLocaleString()} km</strong></span>}
                         </div>
                         {oilStatus && (
