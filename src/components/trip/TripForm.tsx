@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { CarNumberCombobox } from '@/components/ui/car-number-combobox';
+import { DEFAULT_FUEL_RATES, FUEL_RATES_UPDATED_EVENT, FuelRates, FuelType, getFuelUnit, getStoredFuelRates } from '@/lib/fuelRates';
 
 const tripSchema = z.object({
   date: z.date({ required_error: 'Date is required' }),
@@ -33,6 +34,7 @@ const tripSchema = z.object({
   driverAmount: z.number().min(0, 'Amount must be positive'),
   commission: z.number().min(0, 'Amount must be positive'),
   fuelAmount: z.number().min(0, 'Amount must be positive'),
+  fuelQuantity: z.number().min(0, 'Quantity must be positive').optional().or(z.literal(0)),
   tolls: z.number().min(0, 'Amount must be positive'),
   tripAmount: z.number().min(0, 'Amount must be positive'),
   startingKm: z.number().min(0, 'KM must be positive').optional().or(z.literal(0)),
@@ -49,6 +51,7 @@ interface TripFormProps {
 export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   const { user } = useAuth();
   const [profit, setProfit] = useState(0);
+  const [fuelRates, setFuelRates] = useState<FuelRates>(DEFAULT_FUEL_RATES);
   const [oilChangeInfo, setOilChangeInfo] = useState<{
     lastOilChangeKm: number;
     nextOilChangeKm: number | null;
@@ -123,6 +126,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
       driverAmount: editData?.driver_amount || 0,
       commission: editData?.commission || 0,
       fuelAmount: editData?.fuel_amount || 0,
+      fuelQuantity: 0,
       tolls: editData?.tolls || 0,
       tripAmount: editData?.trip_amount || 0,
       startingKm: editData?.starting_km || 0,
@@ -133,12 +137,37 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   const watchedValues = form.watch(['driverAmount', 'commission', 'fuelAmount', 'tolls', 'tripAmount']);
   const watchedCarNumber = form.watch('carNumber');
   const watchedEndingKm = form.watch('endingKm');
+  const watchedStartingKm = form.watch('startingKm');
+  const watchedFuelType = form.watch('fuelType');
+  const watchedFuelQuantity = form.watch('fuelQuantity');
+
+  const totalKm = Math.max(0, (watchedEndingKm || 0) - (watchedStartingKm || 0));
+  const selectedFuelRate = fuelRates[watchedFuelType as FuelType] || 0;
+  const mileage = watchedFuelQuantity && watchedFuelQuantity > 0 ? totalKm / watchedFuelQuantity : 0;
 
   useEffect(() => {
     const [driverAmount, commission, fuelAmount, tolls, tripAmount] = watchedValues;
     const calculatedProfit = (tripAmount || 0) - ((driverAmount || 0) + (commission || 0) + (fuelAmount || 0) + (tolls || 0));
     setProfit(calculatedProfit);
   }, [watchedValues]);
+
+  useEffect(() => {
+    const syncFuelRates = () => setFuelRates(getStoredFuelRates());
+
+    syncFuelRates();
+    window.addEventListener(FUEL_RATES_UPDATED_EVENT, syncFuelRates);
+
+    return () => window.removeEventListener(FUEL_RATES_UPDATED_EVENT, syncFuelRates);
+  }, []);
+
+  useEffect(() => {
+    if (!watchedFuelQuantity || watchedFuelQuantity <= 0) return;
+
+    form.setValue('fuelAmount', Number((watchedFuelQuantity * selectedFuelRate).toFixed(2)), {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  }, [form, selectedFuelRate, watchedFuelQuantity, watchedFuelType]);
 
   useEffect(() => {
     if (watchedCarNumber) {
@@ -389,6 +418,9 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
                   <SelectItem value="EV">EV</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Current rate: ₹{selectedFuelRate.toFixed(2)}/{getFuelUnit(watchedFuelType as FuelType)}
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -438,6 +470,17 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
                 type="number"
                 step="0.01"
                 {...form.register('commission', { valueAsNumber: true })}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fuelQuantity">Fuel Quantity ({getFuelUnit(watchedFuelType as FuelType)})</Label>
+              <Input
+                id="fuelQuantity"
+                type="number"
+                step="0.01"
+                {...form.register('fuelQuantity', { valueAsNumber: true })}
                 placeholder="0.00"
               />
             </div>
@@ -498,9 +541,16 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
             <div className="space-y-2">
               <Label>{"Total KM's"}</Label>
               <div className="text-lg font-semibold p-3 rounded-lg border bg-muted/50">
-                {((form.watch('endingKm') || 0) - (form.watch('startingKm') || 0)) > 0 
-                  ? `${(form.watch('endingKm') || 0) - (form.watch('startingKm') || 0)} km`
+                {totalKm > 0 
+                  ? `${totalKm} km`
                   : '0 km'}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Mileage</Label>
+              <div className="text-lg font-semibold p-3 rounded-lg border bg-muted/50">
+                {mileage > 0 ? `${mileage.toFixed(2)} km/${getFuelUnit(watchedFuelType as FuelType)}` : '0'}
               </div>
             </div>
 
