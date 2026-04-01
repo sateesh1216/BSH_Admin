@@ -5,6 +5,7 @@ import { AdminDashboard } from './AdminDashboard';
 import { AccessRequests } from './AccessRequests';
 import { UsersList } from './UsersList';
 import { LoginHistory } from './LoginHistory';
+import { FuelRateSettings } from './FuelRateSettings';
 
 type AdminTab = 'dashboard' | 'access-requests' | 'users' | 'login-history' | 'reports' | 'settings';
 
@@ -66,11 +67,7 @@ export const AdminPanel = ({ onNavigateToReports }: AdminPanelProps) => {
         {activeTab === 'access-requests' && <AccessRequests />}
         {activeTab === 'users' && <UsersList />}
         {activeTab === 'login-history' && <LoginHistory />}
-        {activeTab === 'settings' && (
-          <div className="text-center py-12 text-muted-foreground">
-            Settings coming soon...
-          </div>
-        )}
+        {activeTab === 'settings' && <FuelRateSettings />}
       </main>
     </div>
   );
