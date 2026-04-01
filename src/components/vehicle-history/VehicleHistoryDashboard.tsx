@@ -532,7 +532,9 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {vehicleSummaries.map((vehicle) => {
               const currentVehicleKm = getLatestKmForVehicle(vehicle.vehicleNumber);
-              const oilStatus = getOilChangeStatus(currentVehicleKm, vehicle.nextOilChangeKm);
+              const oilChange = oilChangeRecords.find(o => o.vehicle_number === vehicle.vehicleNumber);
+              const oilNextKm = oilChange?.next_oil_change_km ?? vehicle.nextOilChangeKm;
+              const oilStatus = getOilChangeStatus(currentVehicleKm, oilNextKm);
               const alignment = alignmentRecords.find(a => a.vehicle_number === vehicle.vehicleNumber);
               const alignStatus = alignment ? getAlignmentStatus(alignment, currentVehicleKm) : null;
               const insurance = insuranceRecords.find(i => i.vehicle_number === vehicle.vehicleNumber);
@@ -615,7 +617,7 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                     </div>
 
                     {/* Oil Change KM Tracking */}
-                    {(currentVehicleKm || vehicle.nextOilChangeKm) && (
+                    {(currentVehicleKm || oilNextKm || oilChange?.last_oil_change_km) && (
                       <div className="p-3 bg-muted/20 rounded-lg space-y-2 mb-2">
                         <div className="flex items-center gap-2 text-xs font-medium">
                           <Gauge className="h-3.5 w-3.5 text-primary" />
@@ -623,8 +625,13 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                         </div>
                         <div className="flex justify-between text-xs">
                           {currentVehicleKm && <span>Current: <strong>{currentVehicleKm.toLocaleString()} km</strong></span>}
-                          {vehicle.nextOilChangeKm && <span>Next Oil: <strong>{vehicle.nextOilChangeKm.toLocaleString()} km</strong></span>}
+                          {oilNextKm && <span>Next Oil: <strong>{oilNextKm.toLocaleString()} km</strong></span>}
                         </div>
+                        {oilChange?.last_oil_change_km && (
+                          <p className="text-xs text-muted-foreground">
+                            Last Oil Change: <strong>{oilChange.last_oil_change_km.toLocaleString()} km</strong>
+                          </p>
+                        )}
                         {oilStatus && (
                           <div className="space-y-1">
                             <Progress value={oilStatus.progress} className="h-2" />
