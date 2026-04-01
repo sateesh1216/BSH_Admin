@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -52,6 +52,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   const { user } = useAuth();
   const [profit, setProfit] = useState(0);
   const [fuelRates, setFuelRates] = useState<FuelRates>(DEFAULT_FUEL_RATES);
+  const lastEditedFuelFieldRef = useRef<'amount' | 'quantity'>('amount');
   const [oilChangeInfo, setOilChangeInfo] = useState<{
     lastOilChangeKm: number;
     nextOilChangeKm: number | null;
@@ -140,6 +141,9 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   const watchedStartingKm = form.watch('startingKm');
   const watchedFuelType = form.watch('fuelType');
   const watchedFuelQuantity = form.watch('fuelQuantity');
+  const watchedFuelAmount = form.watch('fuelAmount');
+  const watchedDriverName = form.watch('driverName');
+  const watchedDate = form.watch('date');
 
   const totalKm = Math.max(0, (watchedEndingKm || 0) - (watchedStartingKm || 0));
   const selectedFuelRate = fuelRates[watchedFuelType as FuelType] || 0;
@@ -161,13 +165,65 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   }, []);
 
   useEffect(() => {
-    if (!watchedFuelQuantity || watchedFuelQuantity <= 0) return;
+    if (lastEditedFuelFieldRef.current !== 'quantity' || !watchedFuelQuantity || watchedFuelQuantity <= 0) return;
 
     form.setValue('fuelAmount', Number((watchedFuelQuantity * selectedFuelRate).toFixed(2)), {
       shouldDirty: true,
       shouldValidate: true,
     });
   }, [form, selectedFuelRate, watchedFuelQuantity, watchedFuelType]);
+
+  useEffect(() => {
+    if (lastEditedFuelFieldRef.current !== 'amount' || !selectedFuelRate || !watchedFuelAmount || watchedFuelAmount <= 0) return;
+
+    form.setValue('fuelQuantity', Number((watchedFuelAmount / selectedFuelRate).toFixed(2)), {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  }, [form, selectedFuelRate, watchedFuelAmount, watchedFuelType]);
+
+  useEffect(() => {
+    if (!watchedFuelAmount || watchedFuelAmount <= 0) {
+      form.setValue('fuelQuantity', 0, { shouldDirty: true, shouldValidate: true });
+      return;
+    }
+
+    if (!watchedFuelQuantity || watchedFuelQuantity <= 0) {
+      form.setValue('fuelAmount', 0, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [form, watchedFuelAmount, watchedFuelQuantity]);
+
+  useEffect(() => {
+    const fillDriverNumberFromHistory = async () => {
+      const driverName = watchedDriverName?.trim();
+
+      if (!driverName || !watchedDate) return;
+
+      const selectedDate = format(watchedDate, 'yyyy-MM-dd');
+      const { data, error } = await supabase
+        .from('trips')
+        .select('driver_number, date, created_at')
+        .ilike('driver_name', driverName)
+        .lte('date', selectedDate)
+        .not('driver_number', 'is', null)
+        .neq('driver_number', '')
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error || !data?.length) return;
+
+      const latestDriverNumber = data[0].driver_number;
+      if (!latestDriverNumber || form.getValues('driverNumber') === latestDriverNumber) return;
+
+      form.setValue('driverNumber', latestDriverNumber, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    };
+
+    void fillDriverNumberFromHistory();
+  }, [form, watchedDate, watchedDriverName]);
 
   useEffect(() => {
     if (watchedCarNumber) {
@@ -480,7 +536,12 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
                 id="fuelQuantity"
                 type="number"
                 step="0.01"
-                {...form.register('fuelQuantity', { valueAsNumber: true })}
+                {...form.register('fuelQuantity', {
+                  valueAsNumber: true,
+                  onChange: () => {
+                    lastEditedFuelFieldRef.current = 'quantity';
+                  },
+                })}
                 placeholder="0.00"
               />
             </div>
@@ -491,7 +552,12 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
                 id="fuelAmount"
                 type="number"
                 step="0.01"
-                {...form.register('fuelAmount', { valueAsNumber: true })}
+                {...form.register('fuelAmount', {
+                  valueAsNumber: true,
+                  onChange: () => {
+                    lastEditedFuelFieldRef.current = 'amount';
+                  },
+                })}
                 placeholder="0.00"
               />
             </div>
