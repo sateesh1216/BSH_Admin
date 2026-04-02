@@ -291,6 +291,10 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
               <Download className="h-4 w-4 mr-1" />
               Export
             </Button>
+            <Button onClick={() => setIsBulkInvoiceOpen(true)} variant="outline" size="sm" className="gap-1">
+              <FileText className="h-4 w-4" />
+              Bulk Invoice
+            </Button>
           </div>
         </div>
       </CardHeader>
