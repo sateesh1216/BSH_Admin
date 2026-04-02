@@ -486,6 +486,11 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
           trip={invoiceTrip}
           withGST={invoiceWithGST}
         />
+        <BulkInvoiceModal
+          isOpen={isBulkInvoiceOpen}
+          onClose={() => setIsBulkInvoiceOpen(false)}
+          trips={filteredTrips}
+        />
       </CardContent>
     </Card>
   );
