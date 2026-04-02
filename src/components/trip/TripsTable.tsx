@@ -54,6 +54,7 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
   const [invoiceWithGST, setInvoiceWithGST] = useState(false);
   const [showPhoneNumbers, setShowPhoneNumbers] = useState(false);
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
+  const [isBulkInvoiceOpen, setIsBulkInvoiceOpen] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<string[]>([]);
 
   const filteredTrips = useMemo(() => {
