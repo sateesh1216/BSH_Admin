@@ -165,7 +165,12 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   }, []);
 
   useEffect(() => {
-    if (lastEditedFuelFieldRef.current !== 'quantity' || !watchedFuelQuantity || watchedFuelQuantity <= 0) return;
+    if (lastEditedFuelFieldRef.current !== 'quantity') return;
+    if (!watchedFuelQuantity || watchedFuelQuantity <= 0) {
+      form.setValue('fuelAmount', 0, { shouldDirty: true, shouldValidate: true });
+      return;
+    }
+    if (!selectedFuelRate) return;
 
     form.setValue('fuelAmount', Number((watchedFuelQuantity * selectedFuelRate).toFixed(2)), {
       shouldDirty: true,
@@ -174,24 +179,18 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   }, [form, selectedFuelRate, watchedFuelQuantity, watchedFuelType]);
 
   useEffect(() => {
-    if (lastEditedFuelFieldRef.current !== 'amount' || !selectedFuelRate || !watchedFuelAmount || watchedFuelAmount <= 0) return;
+    if (lastEditedFuelFieldRef.current !== 'amount') return;
+    if (!watchedFuelAmount || watchedFuelAmount <= 0) {
+      form.setValue('fuelQuantity', 0, { shouldDirty: true, shouldValidate: true });
+      return;
+    }
+    if (!selectedFuelRate) return;
 
     form.setValue('fuelQuantity', Number((watchedFuelAmount / selectedFuelRate).toFixed(2)), {
       shouldDirty: true,
       shouldValidate: true,
     });
   }, [form, selectedFuelRate, watchedFuelAmount, watchedFuelType]);
-
-  useEffect(() => {
-    if (!watchedFuelAmount || watchedFuelAmount <= 0) {
-      form.setValue('fuelQuantity', 0, { shouldDirty: true, shouldValidate: true });
-      return;
-    }
-
-    if (!watchedFuelQuantity || watchedFuelQuantity <= 0) {
-      form.setValue('fuelAmount', 0, { shouldDirty: true, shouldValidate: true });
-    }
-  }, [form, watchedFuelAmount, watchedFuelQuantity]);
 
   useEffect(() => {
     const fillDriverNumberFromHistory = async () => {
