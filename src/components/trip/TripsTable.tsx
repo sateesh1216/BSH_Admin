@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TripForm } from './TripForm';
 import { InvoiceModal } from '../invoice/InvoiceModal';
+import { BulkInvoiceModal } from '../invoice/BulkInvoiceModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
@@ -53,6 +54,7 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
   const [invoiceWithGST, setInvoiceWithGST] = useState(false);
   const [showPhoneNumbers, setShowPhoneNumbers] = useState(false);
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
+  const [isBulkInvoiceOpen, setIsBulkInvoiceOpen] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<string[]>([]);
 
   const filteredTrips = useMemo(() => {
@@ -289,6 +291,10 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
               <Download className="h-4 w-4 mr-1" />
               Export
             </Button>
+            <Button onClick={() => setIsBulkInvoiceOpen(true)} variant="outline" size="sm" className="gap-1">
+              <FileText className="h-4 w-4" />
+              Bulk Invoice
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -479,6 +485,11 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
           onClose={() => setIsInvoiceModalOpen(false)}
           trip={invoiceTrip}
           withGST={invoiceWithGST}
+        />
+        <BulkInvoiceModal
+          isOpen={isBulkInvoiceOpen}
+          onClose={() => setIsBulkInvoiceOpen(false)}
+          trips={filteredTrips}
         />
       </CardContent>
     </Card>
