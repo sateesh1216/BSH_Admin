@@ -191,9 +191,13 @@ export function OutsideVehicleTripsTable({ trips, onTripUpdated, canEdit }: Outs
             <Button variant="outline" size="sm" onClick={() => setShowPhoneNumbers(!showPhoneNumbers)}>
               {showPhoneNumbers ? <PhoneOff className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
             </Button>
-            <Button onClick={exportToExcel} variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={exportToExcel}>
               <Download className="h-4 w-4 mr-1" />
               Export
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsBulkInvoiceOpen(true)}>
+              <Download className="h-4 w-4 mr-1" />
+              Bulk Invoice
             </Button>
           </div>
         </div>
