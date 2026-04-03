@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { OutsideVehicleTripForm } from './OutsideVehicleTripForm';
+import { BulkOutsideVehicleInvoiceModal } from '@/components/invoice/BulkOutsideVehicleInvoiceModal';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
@@ -42,6 +43,7 @@ export function OutsideVehicleTripsTable({ trips, onTripUpdated, canEdit }: Outs
   const [editingTrip, setEditingTrip] = useState<OutsideVehicleTrip | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [showPhoneNumbers, setShowPhoneNumbers] = useState(false);
+  const [isBulkInvoiceOpen, setIsBulkInvoiceOpen] = useState(false);
 
   const filteredTrips = useMemo(() => {
     return trips.filter((trip) => {
@@ -189,9 +191,13 @@ export function OutsideVehicleTripsTable({ trips, onTripUpdated, canEdit }: Outs
             <Button variant="outline" size="sm" onClick={() => setShowPhoneNumbers(!showPhoneNumbers)}>
               {showPhoneNumbers ? <PhoneOff className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
             </Button>
-            <Button onClick={exportToExcel} variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={exportToExcel}>
               <Download className="h-4 w-4 mr-1" />
               Export
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsBulkInvoiceOpen(true)}>
+              <Download className="h-4 w-4 mr-1" />
+              Bulk Invoice
             </Button>
           </div>
         </div>
@@ -290,6 +296,12 @@ export function OutsideVehicleTripsTable({ trips, onTripUpdated, canEdit }: Outs
           {editingTrip && <OutsideVehicleTripForm editData={editingTrip} onSuccess={handleEditSuccess} />}
         </DialogContent>
       </Dialog>
+
+      <BulkOutsideVehicleInvoiceModal
+        isOpen={isBulkInvoiceOpen}
+        onClose={() => setIsBulkInvoiceOpen(false)}
+        trips={filteredTrips}
+      />
     </Card>
   );
 }
