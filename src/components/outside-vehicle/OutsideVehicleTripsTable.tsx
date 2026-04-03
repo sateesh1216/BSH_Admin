@@ -296,6 +296,12 @@ export function OutsideVehicleTripsTable({ trips, onTripUpdated, canEdit }: Outs
           {editingTrip && <OutsideVehicleTripForm editData={editingTrip} onSuccess={handleEditSuccess} />}
         </DialogContent>
       </Dialog>
+
+      <BulkOutsideVehicleInvoiceModal
+        isOpen={isBulkInvoiceOpen}
+        onClose={() => setIsBulkInvoiceOpen(false)}
+        trips={filteredTrips}
+      />
     </Card>
   );
 }
