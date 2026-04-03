@@ -152,12 +152,13 @@ export const MaintenanceTable = ({ maintenance, onMaintenanceUpdated, canEdit }:
                 <Download className="h-4 w-4 mr-1" />
                 Bulk Invoice
               </Button>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-primary">
-                ₹{totalExpenses.toLocaleString()}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {maintenance.length} record{maintenance.length !== 1 ? 's' : ''}
+              <div className="text-right">
+                <div className="text-2xl font-bold text-primary">
+                  ₹{totalExpenses.toLocaleString()}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {maintenance.length} record{maintenance.length !== 1 ? 's' : ''}
+                </div>
               </div>
             </div>
           </CardTitle>
