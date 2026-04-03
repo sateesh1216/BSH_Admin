@@ -142,6 +142,16 @@ export const MaintenanceTable = ({ maintenance, onMaintenanceUpdated, canEdit }:
               <Wrench className="h-5 w-5" />
               Maintenance Records
             </span>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsBulkInvoiceOpen(true)}
+                className="hover:bg-primary hover:text-primary-foreground"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Bulk Invoice
+              </Button>
             <div className="text-right">
               <div className="text-2xl font-bold text-primary">
                 ₹{totalExpenses.toLocaleString()}
