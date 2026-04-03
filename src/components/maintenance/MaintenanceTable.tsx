@@ -308,6 +308,12 @@ export const MaintenanceTable = ({ maintenance, onMaintenanceUpdated, canEdit }:
           )}
         </DialogContent>
       </Dialog>
+
+      <BulkMaintenanceInvoiceModal
+        isOpen={isBulkInvoiceOpen}
+        onClose={() => setIsBulkInvoiceOpen(false)}
+        maintenance={maintenance}
+      />
     </>
   );
 };
