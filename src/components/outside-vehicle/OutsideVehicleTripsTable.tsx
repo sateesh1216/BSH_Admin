@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { OutsideVehicleTripForm } from './OutsideVehicleTripForm';
+import { BulkOutsideVehicleInvoiceModal } from '@/components/invoice/BulkOutsideVehicleInvoiceModal';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
