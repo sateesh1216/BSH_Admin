@@ -45,6 +45,11 @@ export const BulkInvoiceModal = ({ isOpen, onClose, trips }: BulkInvoiceModalPro
 
   const sorted = [...trips].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const grandTotal = sorted.reduce((s, t) => s + (t.trip_amount || 0), 0);
+  const totalDriverAmount = sorted.reduce((s, t) => s + (t.driver_amount || 0), 0);
+  const totalCommission = sorted.reduce((s, t) => s + (t.commission || 0), 0);
+  const totalTolls = sorted.reduce((s, t) => s + (t.tolls || 0), 0);
+  const totalFuel = sorted.reduce((s, t) => s + (t.fuel_amount || 0), 0);
+  const totalProfit = sorted.reduce((s, t) => s + (t.profit || 0), 0);
   const dateRange = `${format(new Date(sorted[0].date), 'dd/MM/yyyy')} - ${format(new Date(sorted[sorted.length - 1].date), 'dd/MM/yyyy')}`;
   const invoiceNumber = `BULK-${format(new Date(), 'yyyyMMdd-HHmm')}`;
 
