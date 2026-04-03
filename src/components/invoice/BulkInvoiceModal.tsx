@@ -63,12 +63,12 @@ export const BulkInvoiceModal = ({ isOpen, onClose, trips }: BulkInvoiceModalPro
           .company-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px; border-bottom: 2px solid #1e3a5f; }
           .company-name { font-size: 28px; font-weight: bold; color: #1e3a5f; }
           table { width: 100%; border-collapse: collapse; }
-          th { background-color: #1e3a5f; color: white; font-size: 11px; padding: 8px 4px; text-align: left; }
-          td { font-size: 11px; padding: 6px 4px; border-bottom: 1px solid #ddd; }
+          th { background-color: #1e3a5f; color: white; font-size: 9px; padding: 6px 3px; text-align: left; }
+          td { font-size: 9px; padding: 5px 3px; border-bottom: 1px solid #ddd; }
           .text-right { text-align: right; }
           .grand-total { display: flex; justify-content: space-between; padding: 15px 20px; border-top: 2px solid #1e3a5f; margin-top: 10px; }
           .footer-bar { background-color: #3498db; color: white; text-align: center; padding: 10px; font-size: 11px; margin-top: 20px; }
-          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } @page { size: landscape; } }
         </style>
       </head><body>${content.innerHTML}</body></html>`);
       win.document.close();
