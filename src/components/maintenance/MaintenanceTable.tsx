@@ -38,6 +38,7 @@ export const MaintenanceTable = ({ maintenance, onMaintenanceUpdated, canEdit }:
   const [editingRecord, setEditingRecord] = useState<Maintenance | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<string[]>([]);
+  const [isBulkInvoiceOpen, setIsBulkInvoiceOpen] = useState(false);
 
   const totalExpenses = maintenance.reduce((sum, record) => sum + record.amount, 0);
 
