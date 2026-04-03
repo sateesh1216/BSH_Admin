@@ -43,6 +43,7 @@ export function OutsideVehicleTripsTable({ trips, onTripUpdated, canEdit }: Outs
   const [editingTrip, setEditingTrip] = useState<OutsideVehicleTrip | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [showPhoneNumbers, setShowPhoneNumbers] = useState(false);
+  const [isBulkInvoiceOpen, setIsBulkInvoiceOpen] = useState(false);
 
   const filteredTrips = useMemo(() => {
     return trips.filter((trip) => {
