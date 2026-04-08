@@ -144,6 +144,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   const watchedFuelAmount = form.watch('fuelAmount');
   const watchedDriverName = form.watch('driverName');
   const watchedDate = form.watch('date');
+  const watchedCustomerName = form.watch('customerName');
 
   const totalKm = Math.max(0, (watchedEndingKm || 0) - (watchedStartingKm || 0));
   const selectedFuelRate = fuelRates[watchedFuelType as FuelType] || 0;
@@ -223,6 +224,35 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
 
     void fillDriverNumberFromHistory();
   }, [form, watchedDate, watchedDriverName]);
+
+  useEffect(() => {
+    const fillCustomerNumberFromHistory = async () => {
+      const customerName = watchedCustomerName?.trim();
+      if (!customerName) return;
+
+      const { data, error } = await supabase
+        .from('trips')
+        .select('customer_number, date, created_at')
+        .ilike('customer_name', customerName)
+        .not('customer_number', 'is', null)
+        .neq('customer_number', '')
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error || !data?.length) return;
+
+      const latestCustomerNumber = data[0].customer_number;
+      if (!latestCustomerNumber || form.getValues('customerNumber') === latestCustomerNumber) return;
+
+      form.setValue('customerNumber', latestCustomerNumber, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    };
+
+    void fillCustomerNumberFromHistory();
+  }, [form, watchedCustomerName]);
 
   useEffect(() => {
     if (watchedCarNumber) {
