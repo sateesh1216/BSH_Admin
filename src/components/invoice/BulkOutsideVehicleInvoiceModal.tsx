@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, CalendarIcon } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import companySealImage from '@/assets/company-seal.png';
 import bshLogo from '@/assets/bsh-logo.png';
 
@@ -34,12 +37,25 @@ const formatCurrency = (v: number) =>
 
 export const BulkOutsideVehicleInvoiceModal = ({ isOpen, onClose, trips }: BulkOutsideVehicleInvoiceModalProps) => {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+
+  const filtered = useMemo(() => {
+    if (!trips.length) return [];
+    let result = [...trips];
+    if (startDate) result = result.filter(t => new Date(t.date) >= startDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      result = result.filter(t => new Date(t.date) <= end);
+    }
+    return result.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [trips, startDate, endDate]);
 
   if (!trips.length) return null;
 
-  const sorted = [...trips].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const grandTotal = sorted.reduce((s, t) => s + t.trip_amount, 0);
-  const dateRange = `${format(new Date(sorted[0].date), 'dd/MM/yyyy')} - ${format(new Date(sorted[sorted.length - 1].date), 'dd/MM/yyyy')}`;
+  const grandTotal = filtered.reduce((s, t) => s + t.trip_amount, 0);
+  const dateRange = filtered.length ? `${format(new Date(filtered[0].date), 'dd/MM/yyyy')} - ${format(new Date(filtered[filtered.length - 1].date), 'dd/MM/yyyy')}` : '-';
   const invoiceNumber = `OV-${format(new Date(), 'yyyyMMdd-HHmm')}`;
 
   const handleDownload = () => {
@@ -73,14 +89,41 @@ export const BulkOutsideVehicleInvoiceModal = ({ isOpen, onClose, trips }: BulkO
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
         <DialogHeader className="p-4 pb-0">
-          <DialogTitle>Outside Vehicle Invoice ({trips.length} Trips)</DialogTitle>
+          <DialogTitle>Outside Vehicle Invoice ({filtered.length} Trips)</DialogTitle>
           <DialogDescription>Combined invoice for all filtered outside vehicle trips</DialogDescription>
         </DialogHeader>
 
+        <div className="flex flex-wrap gap-3 items-center px-4 py-2 border-b">
+          <span className="text-sm font-medium">Filter by Date:</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("w-[140px] justify-start text-left text-xs", !startDate && "text-muted-foreground")}>
+                <CalendarIcon className="mr-1 h-3 w-3" />
+                {startDate ? format(startDate, 'dd/MM/yyyy') : 'From date'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("w-[140px] justify-start text-left text-xs", !endDate && "text-muted-foreground")}>
+                <CalendarIcon className="mr-1 h-3 w-3" />
+                {endDate ? format(endDate, 'dd/MM/yyyy') : 'To date'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+          {(startDate || endDate) && (
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setStartDate(undefined); setEndDate(undefined); }}>Clear</Button>
+          )}
+        </div>
+
         <div id="bulk-outside-vehicle-invoice-content" className="bg-white">
-          <div className="bg-[#1e3a5f] text-white text-center py-2 text-sm">
-            www.bshtaxiservices.com
-          </div>
+          <div className="bg-[#1e3a5f] text-white text-center py-2 text-sm">www.bshtaxiservices.com</div>
 
           <div className="flex justify-between items-start p-5 border-b-2 border-[#1e3a5f]">
             <div className="flex items-center gap-4">
@@ -97,18 +140,9 @@ export const BulkOutsideVehicleInvoiceModal = ({ isOpen, onClose, trips }: BulkO
           </div>
 
           <div className="grid grid-cols-3 gap-4 px-5 py-4 border-b border-gray-200">
-            <div>
-              <p className="text-[#1e3a5f] font-bold text-sm">Invoice #</p>
-              <p className="text-[#c0392b] text-sm">{invoiceNumber}</p>
-            </div>
-            <div>
-              <p className="text-[#1e3a5f] font-bold text-sm">Date Range</p>
-              <p className="text-gray-700 text-sm">{dateRange}</p>
-            </div>
-            <div>
-              <p className="text-[#1e3a5f] font-bold text-sm">Total Trips</p>
-              <p className="text-[#c0392b] text-sm">{sorted.length}</p>
-            </div>
+            <div><p className="text-[#1e3a5f] font-bold text-sm">Invoice #</p><p className="text-[#c0392b] text-sm">{invoiceNumber}</p></div>
+            <div><p className="text-[#1e3a5f] font-bold text-sm">Date Range</p><p className="text-gray-700 text-sm">{dateRange}</p></div>
+            <div><p className="text-[#1e3a5f] font-bold text-sm">Total Trips</p><p className="text-[#c0392b] text-sm">{filtered.length}</p></div>
           </div>
 
           <div className="px-3 py-4">
@@ -129,7 +163,7 @@ export const BulkOutsideVehicleInvoiceModal = ({ isOpen, onClose, trips }: BulkO
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((trip, i) => (
+                {filtered.map((trip, i) => (
                   <tr key={trip.id} className={i % 2 === 0 ? 'bg-gray-50' : ''}>
                     <td className="text-[10px] p-1.5">{i + 1}</td>
                     <td className="text-[10px] p-1.5">{format(new Date(trip.date), 'dd MMM yyyy')}</td>
@@ -157,7 +191,7 @@ export const BulkOutsideVehicleInvoiceModal = ({ isOpen, onClose, trips }: BulkO
           </div>
 
           <div className="flex justify-between items-center px-5 py-4 border-t-2 border-[#1e3a5f]">
-            <span className="text-[#1e3a5f] font-bold text-lg">Grand Total ({sorted.length} Trips)</span>
+            <span className="text-[#1e3a5f] font-bold text-lg">Grand Total ({filtered.length} Trips)</span>
             <span className="text-[#1e3a5f] font-bold text-xl">{formatCurrency(grandTotal)}</span>
           </div>
 
@@ -184,7 +218,7 @@ export const BulkOutsideVehicleInvoiceModal = ({ isOpen, onClose, trips }: BulkO
 
         <div className="flex gap-2 justify-end p-4 border-t">
           <Button variant="outline" onClick={onClose}>Close</Button>
-          <Button onClick={handleDownload} disabled={isDownloading}>
+          <Button onClick={handleDownload} disabled={isDownloading || !filtered.length}>
             <Download className="w-4 h-4 mr-2" />
             {isDownloading ? 'Generating...' : 'Download/Print'}
           </Button>
