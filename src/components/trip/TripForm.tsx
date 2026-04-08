@@ -226,13 +226,13 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   }, [form, watchedDate, watchedDriverName]);
 
   useEffect(() => {
-    const fillCustomerNumberFromHistory = async () => {
+    const fillCustomerDetailsFromHistory = async () => {
       const customerName = watchedCustomerName?.trim();
       if (!customerName) return;
 
       const { data, error } = await supabase
         .from('trips')
-        .select('customer_number, date, created_at')
+        .select('customer_number, company, from_location, to_location, date, created_at')
         .ilike('customer_name', customerName)
         .not('customer_number', 'is', null)
         .neq('customer_number', '')
@@ -242,16 +242,23 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
 
       if (error || !data?.length) return;
 
-      const latestCustomerNumber = data[0].customer_number;
-      if (!latestCustomerNumber || form.getValues('customerNumber') === latestCustomerNumber) return;
+      const prev = data[0];
 
-      form.setValue('customerNumber', latestCustomerNumber, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
+      if (prev.customer_number && form.getValues('customerNumber') !== prev.customer_number) {
+        form.setValue('customerNumber', prev.customer_number, { shouldDirty: true, shouldValidate: true });
+      }
+      if (prev.company && !form.getValues('company')) {
+        form.setValue('company', prev.company, { shouldDirty: true, shouldValidate: true });
+      }
+      if (prev.from_location && !form.getValues('fromLocation')) {
+        form.setValue('fromLocation', prev.from_location, { shouldDirty: true, shouldValidate: true });
+      }
+      if (prev.to_location && !form.getValues('toLocation')) {
+        form.setValue('toLocation', prev.to_location, { shouldDirty: true, shouldValidate: true });
+      }
     };
 
-    void fillCustomerNumberFromHistory();
+    void fillCustomerDetailsFromHistory();
   }, [form, watchedCustomerName]);
 
   useEffect(() => {
