@@ -40,9 +40,8 @@ export const BulkMaintenanceInvoiceModal = ({ isOpen, onClose, maintenance }: Bu
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
-  if (!maintenance.length) return null;
-
   const filtered = useMemo(() => {
+    if (!maintenance.length) return [];
     let result = [...maintenance];
     if (startDate) result = result.filter(r => new Date(r.date) >= startDate);
     if (endDate) {
@@ -52,6 +51,8 @@ export const BulkMaintenanceInvoiceModal = ({ isOpen, onClose, maintenance }: Bu
     }
     return result.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [maintenance, startDate, endDate]);
+
+  if (!maintenance.length) return null;
 
   const grandTotal = filtered.reduce((s, r) => s + r.amount, 0);
   const dateRange = filtered.length ? `${format(new Date(filtered[0].date), 'dd/MM/yyyy')} - ${format(new Date(filtered[filtered.length - 1].date), 'dd/MM/yyyy')}` : '-';

@@ -40,9 +40,8 @@ export const BulkOutsideVehicleInvoiceModal = ({ isOpen, onClose, trips }: BulkO
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
-  if (!trips.length) return null;
-
   const filtered = useMemo(() => {
+    if (!trips.length) return [];
     let result = [...trips];
     if (startDate) result = result.filter(t => new Date(t.date) >= startDate);
     if (endDate) {
@@ -52,6 +51,8 @@ export const BulkOutsideVehicleInvoiceModal = ({ isOpen, onClose, trips }: BulkO
     }
     return result.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [trips, startDate, endDate]);
+
+  if (!trips.length) return null;
 
   const grandTotal = filtered.reduce((s, t) => s + t.trip_amount, 0);
   const dateRange = filtered.length ? `${format(new Date(filtered[0].date), 'dd/MM/yyyy')} - ${format(new Date(filtered[filtered.length - 1].date), 'dd/MM/yyyy')}` : '-';
