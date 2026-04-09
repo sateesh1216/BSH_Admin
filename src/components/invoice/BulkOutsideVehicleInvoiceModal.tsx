@@ -122,20 +122,20 @@ export const BulkOutsideVehicleInvoiceModal = ({ isOpen, onClose, trips }: BulkO
           )}
         </div>
 
-        <div id="bulk-outside-vehicle-invoice-content" className="bg-white">
-          <div className="bg-[#1e3a5f] text-white text-center py-2 text-sm">www.bshtaxiservices.com</div>
+        <div id="bulk-outside-vehicle-invoice-content" style={{ backgroundColor: 'white', fontFamily: 'Arial, sans-serif' }}>
+          <div style={{ backgroundColor: '#1e3a5f', color: 'white', textAlign: 'center', padding: '8px 0', fontSize: '14px' }}>www.bshtaxiservices.com</div>
 
-          <div className="flex justify-between items-start p-5 border-b-2 border-[#1e3a5f]">
-            <div className="flex items-center gap-4">
-              <img src={bshLogo} alt="BSH Logo" style={{ height: '80px', width: '80px', objectFit: 'contain' }} />
-              <span className="text-3xl font-bold text-[#1e3a5f]">BSH TAXI SERVICES</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '3px solid #1e3a5f' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <img src={bshLogo} alt="BSH Logo" style={{ height: '70px', width: '70px', objectFit: 'contain' }} />
+              <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e3a5f' }}>BSH TAXI SERVICES</span>
             </div>
-            <div className="text-right text-sm text-gray-700">
-              <p>36-92-242-532/1, Palanati colony,</p>
-              <p>kancharapelam,</p>
-              <p>Visakhapatnam, 530008.</p>
-              <p>LIN: <span className="text-blue-600">AP-03-46-005-03355176</span></p>
-              <p>Mob no: <span className="text-blue-600">+91 8886803322, +91 9640241216</span></p>
+            <div style={{ textAlign: 'right', fontSize: '12px', color: '#555' }}>
+              <p style={{ margin: '2px 0' }}>36-92-242-532/1, Palanati colony,</p>
+              <p style={{ margin: '2px 0' }}>kancharapelam,</p>
+              <p style={{ margin: '2px 0' }}>Visakhapatnam, 530008.</p>
+              <p style={{ margin: '2px 0' }}>LIN: <span style={{ color: '#2980b9' }}>AP-03-46-005-03355176</span></p>
+              <p style={{ margin: '2px 0' }}>Mob no: <span style={{ color: '#2980b9' }}>+91 8886803322, +91 9640241216</span></p>
             </div>
           </div>
 
@@ -206,7 +206,7 @@ export const BulkOutsideVehicleInvoiceModal = ({ isOpen, onClose, trips }: BulkO
               <p>IFSC: SBIN0020861</p>
             </div>
             <div className="text-center">
-              <img src={companySealImage} alt="Company Seal" className="h-24 w-24 object-contain mx-auto" />
+              <img src={companySealImage} alt="Company Seal" style={{ height: '80px', width: '80px', objectFit: 'contain', margin: '0 auto' }} />
               <p className="text-sm text-gray-600 mt-1">Authorised Sign</p>
             </div>
           </div>
