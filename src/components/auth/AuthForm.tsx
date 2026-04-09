@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { PhoneAuthForm } from './PhoneAuthForm';
 import { Phone, Mail } from 'lucide-react';
 import { detectEmailTypo } from '@/utils/emailValidation';
+import bshLogo from '@/assets/bsh-logo.png';
 
 const authSchema = z.object({
   email: z.string().email('Invalid email address'),
