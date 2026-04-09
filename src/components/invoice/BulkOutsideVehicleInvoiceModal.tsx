@@ -127,7 +127,7 @@ export const BulkOutsideVehicleInvoiceModal = ({ isOpen, onClose, trips }: BulkO
 
           <div className="flex justify-between items-start p-5 border-b-2 border-[#1e3a5f]">
             <div className="flex items-center gap-4">
-              <img src={bshLogo} alt="BSH Logo" className="h-24 w-24 object-contain" />
+              <img src={bshLogo} alt="BSH Logo" style={{ height: '80px', width: '80px', objectFit: 'contain' }} />
               <span className="text-3xl font-bold text-[#1e3a5f]">BSH TAXI SERVICES</span>
             </div>
             <div className="text-right text-sm text-gray-700">

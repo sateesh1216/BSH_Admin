@@ -81,8 +81,8 @@ export const AuthForm = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5 p-4">
       <Card className="w-full max-w-md shadow-xl border-primary/20">
         <CardHeader className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Mail className="h-8 w-8 text-primary" />
+         <div className="flex items-center justify-center gap-2 mb-2">
+            <img src={bshLogo} alt="BSH Logo" className="h-20 w-20 object-contain" />
           </div>
           <CardTitle className="text-2xl font-bold text-primary">
             BSH Taxi Service Management
