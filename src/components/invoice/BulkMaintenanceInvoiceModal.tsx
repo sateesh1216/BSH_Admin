@@ -139,10 +139,10 @@ export const BulkMaintenanceInvoiceModal = ({ isOpen, onClose, maintenance }: Bu
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 px-5 py-4 border-b border-gray-200">
-            <div><p className="text-[#1e3a5f] font-bold text-sm">Invoice #</p><p className="text-[#c0392b] text-sm">{invoiceNumber}</p></div>
-            <div><p className="text-[#1e3a5f] font-bold text-sm">Date Range</p><p className="text-gray-700 text-sm">{dateRange}</p></div>
-            <div><p className="text-[#1e3a5f] font-bold text-sm">Total Records</p><p className="text-[#c0392b] text-sm">{filtered.length}</p></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', padding: '16px 20px', borderBottom: '1px solid #ddd' }}>
+            <div><p style={{ color: '#1e3a5f', fontWeight: 'bold', fontSize: '13px', margin: '0 0 4px 0' }}>Invoice #</p><p style={{ color: '#c0392b', fontSize: '13px', margin: 0 }}>{invoiceNumber}</p></div>
+            <div><p style={{ color: '#1e3a5f', fontWeight: 'bold', fontSize: '13px', margin: '0 0 4px 0' }}>Date Range</p><p style={{ color: '#555', fontSize: '13px', margin: 0 }}>{dateRange}</p></div>
+            <div><p style={{ color: '#1e3a5f', fontWeight: 'bold', fontSize: '13px', margin: '0 0 4px 0' }}>Total Records</p><p style={{ color: '#c0392b', fontSize: '13px', margin: 0 }}>{filtered.length}</p></div>
           </div>
 
           <div className="px-3 py-4">
