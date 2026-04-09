@@ -212,29 +212,29 @@ export const BulkInvoiceModal = ({ isOpen, onClose, trips }: BulkInvoiceModalPro
             </table>
           </div>
 
-          <div className="flex justify-between items-center px-5 py-4 border-t-2 border-[#1e3a5f]">
-            <span className="text-[#1e3a5f] font-bold text-lg">Grand Total ({filtered.length} Trips)</span>
-            <span className="text-[#1e3a5f] font-bold text-xl">{formatCurrency(grandTotal)}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderTop: '3px solid #1e3a5f' }}>
+            <span style={{ color: '#1e3a5f', fontWeight: 'bold', fontSize: '16px' }}>Grand Total ({filtered.length} Trips)</span>
+            <span style={{ color: '#1e3a5f', fontWeight: 'bold', fontSize: '20px' }}>{formatCurrency(grandTotal)}</span>
           </div>
 
-          <div className="flex justify-between items-start px-5 py-4">
-            <div className="text-sm text-gray-700">
-              <p className="font-bold text-[#1e3a5f] mb-2">Bank Account Details:</p>
-              <p>Mode of Payment: IMPS/NEFT</p>
-              <p>Account Holder Name: BANDARU SATEESH</p>
-              <p>Branch Name: Saligramapuram Vizag</p>
-              <p>Bank Name: State Bank Of India</p>
-              <p>Current Account Number: 32647106168</p>
-              <p>IFSC: SBIN0020861</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '16px 20px' }}>
+            <div style={{ fontSize: '13px', color: '#555' }}>
+              <p style={{ fontWeight: 'bold', color: '#1e3a5f', marginBottom: '8px' }}>Bank Account Details:</p>
+              <p style={{ margin: '2px 0' }}>Mode of Payment: IMPS/NEFT</p>
+              <p style={{ margin: '2px 0' }}>Account Holder Name: BANDARU SATEESH</p>
+              <p style={{ margin: '2px 0' }}>Branch Name: Saligramapuram Vizag</p>
+              <p style={{ margin: '2px 0' }}>Bank Name: State Bank Of India</p>
+              <p style={{ margin: '2px 0' }}>Current Account Number: 32647106168</p>
+              <p style={{ margin: '2px 0' }}>IFSC: SBIN0020861</p>
             </div>
-            <div className="text-center">
+            <div style={{ textAlign: 'center' }}>
               <img src={companySealImage} alt="Company Seal" style={{ height: '80px', width: '80px', objectFit: 'contain', margin: '0 auto' }} />
-              <p className="text-sm text-gray-600 mt-1">Authorised Sign</p>
+              <p style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>Authorised Sign</p>
             </div>
           </div>
 
-          <div className="bg-[#3498db] text-white text-center py-3 text-xs px-4">
-            <p>Customers are requested to check their belongings before leaving the cab. The Travel Office/Car Owner/Driver is not responsible for the loss of any belongings</p>
+          <div style={{ backgroundColor: '#3498db', color: 'white', textAlign: 'center', padding: '12px 16px', fontSize: '11px' }}>
+            <p style={{ margin: 0 }}>Customers are requested to check their belongings before leaving the cab. The Travel Office/Car Owner/Driver is not responsible for the loss of any belongings</p>
           </div>
         </div>
 
