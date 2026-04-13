@@ -157,56 +157,50 @@ export const BulkInvoiceModal = ({ isOpen, onClose, trips }: BulkInvoiceModalPro
             <div><p style={{ color: '#1e3a5f', fontWeight: 'bold', fontSize: '13px', margin: '0 0 4px 0' }}>Total Trips</p><p style={{ color: '#c0392b', fontSize: '13px', margin: 0 }}>{filtered.length}</p></div>
           </div>
 
-          <div className="px-3 py-4">
-            <table className="w-full">
+          <div style={{ padding: '12px 16px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th className="bg-[#1e3a5f] text-white text-[9px] p-1.5 text-left">S.No</th>
-                  <th className="bg-[#1e3a5f] text-white text-[9px] p-1.5 text-left">Date</th>
-                  <th className="bg-[#1e3a5f] text-white text-[9px] p-1.5 text-left">Customer</th>
-                  <th className="bg-[#1e3a5f] text-white text-[9px] p-1.5 text-left">Route</th>
-                  <th className="bg-[#1e3a5f] text-white text-[9px] p-1.5 text-left">Driver</th>
-                  <th className="bg-[#1e3a5f] text-white text-[9px] p-1.5 text-left">Car No</th>
-                  <th className="bg-[#1e3a5f] text-white text-[9px] p-1.5 text-right">Driver ₹</th>
-                  <th className="bg-[#1e3a5f] text-white text-[9px] p-1.5 text-right">Comm ₹</th>
-                  <th className="bg-[#1e3a5f] text-white text-[9px] p-1.5 text-right">Tolls ₹</th>
-                  <th className="bg-[#1e3a5f] text-white text-[9px] p-1.5 text-right">Fuel ₹</th>
-                  <th className="bg-[#1e3a5f] text-white text-[9px] p-1.5 text-right">Trip ₹</th>
-                  <th className="bg-[#1e3a5f] text-white text-[9px] p-1.5 text-right">Profit ₹</th>
-                  <th className="bg-[#1e3a5f] text-white text-[9px] p-1.5 text-left">Status</th>
+                  {['S.No','Date','Customer','Route','Driver','Car No'].map(h => (
+                    <th key={h} style={{ backgroundColor: '#1e3a5f', color: 'white', fontSize: '9px', padding: '6px 3px', textAlign: 'left' }}>{h}</th>
+                  ))}
+                  {['Driver ₹','Comm ₹','Tolls ₹','Fuel ₹','Trip ₹','Profit ₹'].map(h => (
+                    <th key={h} style={{ backgroundColor: '#1e3a5f', color: 'white', fontSize: '9px', padding: '6px 3px', textAlign: 'right' }}>{h}</th>
+                  ))}
+                  <th style={{ backgroundColor: '#1e3a5f', color: 'white', fontSize: '9px', padding: '6px 3px', textAlign: 'left' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((trip, i) => (
-                  <tr key={trip.id} className={i % 2 === 0 ? 'bg-gray-50' : ''}>
-                    <td className="text-[9px] p-1.5">{i + 1}</td>
-                    <td className="text-[9px] p-1.5">{format(new Date(trip.date), 'dd MMM yyyy')}</td>
-                    <td className="text-[9px] p-1.5">{trip.customer_name}</td>
-                    <td className="text-[9px] p-1.5">{trip.from_location} → {trip.to_location}</td>
-                    <td className="text-[9px] p-1.5">{trip.driver_name}</td>
-                    <td className="text-[9px] p-1.5">{trip.car_number || '-'}</td>
-                    <td className="text-[9px] p-1.5 text-right">{formatCurrency(trip.driver_amount)}</td>
-                    <td className="text-[9px] p-1.5 text-right">{formatCurrency(trip.commission)}</td>
-                    <td className="text-[9px] p-1.5 text-right">{formatCurrency(trip.tolls)}</td>
-                    <td className="text-[9px] p-1.5 text-right">{formatCurrency(trip.fuel_amount)}</td>
-                    <td className="text-[9px] p-1.5 text-right font-semibold">{formatCurrency(trip.trip_amount)}</td>
-                    <td className="text-[9px] p-1.5 text-right font-semibold">{formatCurrency(trip.profit || 0)}</td>
-                    <td className="text-[9px] p-1.5">
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${trip.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  <tr key={trip.id} style={{ backgroundColor: i % 2 === 0 ? '#f9f9f9' : 'white' }}>
+                    <td style={{ fontSize: '9px', padding: '5px 3px', borderBottom: '1px solid #ddd' }}>{i + 1}</td>
+                    <td style={{ fontSize: '9px', padding: '5px 3px', borderBottom: '1px solid #ddd' }}>{format(new Date(trip.date), 'dd MMM yyyy')}</td>
+                    <td style={{ fontSize: '9px', padding: '5px 3px', borderBottom: '1px solid #ddd' }}>{trip.customer_name}</td>
+                    <td style={{ fontSize: '9px', padding: '5px 3px', borderBottom: '1px solid #ddd' }}>{trip.from_location} → {trip.to_location}</td>
+                    <td style={{ fontSize: '9px', padding: '5px 3px', borderBottom: '1px solid #ddd' }}>{trip.driver_name}</td>
+                    <td style={{ fontSize: '9px', padding: '5px 3px', borderBottom: '1px solid #ddd' }}>{trip.car_number || '-'}</td>
+                    <td style={{ fontSize: '9px', padding: '5px 3px', borderBottom: '1px solid #ddd', textAlign: 'right' }}>{formatCurrency(trip.driver_amount)}</td>
+                    <td style={{ fontSize: '9px', padding: '5px 3px', borderBottom: '1px solid #ddd', textAlign: 'right' }}>{formatCurrency(trip.commission)}</td>
+                    <td style={{ fontSize: '9px', padding: '5px 3px', borderBottom: '1px solid #ddd', textAlign: 'right' }}>{formatCurrency(trip.tolls)}</td>
+                    <td style={{ fontSize: '9px', padding: '5px 3px', borderBottom: '1px solid #ddd', textAlign: 'right' }}>{formatCurrency(trip.fuel_amount)}</td>
+                    <td style={{ fontSize: '9px', padding: '5px 3px', borderBottom: '1px solid #ddd', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(trip.trip_amount)}</td>
+                    <td style={{ fontSize: '9px', padding: '5px 3px', borderBottom: '1px solid #ddd', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(trip.profit || 0)}</td>
+                    <td style={{ fontSize: '9px', padding: '5px 3px', borderBottom: '1px solid #ddd' }}>
+                      <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '8px', fontWeight: 'bold', backgroundColor: trip.payment_status === 'paid' ? '#d1fae5' : '#fee2e2', color: trip.payment_status === 'paid' ? '#15803d' : '#b91c1c' }}>
                         {(trip.payment_status || 'pending').toUpperCase()}
                       </span>
                     </td>
                   </tr>
                 ))}
-                <tr className="bg-[#1e3a5f]/10 font-bold">
-                  <td colSpan={6} className="text-[9px] p-1.5 text-right">TOTALS:</td>
-                  <td className="text-[9px] p-1.5 text-right">{formatCurrency(totalDriverAmount)}</td>
-                  <td className="text-[9px] p-1.5 text-right">{formatCurrency(totalCommission)}</td>
-                  <td className="text-[9px] p-1.5 text-right">{formatCurrency(totalTolls)}</td>
-                  <td className="text-[9px] p-1.5 text-right">{formatCurrency(totalFuel)}</td>
-                  <td className="text-[9px] p-1.5 text-right">{formatCurrency(grandTotal)}</td>
-                  <td className="text-[9px] p-1.5 text-right">{formatCurrency(totalProfit)}</td>
-                  <td className="text-[9px] p-1.5"></td>
+                <tr style={{ backgroundColor: '#e8eef5', fontWeight: 'bold' }}>
+                  <td colSpan={6} style={{ fontSize: '9px', padding: '6px 3px', textAlign: 'right' }}>TOTALS:</td>
+                  <td style={{ fontSize: '9px', padding: '6px 3px', textAlign: 'right' }}>{formatCurrency(totalDriverAmount)}</td>
+                  <td style={{ fontSize: '9px', padding: '6px 3px', textAlign: 'right' }}>{formatCurrency(totalCommission)}</td>
+                  <td style={{ fontSize: '9px', padding: '6px 3px', textAlign: 'right' }}>{formatCurrency(totalTolls)}</td>
+                  <td style={{ fontSize: '9px', padding: '6px 3px', textAlign: 'right' }}>{formatCurrency(totalFuel)}</td>
+                  <td style={{ fontSize: '9px', padding: '6px 3px', textAlign: 'right' }}>{formatCurrency(grandTotal)}</td>
+                  <td style={{ fontSize: '9px', padding: '6px 3px', textAlign: 'right' }}>{formatCurrency(totalProfit)}</td>
+                  <td style={{ fontSize: '9px', padding: '6px 3px' }}></td>
                 </tr>
               </tbody>
             </table>

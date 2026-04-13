@@ -145,46 +145,39 @@ export const BulkOutsideVehicleInvoiceModal = ({ isOpen, onClose, trips }: BulkO
             <div><p style={{ color: '#1e3a5f', fontWeight: 'bold', fontSize: '13px', margin: '0 0 4px 0' }}>Total Trips</p><p style={{ color: '#c0392b', fontSize: '13px', margin: 0 }}>{filtered.length}</p></div>
           </div>
 
-          <div className="px-3 py-4">
-            <table className="w-full">
+          <div style={{ padding: '12px 16px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">S.No</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Date</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Driver</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Travel Co.</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Vehicle Type</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Route</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Vehicle No.</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Given By</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Payment</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Status</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-right">Amount ₹</th>
+                  {['S.No','Date','Driver','Travel Co.','Vehicle Type','Route','Vehicle No.','Given By','Payment','Status'].map(h => (
+                    <th key={h} style={{ backgroundColor: '#1e3a5f', color: 'white', fontSize: '10px', padding: '6px 4px', textAlign: 'left' }}>{h}</th>
+                  ))}
+                  <th style={{ backgroundColor: '#1e3a5f', color: 'white', fontSize: '10px', padding: '6px 4px', textAlign: 'right' }}>Amount ₹</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((trip, i) => (
-                  <tr key={trip.id} className={i % 2 === 0 ? 'bg-gray-50' : ''}>
-                    <td className="text-[10px] p-1.5">{i + 1}</td>
-                    <td className="text-[10px] p-1.5">{format(new Date(trip.date), 'dd MMM yyyy')}</td>
-                    <td className="text-[10px] p-1.5">{trip.driver_name}</td>
-                    <td className="text-[10px] p-1.5">{trip.travel_company}</td>
-                    <td className="text-[10px] p-1.5">{trip.vehicle_type}</td>
-                    <td className="text-[10px] p-1.5">{trip.from_location} → {trip.to_location}</td>
-                    <td className="text-[10px] p-1.5">{trip.vehicle_number}</td>
-                    <td className="text-[10px] p-1.5">{trip.trip_given_company}</td>
-                    <td className="text-[10px] p-1.5">{trip.payment_mode}</td>
-                    <td className="text-[10px] p-1.5">
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${trip.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  <tr key={trip.id} style={{ backgroundColor: i % 2 === 0 ? '#f9f9f9' : 'white' }}>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{i + 1}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{format(new Date(trip.date), 'dd MMM yyyy')}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{trip.driver_name}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{trip.travel_company}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{trip.vehicle_type}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{trip.from_location} → {trip.to_location}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{trip.vehicle_number}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{trip.trip_given_company}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{trip.payment_mode}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>
+                      <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '8px', fontWeight: 'bold', backgroundColor: trip.payment_status === 'paid' ? '#d1fae5' : '#fee2e2', color: trip.payment_status === 'paid' ? '#15803d' : '#b91c1c' }}>
                         {trip.payment_status.toUpperCase()}
                       </span>
                     </td>
-                    <td className="text-[10px] p-1.5 text-right font-semibold">{formatCurrency(trip.trip_amount)}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(trip.trip_amount)}</td>
                   </tr>
                 ))}
-                <tr className="bg-[#1e3a5f]/10 font-bold">
-                  <td colSpan={10} className="text-[10px] p-1.5 text-right">TOTAL:</td>
-                  <td className="text-[10px] p-1.5 text-right">{formatCurrency(grandTotal)}</td>
+                <tr style={{ backgroundColor: '#e8eef5', fontWeight: 'bold' }}>
+                  <td colSpan={10} style={{ fontSize: '10px', padding: '6px 4px', textAlign: 'right' }}>TOTAL:</td>
+                  <td style={{ fontSize: '10px', padding: '6px 4px', textAlign: 'right' }}>{formatCurrency(grandTotal)}</td>
                 </tr>
               </tbody>
             </table>
