@@ -145,40 +145,36 @@ export const BulkMaintenanceInvoiceModal = ({ isOpen, onClose, maintenance }: Bu
             <div><p style={{ color: '#1e3a5f', fontWeight: 'bold', fontSize: '13px', margin: '0 0 4px 0' }}>Total Records</p><p style={{ color: '#c0392b', fontSize: '13px', margin: 0 }}>{filtered.length}</p></div>
           </div>
 
-          <div className="px-3 py-4">
-            <table className="w-full">
+          <div style={{ padding: '12px 16px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">S.No</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Date</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Vehicle</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Driver</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Company</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Type</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Description</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-left">Payment</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-right">KM</th>
-                  <th className="bg-[#1e3a5f] text-white text-[10px] p-1.5 text-right">Amount ₹</th>
+                  {['S.No','Date','Vehicle','Driver','Company','Type','Description','Payment'].map(h => (
+                    <th key={h} style={{ backgroundColor: '#1e3a5f', color: 'white', fontSize: '10px', padding: '6px 4px', textAlign: 'left' }}>{h}</th>
+                  ))}
+                  {['KM','Amount ₹'].map(h => (
+                    <th key={h} style={{ backgroundColor: '#1e3a5f', color: 'white', fontSize: '10px', padding: '6px 4px', textAlign: 'right' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((record, i) => (
-                  <tr key={record.id} className={i % 2 === 0 ? 'bg-gray-50' : ''}>
-                    <td className="text-[10px] p-1.5">{i + 1}</td>
-                    <td className="text-[10px] p-1.5">{format(new Date(record.date), 'dd MMM yyyy')}</td>
-                    <td className="text-[10px] p-1.5">{record.vehicle_number}</td>
-                    <td className="text-[10px] p-1.5">{record.driver_name}</td>
-                    <td className="text-[10px] p-1.5">{record.company || '-'}</td>
-                    <td className="text-[10px] p-1.5">{record.maintenance_type}</td>
-                    <td className="text-[10px] p-1.5 max-w-[150px] truncate">{record.description || '-'}</td>
-                    <td className="text-[10px] p-1.5">{record.payment_mode}</td>
-                    <td className="text-[10px] p-1.5 text-right">{record.km_at_maintenance?.toLocaleString() || '-'}</td>
-                    <td className="text-[10px] p-1.5 text-right font-semibold">{formatCurrency(record.amount)}</td>
+                  <tr key={record.id} style={{ backgroundColor: i % 2 === 0 ? '#f9f9f9' : 'white' }}>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{i + 1}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{format(new Date(record.date), 'dd MMM yyyy')}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{record.vehicle_number}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{record.driver_name}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{record.company || '-'}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{record.maintenance_type}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{record.description || '-'}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{record.payment_mode}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd', textAlign: 'right' }}>{record.km_at_maintenance?.toLocaleString() || '-'}</td>
+                    <td style={{ fontSize: '10px', padding: '5px 4px', borderBottom: '1px solid #ddd', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(record.amount)}</td>
                   </tr>
                 ))}
-                <tr className="bg-[#1e3a5f]/10 font-bold">
-                  <td colSpan={9} className="text-[10px] p-1.5 text-right">TOTAL:</td>
-                  <td className="text-[10px] p-1.5 text-right">{formatCurrency(grandTotal)}</td>
+                <tr style={{ backgroundColor: '#e8eef5', fontWeight: 'bold' }}>
+                  <td colSpan={9} style={{ fontSize: '10px', padding: '6px 4px', textAlign: 'right' }}>TOTAL:</td>
+                  <td style={{ fontSize: '10px', padding: '6px 4px', textAlign: 'right' }}>{formatCurrency(grandTotal)}</td>
                 </tr>
               </tbody>
             </table>
