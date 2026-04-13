@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Users, UserCheck, UserX, LogIn, Activity } from 'lucide-react';
+import { Users, UserCheck, UserX, LogIn, Activity, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfDay, format } from 'date-fns';
+import { CombinedBulkInvoiceModal } from '@/components/invoice/CombinedBulkInvoiceModal';
 
 export const AdminDashboard = () => {
+  const [isCombinedInvoiceOpen, setIsCombinedInvoiceOpen] = useState(false);
   // Fetch all users
   const { data: users = [] } = useQuery({
     queryKey: ['admin-users-stats'],
@@ -78,9 +82,15 @@ export const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Overview of your user management system</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Overview of your user management system</p>
+        </div>
+        <Button onClick={() => setIsCombinedInvoiceOpen(true)} className="gap-2">
+          <FileText className="h-4 w-4" />
+          Combined Bulk Invoice
+        </Button>
       </div>
 
       {/* Stats Grid */}
@@ -127,6 +137,8 @@ export const AdminDashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      <CombinedBulkInvoiceModal isOpen={isCombinedInvoiceOpen} onClose={() => setIsCombinedInvoiceOpen(false)} />
     </div>
   );
 };
