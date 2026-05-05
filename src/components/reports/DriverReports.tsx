@@ -18,7 +18,6 @@ interface TripRow {
   id: string;
   date: string;
   driver_name: string;
-  vehicle_number?: string | null;
   car_number?: string | null;
   from_location: string;
   to_location: string;
@@ -59,7 +58,7 @@ export const DriverReports = () => {
     try {
       let query = supabase
         .from('trips')
-        .select('id,date,driver_name,vehicle_number,car_number,from_location,to_location,starting_km,ending_km,trip_amount,fuel_amount,fuel_type')
+        .select('id,date,driver_name,car_number,from_location,to_location,starting_km,ending_km,trip_amount,fuel_amount,fuel_type')
         .order('date', { ascending: false });
 
       if (!isAdmin && user) query = query.eq('created_by', user.id);
