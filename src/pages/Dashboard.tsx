@@ -11,6 +11,7 @@ import { TripsTable } from '@/components/trip/TripsTable';
 import { FileUpload } from '@/components/upload/FileUpload';
 import { MonthlyReports } from '@/components/reports/MonthlyReports';
 import { ExpensesReports } from '@/components/reports/ExpensesReports';
+import { DriverReports } from '@/components/reports/DriverReports';
 import { MaintenanceForm } from '@/components/maintenance/MaintenanceForm';
 import { MaintenanceTable } from '@/components/maintenance/MaintenanceTable';
 import { VehicleHistoryDashboard } from '@/components/vehicle-history/VehicleHistoryDashboard';
@@ -296,6 +297,7 @@ export const Dashboard = () => {
       case 'reports':
         return (
           <div className="space-y-6">
+            <DriverReports />
             <MonthlyReports />
             <ExpensesReports />
           </div>
