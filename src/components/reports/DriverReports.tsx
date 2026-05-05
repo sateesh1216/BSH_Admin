@@ -98,7 +98,7 @@ export const DriverReports = () => {
   const vehicleOptions = useMemo(() => {
     const set = new Set<string>();
     trips.forEach(t => {
-      const v = t.vehicle_number || t.car_number;
+      const v = t.car_number;
       if (v) set.add(v);
     });
     return Array.from(set).sort();
@@ -108,7 +108,7 @@ export const DriverReports = () => {
     return trips.filter(t => {
       if (driverFilter !== 'all' && t.driver_name !== driverFilter) return false;
       if (vehicleFilter !== 'all') {
-        const v = t.vehicle_number || t.car_number;
+        const v = t.car_number;
         if (v !== vehicleFilter) return false;
       }
       return true;
@@ -181,7 +181,7 @@ export const DriverReports = () => {
       filtered.map(t => ({
         Date: t.date,
         Driver: t.driver_name,
-        Vehicle: t.vehicle_number || t.car_number || '',
+        Vehicle: t.car_number || '',
         From: t.from_location,
         To: t.to_location,
         'Start KM': t.starting_km ?? '',
@@ -228,7 +228,7 @@ export const DriverReports = () => {
       startY: (doc as any).lastAutoTable.finalY + 8,
       head: [['Date', 'Driver', 'Vehicle', 'From', 'To', 'Start KM', 'End KM', 'Trip KM', 'Fuel ₹', 'Trip ₹']],
       body: filtered.map(t => [
-        t.date, t.driver_name, t.vehicle_number || t.car_number || '',
+        t.date, t.driver_name, t.car_number || '',
         t.from_location, t.to_location,
         t.starting_km ?? '', t.ending_km ?? '', tripKm(t),
         (t.fuel_amount || 0).toFixed(0), (t.trip_amount || 0).toFixed(0),
@@ -411,7 +411,7 @@ export const DriverReports = () => {
                   <TableRow key={t.id}>
                     <TableCell>{t.date}</TableCell>
                     <TableCell>{t.driver_name}</TableCell>
-                    <TableCell>{t.vehicle_number || t.car_number || '—'}</TableCell>
+                    <TableCell>{t.car_number || '—'}</TableCell>
                     <TableCell className="text-xs">{t.from_location} → {t.to_location}</TableCell>
                     <TableCell className="text-right">{t.starting_km ?? '—'}</TableCell>
                     <TableCell className="text-right">{t.ending_km ?? '—'}</TableCell>
