@@ -39,6 +39,8 @@ interface DriverSummary {
   mileage: number; // km per litre — true mileage
   costPerKm: number;
   revenue: number;
+  primaryFuelType: string;
+  fuelUnit: string; // L or kg
 }
 
 type FilterMode = 'all' | 'monthly' | 'daily' | 'range';
