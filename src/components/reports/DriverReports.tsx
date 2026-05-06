@@ -61,7 +61,7 @@ export const DriverReports = () => {
     try {
       let query = supabase
         .from('trips')
-        .select('id,date,driver_name,car_number,from_location,to_location,starting_km,ending_km,trip_amount,fuel_amount,fuel_type')
+        .select('id,date,driver_name,car_number,from_location,to_location,starting_km,ending_km,trip_amount,fuel_amount,fuel_litres,fuel_type')
         .order('date', { ascending: false });
 
       if (!isAdmin && user) query = query.eq('created_by', user.id);
