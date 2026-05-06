@@ -25,6 +25,7 @@ interface TripRow {
   ending_km: number | null;
   trip_amount: number;
   fuel_amount: number;
+  fuel_litres: number | null;
   fuel_type: string;
 }
 
@@ -34,7 +35,9 @@ interface DriverSummary {
   totalKm: number;
   avgKm: number;
   totalFuel: number;
-  mileage: number; // km per ₹ of fuel — proxy for efficiency
+  totalLitres: number;
+  mileage: number; // km per litre — true mileage
+  costPerKm: number;
   revenue: number;
 }
 
@@ -58,7 +61,7 @@ export const DriverReports = () => {
     try {
       let query = supabase
         .from('trips')
-        .select('id,date,driver_name,car_number,from_location,to_location,starting_km,ending_km,trip_amount,fuel_amount,fuel_type')
+        .select('id,date,driver_name,car_number,from_location,to_location,starting_km,ending_km,trip_amount,fuel_amount,fuel_litres,fuel_type')
         .order('date', { ascending: false });
 
       if (!isAdmin && user) query = query.eq('created_by', user.id);
@@ -126,18 +129,20 @@ export const DriverReports = () => {
       const km = tripKm(t);
       const cur = map.get(t.driver_name) || {
         driver: t.driver_name,
-        trips: 0, totalKm: 0, avgKm: 0, totalFuel: 0, mileage: 0, revenue: 0,
+        trips: 0, totalKm: 0, avgKm: 0, totalFuel: 0, totalLitres: 0, mileage: 0, costPerKm: 0, revenue: 0,
       };
       cur.trips += 1;
       cur.totalKm += km;
       cur.totalFuel += t.fuel_amount || 0;
+      cur.totalLitres += t.fuel_litres || 0;
       cur.revenue += t.trip_amount || 0;
       map.set(t.driver_name, cur);
     });
     const arr = Array.from(map.values()).map(s => ({
       ...s,
       avgKm: s.trips ? s.totalKm / s.trips : 0,
-      mileage: s.totalFuel ? s.totalKm / s.totalFuel : 0,
+      mileage: s.totalLitres ? s.totalKm / s.totalLitres : 0,
+      costPerKm: s.totalKm ? s.totalFuel / s.totalKm : 0,
     }));
     return arr.sort((a, b) => b.totalKm - a.totalKm);
   }, [filtered]);
@@ -148,10 +153,11 @@ export const DriverReports = () => {
         acc.trips += s.trips;
         acc.totalKm += s.totalKm;
         acc.totalFuel += s.totalFuel;
+        acc.totalLitres += s.totalLitres;
         acc.revenue += s.revenue;
         return acc;
       },
-      { trips: 0, totalKm: 0, totalFuel: 0, revenue: 0 }
+      { trips: 0, totalKm: 0, totalFuel: 0, totalLitres: 0, revenue: 0 }
     );
   }, [summaries]);
 
@@ -171,26 +177,34 @@ export const DriverReports = () => {
         'Total KM': s.totalKm,
         'Avg KM/Trip': Number(s.avgKm.toFixed(2)),
         'Fuel ₹': s.totalFuel,
-        'KM per ₹ Fuel': Number(s.mileage.toFixed(3)),
+        'Fuel Litres': Number(s.totalLitres.toFixed(2)),
+        'Mileage (KM/L)': Number(s.mileage.toFixed(2)),
+        'Cost per KM ₹': Number(s.costPerKm.toFixed(2)),
         'Revenue ₹': s.revenue,
       }))
     );
     XLSX.utils.book_append_sheet(wb, summarySheet, 'Driver Summary');
 
     const detailSheet = XLSX.utils.json_to_sheet(
-      filtered.map(t => ({
-        Date: t.date,
-        Driver: t.driver_name,
-        Vehicle: t.car_number || '',
-        From: t.from_location,
-        To: t.to_location,
-        'Start KM': t.starting_km ?? '',
-        'End KM': t.ending_km ?? '',
-        'Trip KM': tripKm(t),
-        'Fuel ₹': t.fuel_amount,
-        'Fuel Type': t.fuel_type,
-        'Trip ₹': t.trip_amount,
-      }))
+      filtered.map(t => {
+        const km = tripKm(t);
+        const litres = t.fuel_litres || 0;
+        return {
+          Date: t.date,
+          Driver: t.driver_name,
+          Vehicle: t.car_number || '',
+          From: t.from_location,
+          To: t.to_location,
+          'Start KM': t.starting_km ?? '',
+          'End KM': t.ending_km ?? '',
+          'Trip KM': km,
+          'Fuel ₹': t.fuel_amount,
+          'Fuel Litres': litres,
+          'Mileage (KM/L)': litres > 0 ? Number((km / litres).toFixed(2)) : '',
+          'Fuel Type': t.fuel_type,
+          'Trip ₹': t.trip_amount,
+        };
+      })
     );
     XLSX.utils.book_append_sheet(wb, detailSheet, 'Trip Details');
 
@@ -212,12 +226,13 @@ export const DriverReports = () => {
 
     autoTable(doc, {
       startY: 34,
-      head: [['Driver', 'Trips', 'Total KM', 'Avg KM/Trip', 'Fuel ₹', 'KM/₹ Fuel', 'Revenue ₹']],
+      head: [['Driver', 'Trips', 'Total KM', 'Avg KM/Trip', 'Fuel ₹', 'Litres', 'KM/L', 'Revenue ₹']],
       body: summaries.map(s => [
         s.driver, s.trips, s.totalKm,
         s.avgKm.toFixed(2),
         s.totalFuel.toFixed(0),
-        s.mileage.toFixed(3),
+        s.totalLitres.toFixed(2),
+        s.mileage.toFixed(2),
         s.revenue.toFixed(0),
       ]),
       styles: { fontSize: 9 },
@@ -226,13 +241,20 @@ export const DriverReports = () => {
 
     autoTable(doc, {
       startY: (doc as any).lastAutoTable.finalY + 8,
-      head: [['Date', 'Driver', 'Vehicle', 'From', 'To', 'Start KM', 'End KM', 'Trip KM', 'Fuel ₹', 'Trip ₹']],
-      body: filtered.map(t => [
-        t.date, t.driver_name, t.car_number || '',
-        t.from_location, t.to_location,
-        t.starting_km ?? '', t.ending_km ?? '', tripKm(t),
-        (t.fuel_amount || 0).toFixed(0), (t.trip_amount || 0).toFixed(0),
-      ]),
+      head: [['Date', 'Driver', 'Vehicle', 'From', 'To', 'Start KM', 'End KM', 'Trip KM', 'Fuel ₹', 'Litres', 'KM/L', 'Trip ₹']],
+      body: filtered.map(t => {
+        const km = tripKm(t);
+        const litres = t.fuel_litres || 0;
+        return [
+          t.date, t.driver_name, t.car_number || '',
+          t.from_location, t.to_location,
+          t.starting_km ?? '', t.ending_km ?? '', km,
+          (t.fuel_amount || 0).toFixed(0),
+          litres ? litres.toFixed(2) : '-',
+          litres > 0 ? (km / litres).toFixed(2) : '-',
+          (t.trip_amount || 0).toFixed(0),
+        ];
+      }),
       styles: { fontSize: 8 },
       headStyles: { fillColor: [30, 58, 95] },
     });
@@ -359,15 +381,17 @@ export const DriverReports = () => {
                   <TableHead className="text-right">Total KM</TableHead>
                   <TableHead className="text-right">Avg KM/Trip</TableHead>
                   <TableHead className="text-right">Fuel ₹</TableHead>
-                  <TableHead className="text-right">KM per ₹ Fuel</TableHead>
+                  <TableHead className="text-right">Litres</TableHead>
+                  <TableHead className="text-right">Mileage (KM/L)</TableHead>
+                  <TableHead className="text-right">Cost/KM ₹</TableHead>
                   <TableHead className="text-right">Revenue ₹</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-6">Loading…</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-6">Loading…</TableCell></TableRow>
                 ) : summaries.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">No data</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">No data</TableCell></TableRow>
                 ) : summaries.map(s => (
                   <TableRow key={s.driver}>
                     <TableCell className="font-medium">{s.driver}</TableCell>
@@ -375,7 +399,9 @@ export const DriverReports = () => {
                     <TableCell className="text-right">{s.totalKm.toLocaleString()}</TableCell>
                     <TableCell className="text-right">{s.avgKm.toFixed(1)}</TableCell>
                     <TableCell className="text-right">₹{s.totalFuel.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{s.mileage.toFixed(3)}</TableCell>
+                    <TableCell className="text-right">{s.totalLitres.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-medium">{s.mileage > 0 ? s.mileage.toFixed(2) : '—'}</TableCell>
+                    <TableCell className="text-right">{s.costPerKm > 0 ? `₹${s.costPerKm.toFixed(2)}` : '—'}</TableCell>
                     <TableCell className="text-right">₹{s.revenue.toLocaleString()}</TableCell>
                   </TableRow>
                 ))}
@@ -401,25 +427,33 @@ export const DriverReports = () => {
                   <TableHead className="text-right">End KM</TableHead>
                   <TableHead className="text-right">Trip KM</TableHead>
                   <TableHead className="text-right">Fuel ₹</TableHead>
+                  <TableHead className="text-right">Litres</TableHead>
+                  <TableHead className="text-right">KM/L</TableHead>
                   <TableHead className="text-right">Trip ₹</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">No trips</TableCell></TableRow>
-                ) : filtered.map(t => (
-                  <TableRow key={t.id}>
-                    <TableCell>{t.date}</TableCell>
-                    <TableCell>{t.driver_name}</TableCell>
-                    <TableCell>{t.car_number || '—'}</TableCell>
-                    <TableCell className="text-xs">{t.from_location} → {t.to_location}</TableCell>
-                    <TableCell className="text-right">{t.starting_km ?? '—'}</TableCell>
-                    <TableCell className="text-right">{t.ending_km ?? '—'}</TableCell>
-                    <TableCell className="text-right font-medium">{tripKm(t)}</TableCell>
-                    <TableCell className="text-right">₹{(t.fuel_amount || 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right">₹{(t.trip_amount || 0).toLocaleString()}</TableCell>
-                  </TableRow>
-                ))}
+                  <TableRow><TableCell colSpan={11} className="text-center py-6 text-muted-foreground">No trips</TableCell></TableRow>
+                ) : filtered.map(t => {
+                  const km = tripKm(t);
+                  const litres = t.fuel_litres || 0;
+                  return (
+                    <TableRow key={t.id}>
+                      <TableCell>{t.date}</TableCell>
+                      <TableCell>{t.driver_name}</TableCell>
+                      <TableCell>{t.car_number || '—'}</TableCell>
+                      <TableCell className="text-xs">{t.from_location} → {t.to_location}</TableCell>
+                      <TableCell className="text-right">{t.starting_km ?? '—'}</TableCell>
+                      <TableCell className="text-right">{t.ending_km ?? '—'}</TableCell>
+                      <TableCell className="text-right font-medium">{km}</TableCell>
+                      <TableCell className="text-right">₹{(t.fuel_amount || 0).toLocaleString()}</TableCell>
+                      <TableCell className="text-right">{litres > 0 ? litres.toFixed(2) : '—'}</TableCell>
+                      <TableCell className="text-right font-medium">{litres > 0 ? (km / litres).toFixed(2) : '—'}</TableCell>
+                      <TableCell className="text-right">₹{(t.trip_amount || 0).toLocaleString()}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
