@@ -397,8 +397,8 @@ export const DriverReports = () => {
                   <TableHead className="text-right">Total KM</TableHead>
                   <TableHead className="text-right">Avg KM/Trip</TableHead>
                   <TableHead className="text-right">Fuel ₹</TableHead>
-                  <TableHead className="text-right">Litres</TableHead>
-                  <TableHead className="text-right">Mileage (KM/L)</TableHead>
+                  <TableHead className="text-right">Fuel Qty</TableHead>
+                  <TableHead className="text-right">Mileage</TableHead>
                   <TableHead className="text-right">Cost/KM ₹</TableHead>
                   <TableHead className="text-right">Revenue ₹</TableHead>
                 </TableRow>
@@ -412,11 +412,11 @@ export const DriverReports = () => {
                   <TableRow key={s.driver}>
                     <TableCell className="font-medium">{s.driver}</TableCell>
                     <TableCell className="text-right">{s.trips}</TableCell>
-                    <TableCell className="text-right">{s.totalKm.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{s.totalKm.toLocaleString()} km</TableCell>
                     <TableCell className="text-right">{s.avgKm.toFixed(1)}</TableCell>
                     <TableCell className="text-right">₹{s.totalFuel.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{s.totalLitres.toFixed(2)}</TableCell>
-                    <TableCell className="text-right font-medium">{s.mileage > 0 ? s.mileage.toFixed(2) : '—'}</TableCell>
+                    <TableCell className="text-right">{s.totalLitres.toFixed(2)} {s.fuelUnit}</TableCell>
+                    <TableCell className="text-right font-semibold text-primary">{s.mileage > 0 ? `${s.mileage.toFixed(2)} km/${s.fuelUnit}` : '—'}</TableCell>
                     <TableCell className="text-right">{s.costPerKm > 0 ? `₹${s.costPerKm.toFixed(2)}` : '—'}</TableCell>
                     <TableCell className="text-right">₹{s.revenue.toLocaleString()}</TableCell>
                   </TableRow>
