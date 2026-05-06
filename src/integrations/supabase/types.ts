@@ -261,6 +261,7 @@ export type Database = {
           ending_km: number | null
           from_location: string
           fuel_amount: number
+          fuel_litres: number | null
           fuel_type: string
           id: string
           payment_mode: string
@@ -287,6 +288,7 @@ export type Database = {
           ending_km?: number | null
           from_location: string
           fuel_amount?: number
+          fuel_litres?: number | null
           fuel_type: string
           id?: string
           payment_mode: string
@@ -313,6 +315,7 @@ export type Database = {
           ending_km?: number | null
           from_location?: string
           fuel_amount?: number
+          fuel_litres?: number | null
           fuel_type?: string
           id?: string
           payment_mode?: string
