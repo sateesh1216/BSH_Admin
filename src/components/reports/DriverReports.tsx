@@ -427,25 +427,33 @@ export const DriverReports = () => {
                   <TableHead className="text-right">End KM</TableHead>
                   <TableHead className="text-right">Trip KM</TableHead>
                   <TableHead className="text-right">Fuel ₹</TableHead>
+                  <TableHead className="text-right">Litres</TableHead>
+                  <TableHead className="text-right">KM/L</TableHead>
                   <TableHead className="text-right">Trip ₹</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">No trips</TableCell></TableRow>
-                ) : filtered.map(t => (
-                  <TableRow key={t.id}>
-                    <TableCell>{t.date}</TableCell>
-                    <TableCell>{t.driver_name}</TableCell>
-                    <TableCell>{t.car_number || '—'}</TableCell>
-                    <TableCell className="text-xs">{t.from_location} → {t.to_location}</TableCell>
-                    <TableCell className="text-right">{t.starting_km ?? '—'}</TableCell>
-                    <TableCell className="text-right">{t.ending_km ?? '—'}</TableCell>
-                    <TableCell className="text-right font-medium">{tripKm(t)}</TableCell>
-                    <TableCell className="text-right">₹{(t.fuel_amount || 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right">₹{(t.trip_amount || 0).toLocaleString()}</TableCell>
-                  </TableRow>
-                ))}
+                  <TableRow><TableCell colSpan={11} className="text-center py-6 text-muted-foreground">No trips</TableCell></TableRow>
+                ) : filtered.map(t => {
+                  const km = tripKm(t);
+                  const litres = t.fuel_litres || 0;
+                  return (
+                    <TableRow key={t.id}>
+                      <TableCell>{t.date}</TableCell>
+                      <TableCell>{t.driver_name}</TableCell>
+                      <TableCell>{t.car_number || '—'}</TableCell>
+                      <TableCell className="text-xs">{t.from_location} → {t.to_location}</TableCell>
+                      <TableCell className="text-right">{t.starting_km ?? '—'}</TableCell>
+                      <TableCell className="text-right">{t.ending_km ?? '—'}</TableCell>
+                      <TableCell className="text-right font-medium">{km}</TableCell>
+                      <TableCell className="text-right">₹{(t.fuel_amount || 0).toLocaleString()}</TableCell>
+                      <TableCell className="text-right">{litres > 0 ? litres.toFixed(2) : '—'}</TableCell>
+                      <TableCell className="text-right font-medium">{litres > 0 ? (km / litres).toFixed(2) : '—'}</TableCell>
+                      <TableCell className="text-right">₹{(t.trip_amount || 0).toLocaleString()}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
