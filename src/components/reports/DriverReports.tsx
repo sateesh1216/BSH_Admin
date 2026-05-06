@@ -25,6 +25,7 @@ interface TripRow {
   ending_km: number | null;
   trip_amount: number;
   fuel_amount: number;
+  fuel_litres: number | null;
   fuel_type: string;
 }
 
@@ -34,7 +35,9 @@ interface DriverSummary {
   totalKm: number;
   avgKm: number;
   totalFuel: number;
-  mileage: number; // km per ₹ of fuel — proxy for efficiency
+  totalLitres: number;
+  mileage: number; // km per litre — true mileage
+  costPerKm: number;
   revenue: number;
 }
 
