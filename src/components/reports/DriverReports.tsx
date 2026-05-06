@@ -226,12 +226,13 @@ export const DriverReports = () => {
 
     autoTable(doc, {
       startY: 34,
-      head: [['Driver', 'Trips', 'Total KM', 'Avg KM/Trip', 'Fuel ₹', 'KM/₹ Fuel', 'Revenue ₹']],
+      head: [['Driver', 'Trips', 'Total KM', 'Avg KM/Trip', 'Fuel ₹', 'Litres', 'KM/L', 'Revenue ₹']],
       body: summaries.map(s => [
         s.driver, s.trips, s.totalKm,
         s.avgKm.toFixed(2),
         s.totalFuel.toFixed(0),
-        s.mileage.toFixed(3),
+        s.totalLitres.toFixed(2),
+        s.mileage.toFixed(2),
         s.revenue.toFixed(0),
       ]),
       styles: { fontSize: 9 },
@@ -240,13 +241,20 @@ export const DriverReports = () => {
 
     autoTable(doc, {
       startY: (doc as any).lastAutoTable.finalY + 8,
-      head: [['Date', 'Driver', 'Vehicle', 'From', 'To', 'Start KM', 'End KM', 'Trip KM', 'Fuel ₹', 'Trip ₹']],
-      body: filtered.map(t => [
-        t.date, t.driver_name, t.car_number || '',
-        t.from_location, t.to_location,
-        t.starting_km ?? '', t.ending_km ?? '', tripKm(t),
-        (t.fuel_amount || 0).toFixed(0), (t.trip_amount || 0).toFixed(0),
-      ]),
+      head: [['Date', 'Driver', 'Vehicle', 'From', 'To', 'Start KM', 'End KM', 'Trip KM', 'Fuel ₹', 'Litres', 'KM/L', 'Trip ₹']],
+      body: filtered.map(t => {
+        const km = tripKm(t);
+        const litres = t.fuel_litres || 0;
+        return [
+          t.date, t.driver_name, t.car_number || '',
+          t.from_location, t.to_location,
+          t.starting_km ?? '', t.ending_km ?? '', km,
+          (t.fuel_amount || 0).toFixed(0),
+          litres ? litres.toFixed(2) : '-',
+          litres > 0 ? (km / litres).toFixed(2) : '-',
+          (t.trip_amount || 0).toFixed(0),
+        ];
+      }),
       styles: { fontSize: 8 },
       headStyles: { fillColor: [30, 58, 95] },
     });
