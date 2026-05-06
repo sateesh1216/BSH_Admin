@@ -153,7 +153,7 @@ export const DriverReports = () => {
       cur.trips += 1;
       cur.totalKm += km;
       cur.totalFuel += t.fuel_amount || 0;
-      cur.totalLitres += t.fuel_litres || 0;
+      cur.totalLitres += litresFor(t);
       cur.revenue += t.trip_amount || 0;
       map.set(t.driver_name, cur);
 
