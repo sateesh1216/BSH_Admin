@@ -219,7 +219,7 @@ export const DriverReports = () => {
     const detailSheet = XLSX.utils.json_to_sheet(
       filtered.map(t => {
         const km = tripKm(t);
-        const litres = t.fuel_litres || 0;
+        const litres = litresFor(t);
         return {
           Date: t.date,
           Driver: t.driver_name,
@@ -275,7 +275,7 @@ export const DriverReports = () => {
       head: [['Date', 'Driver', 'Vehicle', 'From', 'To', 'Start KM', 'End KM', 'Trip KM', 'Fuel ₹', 'Litres', 'KM/L', 'Trip ₹']],
       body: filtered.map(t => {
         const km = tripKm(t);
-        const litres = t.fuel_litres || 0;
+        const litres = litresFor(t);
         return [
           t.date, t.driver_name, t.car_number || '',
           t.from_location, t.to_location,
@@ -468,7 +468,7 @@ export const DriverReports = () => {
                   <TableRow><TableCell colSpan={11} className="text-center py-6 text-muted-foreground">No trips</TableCell></TableRow>
                 ) : filtered.map(t => {
                   const km = tripKm(t);
-                  const litres = t.fuel_litres || 0;
+                  const litres = litresFor(t);
                   return (
                     <TableRow key={t.id}>
                       <TableCell>{t.date}</TableCell>
