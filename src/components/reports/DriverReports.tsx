@@ -177,26 +177,34 @@ export const DriverReports = () => {
         'Total KM': s.totalKm,
         'Avg KM/Trip': Number(s.avgKm.toFixed(2)),
         'Fuel ₹': s.totalFuel,
-        'KM per ₹ Fuel': Number(s.mileage.toFixed(3)),
+        'Fuel Litres': Number(s.totalLitres.toFixed(2)),
+        'Mileage (KM/L)': Number(s.mileage.toFixed(2)),
+        'Cost per KM ₹': Number(s.costPerKm.toFixed(2)),
         'Revenue ₹': s.revenue,
       }))
     );
     XLSX.utils.book_append_sheet(wb, summarySheet, 'Driver Summary');
 
     const detailSheet = XLSX.utils.json_to_sheet(
-      filtered.map(t => ({
-        Date: t.date,
-        Driver: t.driver_name,
-        Vehicle: t.car_number || '',
-        From: t.from_location,
-        To: t.to_location,
-        'Start KM': t.starting_km ?? '',
-        'End KM': t.ending_km ?? '',
-        'Trip KM': tripKm(t),
-        'Fuel ₹': t.fuel_amount,
-        'Fuel Type': t.fuel_type,
-        'Trip ₹': t.trip_amount,
-      }))
+      filtered.map(t => {
+        const km = tripKm(t);
+        const litres = t.fuel_litres || 0;
+        return {
+          Date: t.date,
+          Driver: t.driver_name,
+          Vehicle: t.car_number || '',
+          From: t.from_location,
+          To: t.to_location,
+          'Start KM': t.starting_km ?? '',
+          'End KM': t.ending_km ?? '',
+          'Trip KM': km,
+          'Fuel ₹': t.fuel_amount,
+          'Fuel Litres': litres,
+          'Mileage (KM/L)': litres > 0 ? Number((km / litres).toFixed(2)) : '',
+          'Fuel Type': t.fuel_type,
+          'Trip ₹': t.trip_amount,
+        };
+      })
     );
     XLSX.utils.book_append_sheet(wb, detailSheet, 'Trip Details');
 
