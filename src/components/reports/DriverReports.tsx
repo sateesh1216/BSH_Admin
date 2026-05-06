@@ -129,18 +129,20 @@ export const DriverReports = () => {
       const km = tripKm(t);
       const cur = map.get(t.driver_name) || {
         driver: t.driver_name,
-        trips: 0, totalKm: 0, avgKm: 0, totalFuel: 0, mileage: 0, revenue: 0,
+        trips: 0, totalKm: 0, avgKm: 0, totalFuel: 0, totalLitres: 0, mileage: 0, costPerKm: 0, revenue: 0,
       };
       cur.trips += 1;
       cur.totalKm += km;
       cur.totalFuel += t.fuel_amount || 0;
+      cur.totalLitres += t.fuel_litres || 0;
       cur.revenue += t.trip_amount || 0;
       map.set(t.driver_name, cur);
     });
     const arr = Array.from(map.values()).map(s => ({
       ...s,
       avgKm: s.trips ? s.totalKm / s.trips : 0,
-      mileage: s.totalFuel ? s.totalKm / s.totalFuel : 0,
+      mileage: s.totalLitres ? s.totalKm / s.totalLitres : 0,
+      costPerKm: s.totalKm ? s.totalFuel / s.totalKm : 0,
     }));
     return arr.sort((a, b) => b.totalKm - a.totalKm);
   }, [filtered]);
@@ -151,10 +153,11 @@ export const DriverReports = () => {
         acc.trips += s.trips;
         acc.totalKm += s.totalKm;
         acc.totalFuel += s.totalFuel;
+        acc.totalLitres += s.totalLitres;
         acc.revenue += s.revenue;
         return acc;
       },
-      { trips: 0, totalKm: 0, totalFuel: 0, revenue: 0 }
+      { trips: 0, totalKm: 0, totalFuel: 0, totalLitres: 0, revenue: 0 }
     );
   }, [summaries]);
 
