@@ -127,11 +127,13 @@ export const DriverReports = () => {
 
   const summaries: DriverSummary[] = useMemo(() => {
     const map = new Map<string, DriverSummary>();
+    const fuelTypeCounts = new Map<string, Map<string, number>>();
     filtered.forEach(t => {
       const km = tripKm(t);
       const cur = map.get(t.driver_name) || {
         driver: t.driver_name,
         trips: 0, totalKm: 0, avgKm: 0, totalFuel: 0, totalLitres: 0, mileage: 0, costPerKm: 0, revenue: 0,
+        primaryFuelType: t.fuel_type || 'Petrol', fuelUnit: 'L',
       };
       cur.trips += 1;
       cur.totalKm += km;
@@ -139,13 +141,25 @@ export const DriverReports = () => {
       cur.totalLitres += t.fuel_litres || 0;
       cur.revenue += t.trip_amount || 0;
       map.set(t.driver_name, cur);
+
+      const ftMap = fuelTypeCounts.get(t.driver_name) || new Map<string, number>();
+      const ft = t.fuel_type || 'Petrol';
+      ftMap.set(ft, (ftMap.get(ft) || 0) + 1);
+      fuelTypeCounts.set(t.driver_name, ftMap);
     });
-    const arr = Array.from(map.values()).map(s => ({
-      ...s,
-      avgKm: s.trips ? s.totalKm / s.trips : 0,
-      mileage: s.totalLitres ? s.totalKm / s.totalLitres : 0,
-      costPerKm: s.totalKm ? s.totalFuel / s.totalKm : 0,
-    }));
+    const arr = Array.from(map.values()).map(s => {
+      const ftMap = fuelTypeCounts.get(s.driver) || new Map();
+      const primaryFuelType = Array.from(ftMap.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Petrol';
+      const fuelUnit = primaryFuelType === 'CNG' ? 'kg' : primaryFuelType === 'EV' ? 'unit' : 'L';
+      return {
+        ...s,
+        avgKm: s.trips ? s.totalKm / s.trips : 0,
+        mileage: s.totalLitres ? s.totalKm / s.totalLitres : 0,
+        costPerKm: s.totalKm ? s.totalFuel / s.totalKm : 0,
+        primaryFuelType,
+        fuelUnit,
+      };
+    });
     return arr.sort((a, b) => b.totalKm - a.totalKm);
   }, [filtered]);
 
