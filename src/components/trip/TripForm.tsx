@@ -285,6 +285,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
         driver_amount: data.driverAmount,
         commission: data.commission,
         fuel_amount: data.fuelAmount,
+        fuel_litres: data.fuelQuantity || 0,
         tolls: data.tolls,
         trip_amount: data.tripAmount,
         profit: profit,
