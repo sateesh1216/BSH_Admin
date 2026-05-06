@@ -13,6 +13,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { FUEL_RATES_UPDATED_EVENT, FuelRates, FuelType, getFuelUnit, getStoredFuelRates } from '@/lib/fuelRates';
 
 interface TripRow {
   id: string;
