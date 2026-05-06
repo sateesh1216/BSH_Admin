@@ -58,6 +58,20 @@ export const DriverReports = () => {
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [driverFilter, setDriverFilter] = useState<string>('all');
   const [vehicleFilter, setVehicleFilter] = useState<string>('all');
+  const [fuelRates, setFuelRates] = useState<FuelRates>(getStoredFuelRates());
+
+  useEffect(() => {
+    const handler = () => setFuelRates(getStoredFuelRates());
+    window.addEventListener(FUEL_RATES_UPDATED_EVENT, handler);
+    return () => window.removeEventListener(FUEL_RATES_UPDATED_EVENT, handler);
+  }, []);
+
+  const litresFor = (t: TripRow): number => {
+    if (t.fuel_litres && t.fuel_litres > 0) return t.fuel_litres;
+    const rate = fuelRates[(t.fuel_type as FuelType)] || 0;
+    if (rate > 0 && (t.fuel_amount || 0) > 0) return (t.fuel_amount || 0) / rate;
+    return 0;
+  };
 
   const fetchTrips = async () => {
     setLoading(true);
