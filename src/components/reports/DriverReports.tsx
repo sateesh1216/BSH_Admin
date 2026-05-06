@@ -176,7 +176,7 @@ export const DriverReports = () => {
       };
     });
     return arr.sort((a, b) => b.totalKm - a.totalKm);
-  }, [filtered]);
+  }, [filtered, fuelRates]);
 
   const totals = useMemo(() => {
     return summaries.reduce(
