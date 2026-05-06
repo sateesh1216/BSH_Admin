@@ -13,6 +13,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { FUEL_RATES_UPDATED_EVENT, FuelRates, FuelType, getFuelUnit, getStoredFuelRates } from '@/lib/fuelRates';
 
 interface TripRow {
   id: string;
@@ -57,6 +58,20 @@ export const DriverReports = () => {
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [driverFilter, setDriverFilter] = useState<string>('all');
   const [vehicleFilter, setVehicleFilter] = useState<string>('all');
+  const [fuelRates, setFuelRates] = useState<FuelRates>(getStoredFuelRates());
+
+  useEffect(() => {
+    const handler = () => setFuelRates(getStoredFuelRates());
+    window.addEventListener(FUEL_RATES_UPDATED_EVENT, handler);
+    return () => window.removeEventListener(FUEL_RATES_UPDATED_EVENT, handler);
+  }, []);
+
+  const litresFor = (t: TripRow): number => {
+    if (t.fuel_litres && t.fuel_litres > 0) return t.fuel_litres;
+    const rate = fuelRates[(t.fuel_type as FuelType)] || 0;
+    if (rate > 0 && (t.fuel_amount || 0) > 0) return (t.fuel_amount || 0) / rate;
+    return 0;
+  };
 
   const fetchTrips = async () => {
     setLoading(true);
@@ -138,7 +153,7 @@ export const DriverReports = () => {
       cur.trips += 1;
       cur.totalKm += km;
       cur.totalFuel += t.fuel_amount || 0;
-      cur.totalLitres += t.fuel_litres || 0;
+      cur.totalLitres += litresFor(t);
       cur.revenue += t.trip_amount || 0;
       map.set(t.driver_name, cur);
 
@@ -161,7 +176,7 @@ export const DriverReports = () => {
       };
     });
     return arr.sort((a, b) => b.totalKm - a.totalKm);
-  }, [filtered]);
+  }, [filtered, fuelRates]);
 
   const totals = useMemo(() => {
     return summaries.reduce(
@@ -204,7 +219,7 @@ export const DriverReports = () => {
     const detailSheet = XLSX.utils.json_to_sheet(
       filtered.map(t => {
         const km = tripKm(t);
-        const litres = t.fuel_litres || 0;
+        const litres = litresFor(t);
         return {
           Date: t.date,
           Driver: t.driver_name,
@@ -260,7 +275,7 @@ export const DriverReports = () => {
       head: [['Date', 'Driver', 'Vehicle', 'From', 'To', 'Start KM', 'End KM', 'Trip KM', 'Fuel ₹', 'Litres', 'KM/L', 'Trip ₹']],
       body: filtered.map(t => {
         const km = tripKm(t);
-        const litres = t.fuel_litres || 0;
+        const litres = litresFor(t);
         return [
           t.date, t.driver_name, t.car_number || '',
           t.from_location, t.to_location,
@@ -453,7 +468,7 @@ export const DriverReports = () => {
                   <TableRow><TableCell colSpan={11} className="text-center py-6 text-muted-foreground">No trips</TableCell></TableRow>
                 ) : filtered.map(t => {
                   const km = tripKm(t);
-                  const litres = t.fuel_litres || 0;
+                  const litres = litresFor(t);
                   return (
                     <TableRow key={t.id}>
                       <TableCell>{t.date}</TableCell>
