@@ -160,20 +160,25 @@ export const DriverReports = () => {
     const fuelTypeCounts = new Map<string, Map<string, number>>();
     filtered.forEach(t => {
       const km = tripKm(t);
-      const cur = map.get(t.driver_name) || {
+      const cur: DriverSummary = map.get(t.driver_name) || {
         driver: t.driver_name,
         trips: 0, totalKm: 0, avgKm: 0, totalFuel: 0, totalLitres: 0, mileage: 0, costPerKm: 0, revenue: 0,
         primaryFuelType: t.fuel_type || 'Petrol', fuelUnit: 'L',
+        byFuel: emptyBreakdown(),
       };
       cur.trips += 1;
       cur.totalKm += km;
       cur.totalFuel += t.fuel_amount || 0;
-      cur.totalLitres += litresFor(t);
+      const litres = litresFor(t);
+      cur.totalLitres += litres;
       cur.revenue += t.trip_amount || 0;
+      const ft = (FUEL_TYPES.includes(t.fuel_type as FuelType) ? t.fuel_type : 'Petrol') as FuelType;
+      cur.byFuel[ft].litres += litres;
+      cur.byFuel[ft].km += km;
+      cur.byFuel[ft].amount += t.fuel_amount || 0;
       map.set(t.driver_name, cur);
 
       const ftMap = fuelTypeCounts.get(t.driver_name) || new Map<string, number>();
-      const ft = t.fuel_type || 'Petrol';
       ftMap.set(ft, (ftMap.get(ft) || 0) + 1);
       fuelTypeCounts.set(t.driver_name, ftMap);
     });
