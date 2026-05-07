@@ -542,44 +542,78 @@ export const DriverReports = () => {
 
       {/* Trip-wise breakdown */}
       <Card>
-        <CardHeader><CardTitle>Trip-wise KM Breakdown</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Trip-wise KM Breakdown</CardTitle>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Columns3 className="h-4 w-4 mr-2" /> Columns
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-3 max-h-80 overflow-y-auto">
+              <div className="text-xs font-semibold mb-2 text-muted-foreground">Toggle columns</div>
+              <div className="flex justify-between mb-2 gap-2">
+                <Button variant="ghost" size="sm" className="h-7 text-xs flex-1"
+                  onClick={() => setTripVisibleCols(Object.fromEntries(TRIP_COLUMNS.map(c => [c.key, true])))}>
+                  Show all
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 text-xs flex-1"
+                  onClick={() => setTripVisibleCols(Object.fromEntries(TRIP_COLUMNS.map(c => [c.key, false])))}>
+                  Hide all
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {TRIP_COLUMNS.map(c => (
+                  <div key={c.key} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`tcol-${c.key}`}
+                      checked={isTripVisible(c.key)}
+                      onCheckedChange={(v) => setTripVisibleCols(prev => ({ ...prev, [c.key]: !!v }))}
+                    />
+                    <Label htmlFor={`tcol-${c.key}`} className="text-sm cursor-pointer flex-1">{c.label}</Label>
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </CardHeader>
         <CardContent>
           <div className="overflow-x-auto max-h-[500px]">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Driver</TableHead>
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>Route</TableHead>
-                  <TableHead className="text-right">Start KM</TableHead>
-                  <TableHead className="text-right">End KM</TableHead>
-                  <TableHead className="text-right">Trip KM</TableHead>
-                  <TableHead className="text-right">Fuel ₹</TableHead>
-                  <TableHead className="text-right">Litres</TableHead>
-                  <TableHead className="text-right">KM/L</TableHead>
-                  <TableHead className="text-right">Trip ₹</TableHead>
+                  {isTripVisible('date') && <TableHead>Date</TableHead>}
+                  {isTripVisible('driver') && <TableHead>Driver</TableHead>}
+                  {isTripVisible('vehicle') && <TableHead>Vehicle</TableHead>}
+                  {isTripVisible('route') && <TableHead>Route</TableHead>}
+                  {isTripVisible('startKm') && <TableHead className="text-right">Start KM</TableHead>}
+                  {isTripVisible('endKm') && <TableHead className="text-right">End KM</TableHead>}
+                  {isTripVisible('tripKm') && <TableHead className="text-right">Trip KM</TableHead>}
+                  {isTripVisible('fuelAmount') && <TableHead className="text-right">Fuel ₹</TableHead>}
+                  {isTripVisible('litres') && <TableHead className="text-right">Litres</TableHead>}
+                  {isTripVisible('kmpl') && <TableHead className="text-right">KM/L</TableHead>}
+                  {isTripVisible('tripAmount') && <TableHead className="text-right">Trip ₹</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={11} className="text-center py-6 text-muted-foreground">No trips</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={tripVisibleCount} className="text-center py-6 text-muted-foreground">No trips</TableCell></TableRow>
                 ) : filtered.map(t => {
                   const km = tripKm(t);
                   const litres = litresFor(t);
                   return (
                     <TableRow key={t.id}>
-                      <TableCell>{t.date}</TableCell>
-                      <TableCell>{t.driver_name}</TableCell>
-                      <TableCell>{t.car_number || '—'}</TableCell>
-                      <TableCell className="text-xs">{t.from_location} → {t.to_location}</TableCell>
-                      <TableCell className="text-right">{t.starting_km ?? '—'}</TableCell>
-                      <TableCell className="text-right">{t.ending_km ?? '—'}</TableCell>
-                      <TableCell className="text-right font-medium">{km}</TableCell>
-                      <TableCell className="text-right">₹{(t.fuel_amount || 0).toLocaleString()}</TableCell>
-                      <TableCell className="text-right">{litres > 0 ? litres.toFixed(2) : '—'}</TableCell>
-                      <TableCell className="text-right font-medium">{litres > 0 ? (km / litres).toFixed(2) : '—'}</TableCell>
-                      <TableCell className="text-right">₹{(t.trip_amount || 0).toLocaleString()}</TableCell>
+                      {isTripVisible('date') && <TableCell>{t.date}</TableCell>}
+                      {isTripVisible('driver') && <TableCell>{t.driver_name}</TableCell>}
+                      {isTripVisible('vehicle') && <TableCell>{t.car_number || '—'}</TableCell>}
+                      {isTripVisible('route') && <TableCell className="text-xs">{t.from_location} → {t.to_location}</TableCell>}
+                      {isTripVisible('startKm') && <TableCell className="text-right">{t.starting_km ?? '—'}</TableCell>}
+                      {isTripVisible('endKm') && <TableCell className="text-right">{t.ending_km ?? '—'}</TableCell>}
+                      {isTripVisible('tripKm') && <TableCell className="text-right font-medium">{km}</TableCell>}
+                      {isTripVisible('fuelAmount') && <TableCell className="text-right">₹{(t.fuel_amount || 0).toLocaleString()}</TableCell>}
+                      {isTripVisible('litres') && <TableCell className="text-right">{litres > 0 ? litres.toFixed(2) : '—'}</TableCell>}
+                      {isTripVisible('kmpl') && <TableCell className="text-right font-medium">{litres > 0 ? (km / litres).toFixed(2) : '—'}</TableCell>}
+                      {isTripVisible('tripAmount') && <TableCell className="text-right">₹{(t.trip_amount || 0).toLocaleString()}</TableCell>}
                     </TableRow>
                   );
                 })}
