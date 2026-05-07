@@ -242,8 +242,6 @@ export const DriverReports = () => {
       })
     );
     XLSX.utils.book_append_sheet(wb, summarySheet, 'Driver Summary');
-    // (placeholder removed)
-    // dummy
 
     const detailSheet = XLSX.utils.json_to_sheet(
       filtered.map(t => {
