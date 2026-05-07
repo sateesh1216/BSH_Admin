@@ -222,19 +222,28 @@ export const DriverReports = () => {
   const exportExcel = () => {
     const wb = XLSX.utils.book_new();
     const summarySheet = XLSX.utils.json_to_sheet(
-      summaries.map(s => ({
-        Driver: s.driver,
-        'Total Trips': s.trips,
-        'Total KM': s.totalKm,
-        'Avg KM/Trip': Number(s.avgKm.toFixed(2)),
-        'Fuel ₹': s.totalFuel,
-        'Fuel Litres': Number(s.totalLitres.toFixed(2)),
-        'Mileage (KM/L)': Number(s.mileage.toFixed(2)),
-        'Cost per KM ₹': Number(s.costPerKm.toFixed(2)),
-        'Revenue ₹': s.revenue,
-      }))
+      summaries.map(s => {
+        const row: Record<string, any> = {
+          Driver: s.driver,
+          'Total Trips': s.trips,
+          'Total KM': s.totalKm,
+          'Avg KM/Trip': Number(s.avgKm.toFixed(2)),
+          'Fuel ₹': s.totalFuel,
+        };
+        FUEL_TYPES.forEach(ft => {
+          row[`${ft} Qty (${getFuelUnit(ft)})`] = Number(s.byFuel[ft].litres.toFixed(2));
+        });
+        FUEL_TYPES.forEach(ft => {
+          const b = s.byFuel[ft];
+          row[`${ft} Mileage (km/${getFuelUnit(ft)})`] = b.litres > 0 ? Number((b.km / b.litres).toFixed(2)) : '';
+        });
+        row['Revenue ₹'] = s.revenue;
+        return row;
+      })
     );
     XLSX.utils.book_append_sheet(wb, summarySheet, 'Driver Summary');
+    // (placeholder removed)
+    // dummy
 
     const detailSheet = XLSX.utils.json_to_sheet(
       filtered.map(t => {
