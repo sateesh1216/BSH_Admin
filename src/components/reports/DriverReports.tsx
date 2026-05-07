@@ -78,6 +78,29 @@ export const DriverReports = () => {
   const [vehicleFilter, setVehicleFilter] = useState<string>('all');
   const [fuelRates, setFuelRates] = useState<FuelRates>(getStoredFuelRates());
 
+  const ALL_COLUMNS: { key: string; label: string }[] = [
+    { key: 'trips', label: 'Trips' },
+    { key: 'totalKm', label: 'Total KM' },
+    { key: 'avgKm', label: 'Avg KM/Trip' },
+    { key: 'fuelAmount', label: 'Fuel ₹' },
+    ...FUEL_TYPES.map(ft => ({ key: `qty_${ft}`, label: `${ft} Qty` })),
+    ...FUEL_TYPES.map(ft => ({ key: `mil_${ft}`, label: `${ft} Mileage` })),
+    { key: 'revenue', label: 'Revenue ₹' },
+  ];
+  const COLS_STORAGE_KEY = 'driver-reports-visible-cols';
+  const [visibleCols, setVisibleCols] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem(COLS_STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true]));
+  });
+  useEffect(() => {
+    try { localStorage.setItem(COLS_STORAGE_KEY, JSON.stringify(visibleCols)); } catch {}
+  }, [visibleCols]);
+  const isVisible = (k: string) => visibleCols[k] !== false;
+  const visibleCount = ALL_COLUMNS.filter(c => isVisible(c.key)).length + 1; // +1 for Driver
+
   useEffect(() => {
     const handler = () => setFuelRates(getStoredFuelRates());
     window.addEventListener(FUEL_RATES_UPDATED_EVENT, handler);
