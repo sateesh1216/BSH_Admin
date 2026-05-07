@@ -30,6 +30,12 @@ interface TripRow {
   fuel_type: string;
 }
 
+interface FuelBreakdown {
+  litres: number;
+  km: number;
+  amount: number;
+}
+
 interface DriverSummary {
   driver: string;
   trips: number;
@@ -42,7 +48,16 @@ interface DriverSummary {
   revenue: number;
   primaryFuelType: string;
   fuelUnit: string; // L or kg
+  byFuel: Record<FuelType, FuelBreakdown>;
 }
+
+const FUEL_TYPES: FuelType[] = ['Petrol', 'Diesel', 'CNG', 'EV'];
+const emptyBreakdown = (): Record<FuelType, FuelBreakdown> => ({
+  Petrol: { litres: 0, km: 0, amount: 0 },
+  Diesel: { litres: 0, km: 0, amount: 0 },
+  CNG: { litres: 0, km: 0, amount: 0 },
+  EV: { litres: 0, km: 0, amount: 0 },
+});
 
 type FilterMode = 'all' | 'monthly' | 'daily' | 'range';
 
@@ -145,20 +160,25 @@ export const DriverReports = () => {
     const fuelTypeCounts = new Map<string, Map<string, number>>();
     filtered.forEach(t => {
       const km = tripKm(t);
-      const cur = map.get(t.driver_name) || {
+      const cur: DriverSummary = map.get(t.driver_name) || {
         driver: t.driver_name,
         trips: 0, totalKm: 0, avgKm: 0, totalFuel: 0, totalLitres: 0, mileage: 0, costPerKm: 0, revenue: 0,
         primaryFuelType: t.fuel_type || 'Petrol', fuelUnit: 'L',
+        byFuel: emptyBreakdown(),
       };
       cur.trips += 1;
       cur.totalKm += km;
       cur.totalFuel += t.fuel_amount || 0;
-      cur.totalLitres += litresFor(t);
+      const litres = litresFor(t);
+      cur.totalLitres += litres;
       cur.revenue += t.trip_amount || 0;
+      const ft = (FUEL_TYPES.includes(t.fuel_type as FuelType) ? t.fuel_type : 'Petrol') as FuelType;
+      cur.byFuel[ft].litres += litres;
+      cur.byFuel[ft].km += km;
+      cur.byFuel[ft].amount += t.fuel_amount || 0;
       map.set(t.driver_name, cur);
 
       const ftMap = fuelTypeCounts.get(t.driver_name) || new Map<string, number>();
-      const ft = t.fuel_type || 'Petrol';
       ftMap.set(ft, (ftMap.get(ft) || 0) + 1);
       fuelTypeCounts.set(t.driver_name, ftMap);
     });
@@ -202,17 +222,24 @@ export const DriverReports = () => {
   const exportExcel = () => {
     const wb = XLSX.utils.book_new();
     const summarySheet = XLSX.utils.json_to_sheet(
-      summaries.map(s => ({
-        Driver: s.driver,
-        'Total Trips': s.trips,
-        'Total KM': s.totalKm,
-        'Avg KM/Trip': Number(s.avgKm.toFixed(2)),
-        'Fuel ₹': s.totalFuel,
-        'Fuel Litres': Number(s.totalLitres.toFixed(2)),
-        'Mileage (KM/L)': Number(s.mileage.toFixed(2)),
-        'Cost per KM ₹': Number(s.costPerKm.toFixed(2)),
-        'Revenue ₹': s.revenue,
-      }))
+      summaries.map(s => {
+        const row: Record<string, any> = {
+          Driver: s.driver,
+          'Total Trips': s.trips,
+          'Total KM': s.totalKm,
+          'Avg KM/Trip': Number(s.avgKm.toFixed(2)),
+          'Fuel ₹': s.totalFuel,
+        };
+        FUEL_TYPES.forEach(ft => {
+          row[`${ft} Qty (${getFuelUnit(ft)})`] = Number(s.byFuel[ft].litres.toFixed(2));
+        });
+        FUEL_TYPES.forEach(ft => {
+          const b = s.byFuel[ft];
+          row[`${ft} Mileage (km/${getFuelUnit(ft)})`] = b.litres > 0 ? Number((b.km / b.litres).toFixed(2)) : '';
+        });
+        row['Revenue ₹'] = s.revenue;
+        return row;
+      })
     );
     XLSX.utils.book_append_sheet(wb, summarySheet, 'Driver Summary');
 
@@ -412,17 +439,20 @@ export const DriverReports = () => {
                   <TableHead className="text-right">Total KM</TableHead>
                   <TableHead className="text-right">Avg KM/Trip</TableHead>
                   <TableHead className="text-right">Fuel ₹</TableHead>
-                  <TableHead className="text-right">Fuel Qty</TableHead>
-                  <TableHead className="text-right">Mileage</TableHead>
-                  <TableHead className="text-right">Cost/KM ₹</TableHead>
+                  {FUEL_TYPES.map(ft => (
+                    <TableHead key={`q-${ft}`} className="text-right whitespace-nowrap">{ft} Qty ({getFuelUnit(ft)})</TableHead>
+                  ))}
+                  {FUEL_TYPES.map(ft => (
+                    <TableHead key={`m-${ft}`} className="text-right whitespace-nowrap">{ft} Mileage</TableHead>
+                  ))}
                   <TableHead className="text-right">Revenue ₹</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-6">Loading…</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6 + FUEL_TYPES.length * 2 + 1} className="text-center py-6">Loading…</TableCell></TableRow>
                 ) : summaries.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">No data</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6 + FUEL_TYPES.length * 2 + 1} className="text-center py-6 text-muted-foreground">No data</TableCell></TableRow>
                 ) : summaries.map(s => (
                   <TableRow key={s.driver}>
                     <TableCell className="font-medium">{s.driver}</TableCell>
@@ -430,9 +460,15 @@ export const DriverReports = () => {
                     <TableCell className="text-right">{s.totalKm.toLocaleString()} km</TableCell>
                     <TableCell className="text-right">{s.avgKm.toFixed(1)}</TableCell>
                     <TableCell className="text-right">₹{s.totalFuel.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{s.totalLitres.toFixed(2)} {s.fuelUnit}</TableCell>
-                    <TableCell className="text-right font-semibold text-primary">{s.mileage > 0 ? `${s.mileage.toFixed(2)} km/${s.fuelUnit}` : '—'}</TableCell>
-                    <TableCell className="text-right">{s.costPerKm > 0 ? `₹${s.costPerKm.toFixed(2)}` : '—'}</TableCell>
+                    {FUEL_TYPES.map(ft => {
+                      const b = s.byFuel[ft];
+                      return <TableCell key={`q-${ft}`} className="text-right">{b.litres > 0 ? `${b.litres.toFixed(2)} ${getFuelUnit(ft)}` : '—'}</TableCell>;
+                    })}
+                    {FUEL_TYPES.map(ft => {
+                      const b = s.byFuel[ft];
+                      const m = b.litres > 0 ? b.km / b.litres : 0;
+                      return <TableCell key={`m-${ft}`} className="text-right font-semibold text-primary">{m > 0 ? `${m.toFixed(2)} km/${getFuelUnit(ft)}` : '—'}</TableCell>;
+                    })}
                     <TableCell className="text-right">₹{s.revenue.toLocaleString()}</TableCell>
                   </TableRow>
                 ))}
