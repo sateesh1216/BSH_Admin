@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
-import { Download, FileText, Users, Route, Gauge, TrendingUp } from 'lucide-react';
+import { Download, FileText, Users, Route, Gauge, TrendingUp, Columns3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -74,6 +77,29 @@ export const DriverReports = () => {
   const [driverFilter, setDriverFilter] = useState<string>('all');
   const [vehicleFilter, setVehicleFilter] = useState<string>('all');
   const [fuelRates, setFuelRates] = useState<FuelRates>(getStoredFuelRates());
+
+  const ALL_COLUMNS: { key: string; label: string }[] = [
+    { key: 'trips', label: 'Trips' },
+    { key: 'totalKm', label: 'Total KM' },
+    { key: 'avgKm', label: 'Avg KM/Trip' },
+    { key: 'fuelAmount', label: 'Fuel ₹' },
+    ...FUEL_TYPES.map(ft => ({ key: `qty_${ft}`, label: `${ft} Qty` })),
+    ...FUEL_TYPES.map(ft => ({ key: `mil_${ft}`, label: `${ft} Mileage` })),
+    { key: 'revenue', label: 'Revenue ₹' },
+  ];
+  const COLS_STORAGE_KEY = 'driver-reports-visible-cols';
+  const [visibleCols, setVisibleCols] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem(COLS_STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true]));
+  });
+  useEffect(() => {
+    try { localStorage.setItem(COLS_STORAGE_KEY, JSON.stringify(visibleCols)); } catch {}
+  }, [visibleCols]);
+  const isVisible = (k: string) => visibleCols[k] !== false;
+  const visibleCount = ALL_COLUMNS.filter(c => isVisible(c.key)).length + 1; // +1 for Driver
 
   useEffect(() => {
     const handler = () => setFuelRates(getStoredFuelRates());
@@ -428,48 +454,84 @@ export const DriverReports = () => {
 
       {/* Driver Summary Table */}
       <Card>
-        <CardHeader><CardTitle>Driver Summary</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Driver Summary</CardTitle>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Columns3 className="h-4 w-4 mr-2" /> Columns
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-3 max-h-80 overflow-y-auto">
+              <div className="text-xs font-semibold mb-2 text-muted-foreground">Toggle columns</div>
+              <div className="flex justify-between mb-2 gap-2">
+                <Button variant="ghost" size="sm" className="h-7 text-xs flex-1"
+                  onClick={() => setVisibleCols(Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])))}>
+                  Show all
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 text-xs flex-1"
+                  onClick={() => setVisibleCols(Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])))}>
+                  Hide all
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {ALL_COLUMNS.map(c => (
+                  <div key={c.key} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`col-${c.key}`}
+                      checked={isVisible(c.key)}
+                      onCheckedChange={(v) => setVisibleCols(prev => ({ ...prev, [c.key]: !!v }))}
+                    />
+                    <Label htmlFor={`col-${c.key}`} className="text-sm cursor-pointer flex-1">{c.label}</Label>
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Driver</TableHead>
-                  <TableHead className="text-right">Trips</TableHead>
-                  <TableHead className="text-right">Total KM</TableHead>
-                  <TableHead className="text-right">Avg KM/Trip</TableHead>
-                  <TableHead className="text-right">Fuel ₹</TableHead>
-                  {FUEL_TYPES.map(ft => (
+                  {isVisible('trips') && <TableHead className="text-right">Trips</TableHead>}
+                  {isVisible('totalKm') && <TableHead className="text-right">Total KM</TableHead>}
+                  {isVisible('avgKm') && <TableHead className="text-right">Avg KM/Trip</TableHead>}
+                  {isVisible('fuelAmount') && <TableHead className="text-right">Fuel ₹</TableHead>}
+                  {FUEL_TYPES.map(ft => isVisible(`qty_${ft}`) && (
                     <TableHead key={`q-${ft}`} className="text-right whitespace-nowrap">{ft} Qty ({getFuelUnit(ft)})</TableHead>
                   ))}
-                  {FUEL_TYPES.map(ft => (
+                  {FUEL_TYPES.map(ft => isVisible(`mil_${ft}`) && (
                     <TableHead key={`m-${ft}`} className="text-right whitespace-nowrap">{ft} Mileage</TableHead>
                   ))}
-                  <TableHead className="text-right">Revenue ₹</TableHead>
+                  {isVisible('revenue') && <TableHead className="text-right">Revenue ₹</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={6 + FUEL_TYPES.length * 2 + 1} className="text-center py-6">Loading…</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={visibleCount} className="text-center py-6">Loading…</TableCell></TableRow>
                 ) : summaries.length === 0 ? (
-                  <TableRow><TableCell colSpan={6 + FUEL_TYPES.length * 2 + 1} className="text-center py-6 text-muted-foreground">No data</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={visibleCount} className="text-center py-6 text-muted-foreground">No data</TableCell></TableRow>
                 ) : summaries.map(s => (
                   <TableRow key={s.driver}>
                     <TableCell className="font-medium">{s.driver}</TableCell>
-                    <TableCell className="text-right">{s.trips}</TableCell>
-                    <TableCell className="text-right">{s.totalKm.toLocaleString()} km</TableCell>
-                    <TableCell className="text-right">{s.avgKm.toFixed(1)}</TableCell>
-                    <TableCell className="text-right">₹{s.totalFuel.toLocaleString()}</TableCell>
+                    {isVisible('trips') && <TableCell className="text-right">{s.trips}</TableCell>}
+                    {isVisible('totalKm') && <TableCell className="text-right">{s.totalKm.toLocaleString()} km</TableCell>}
+                    {isVisible('avgKm') && <TableCell className="text-right">{s.avgKm.toFixed(1)}</TableCell>}
+                    {isVisible('fuelAmount') && <TableCell className="text-right">₹{s.totalFuel.toLocaleString()}</TableCell>}
                     {FUEL_TYPES.map(ft => {
+                      if (!isVisible(`qty_${ft}`)) return null;
                       const b = s.byFuel[ft];
                       return <TableCell key={`q-${ft}`} className="text-right">{b.litres > 0 ? `${b.litres.toFixed(2)} ${getFuelUnit(ft)}` : '—'}</TableCell>;
                     })}
                     {FUEL_TYPES.map(ft => {
+                      if (!isVisible(`mil_${ft}`)) return null;
                       const b = s.byFuel[ft];
                       const m = b.litres > 0 ? b.km / b.litres : 0;
                       return <TableCell key={`m-${ft}`} className="text-right font-semibold text-primary">{m > 0 ? `${m.toFixed(2)} km/${getFuelUnit(ft)}` : '—'}</TableCell>;
                     })}
-                    <TableCell className="text-right">₹{s.revenue.toLocaleString()}</TableCell>
+                    {isVisible('revenue') && <TableCell className="text-right">₹{s.revenue.toLocaleString()}</TableCell>}
                   </TableRow>
                 ))}
               </TableBody>
