@@ -30,6 +30,12 @@ interface TripRow {
   fuel_type: string;
 }
 
+interface FuelBreakdown {
+  litres: number;
+  km: number;
+  amount: number;
+}
+
 interface DriverSummary {
   driver: string;
   trips: number;
@@ -42,7 +48,16 @@ interface DriverSummary {
   revenue: number;
   primaryFuelType: string;
   fuelUnit: string; // L or kg
+  byFuel: Record<FuelType, FuelBreakdown>;
 }
+
+const FUEL_TYPES: FuelType[] = ['Petrol', 'Diesel', 'CNG', 'EV'];
+const emptyBreakdown = (): Record<FuelType, FuelBreakdown> => ({
+  Petrol: { litres: 0, km: 0, amount: 0 },
+  Diesel: { litres: 0, km: 0, amount: 0 },
+  CNG: { litres: 0, km: 0, amount: 0 },
+  EV: { litres: 0, km: 0, amount: 0 },
+});
 
 type FilterMode = 'all' | 'monthly' | 'daily' | 'range';
 
