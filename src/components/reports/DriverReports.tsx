@@ -101,6 +101,33 @@ export const DriverReports = () => {
   const isVisible = (k: string) => visibleCols[k] !== false;
   const visibleCount = ALL_COLUMNS.filter(c => isVisible(c.key)).length + 1; // +1 for Driver
 
+  const TRIP_COLUMNS: { key: string; label: string }[] = [
+    { key: 'date', label: 'Date' },
+    { key: 'driver', label: 'Driver' },
+    { key: 'vehicle', label: 'Vehicle' },
+    { key: 'route', label: 'Route' },
+    { key: 'startKm', label: 'Start KM' },
+    { key: 'endKm', label: 'End KM' },
+    { key: 'tripKm', label: 'Trip KM' },
+    { key: 'fuelAmount', label: 'Fuel ₹' },
+    { key: 'litres', label: 'Litres' },
+    { key: 'kmpl', label: 'KM/L' },
+    { key: 'tripAmount', label: 'Trip ₹' },
+  ];
+  const TRIP_COLS_STORAGE_KEY = 'driver-reports-trip-visible-cols';
+  const [tripVisibleCols, setTripVisibleCols] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem(TRIP_COLS_STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return Object.fromEntries(TRIP_COLUMNS.map(c => [c.key, true]));
+  });
+  useEffect(() => {
+    try { localStorage.setItem(TRIP_COLS_STORAGE_KEY, JSON.stringify(tripVisibleCols)); } catch {}
+  }, [tripVisibleCols]);
+  const isTripVisible = (k: string) => tripVisibleCols[k] !== false;
+  const tripVisibleCount = TRIP_COLUMNS.filter(c => isTripVisible(c.key)).length;
+
   useEffect(() => {
     const handler = () => setFuelRates(getStoredFuelRates());
     window.addEventListener(FUEL_RATES_UPDATED_EVENT, handler);
