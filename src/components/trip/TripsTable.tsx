@@ -1,5 +1,8 @@
-import { useState, useMemo } from 'react';
-import { Pencil, Trash2, Download, FileText, Receipt, Phone, PhoneOff, AlertCircle, Clock, ChevronDown, ChevronRight } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Pencil, Trash2, Download, FileText, Receipt, Phone, PhoneOff, AlertCircle, Clock, ChevronDown, ChevronRight, Columns3 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { isAfter, startOfDay, parseISO, format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +59,41 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [isBulkInvoiceOpen, setIsBulkInvoiceOpen] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<string[]>([]);
+
+  const ALL_COLUMNS = [
+    { key: 'date', label: 'Date' },
+    { key: 'driver', label: 'Driver' },
+    { key: 'customer', label: 'Customer' },
+    { key: 'route', label: 'Route' },
+    { key: 'company', label: 'Company' },
+    { key: 'driver_amount', label: 'Driver ₹' },
+    { key: 'commission', label: 'Commission' },
+    { key: 'tolls', label: 'Tolls' },
+    { key: 'fuel', label: 'Fuel' },
+    { key: 'trip_amount', label: 'Trip ₹' },
+    { key: 'profit', label: 'Profit' },
+    { key: 'status', label: 'Status' },
+  ] as const;
+
+  const STORAGE_KEY = 'trips-table-visible-cols';
+  const [visibleCols, setVisibleCols] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true]));
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(visibleCols)); } catch {}
+  }, [visibleCols]);
+
+  const isVisible = (k: string) => visibleCols[k] !== false;
+  const visibleCount =
+    ALL_COLUMNS.filter(c => isVisible(c.key)).length +
+    (showPhoneNumbers && isVisible('driver') ? 1 : 0) +
+    (showPhoneNumbers && isVisible('customer') ? 1 : 0) +
+    (canEdit ? 1 : 0);
 
   const filteredTrips = useMemo(() => {
     return trips.filter(trip => {
@@ -287,6 +325,32 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
             <Button variant="outline" size="sm" onClick={() => setShowPhoneNumbers(!showPhoneNumbers)}>
               {showPhoneNumbers ? <PhoneOff className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
             </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1">
+                  <Columns3 className="h-4 w-4" />
+                  Columns
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 bg-background z-50" align="end">
+                <div className="flex justify-between mb-2">
+                  <Button variant="ghost" size="sm" onClick={() => setVisibleCols(Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])))}>Show all</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setVisibleCols(Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])))}>Hide all</Button>
+                </div>
+                <div className="space-y-2 max-h-72 overflow-y-auto">
+                  {ALL_COLUMNS.map(c => (
+                    <div key={c.key} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`tcol-${c.key}`}
+                        checked={isVisible(c.key)}
+                        onCheckedChange={(v) => setVisibleCols(prev => ({ ...prev, [c.key]: !!v }))}
+                      />
+                      <Label htmlFor={`tcol-${c.key}`} className="text-sm cursor-pointer">{c.label}</Label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button onClick={exportToExcel} variant="outline" size="sm">
               <Download className="h-4 w-4 mr-1" />
               Export
@@ -339,37 +403,36 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/20">
-                          <TableHead>Date</TableHead>
-                          <TableHead>Driver</TableHead>
-                          {showPhoneNumbers && <TableHead>Phone</TableHead>}
-                          <TableHead>Customer</TableHead>
-                          {showPhoneNumbers && <TableHead>Phone</TableHead>}
-                          <TableHead>Route</TableHead>
-                          <TableHead>Company</TableHead>
-                          <TableHead className="text-right">Driver ₹</TableHead>
-                          <TableHead className="text-right">Commission</TableHead>
-                          <TableHead className="text-right">Tolls</TableHead>
-                          <TableHead className="text-right">Fuel</TableHead>
-                          <TableHead className="text-right">Trip ₹</TableHead>
-                          <TableHead className="text-right">Profit</TableHead>
-                          <TableHead>Status</TableHead>
+                          {isVisible('date') && <TableHead>Date</TableHead>}
+                          {isVisible('driver') && <TableHead>Driver</TableHead>}
+                          {showPhoneNumbers && isVisible('driver') && <TableHead>Phone</TableHead>}
+                          {isVisible('customer') && <TableHead>Customer</TableHead>}
+                          {showPhoneNumbers && isVisible('customer') && <TableHead>Phone</TableHead>}
+                          {isVisible('route') && <TableHead>Route</TableHead>}
+                          {isVisible('company') && <TableHead>Company</TableHead>}
+                          {isVisible('driver_amount') && <TableHead className="text-right">Driver ₹</TableHead>}
+                          {isVisible('commission') && <TableHead className="text-right">Commission</TableHead>}
+                          {isVisible('tolls') && <TableHead className="text-right">Tolls</TableHead>}
+                          {isVisible('fuel') && <TableHead className="text-right">Fuel</TableHead>}
+                          {isVisible('trip_amount') && <TableHead className="text-right">Trip ₹</TableHead>}
+                          {isVisible('profit') && <TableHead className="text-right">Profit</TableHead>}
+                          {isVisible('status') && <TableHead>Status</TableHead>}
                           {canEdit && <TableHead>Actions</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {/* Month Totals Row */}
                         <TableRow className="bg-primary/10 font-bold">
-                          <TableCell colSpan={showPhoneNumbers ? 6 : 4}>Month Totals</TableCell>
-                          <TableCell></TableCell>
-                          <TableCell className="text-right">{formatCurrency(totals.driver_amount)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(totals.commission)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(totals.tolls)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(totals.fuel_amount)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(totals.trip_amount)}</TableCell>
-                          <TableCell className={`text-right ${totals.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <TableCell colSpan={Math.max(1, visibleCount - [isVisible('driver_amount'), isVisible('commission'), isVisible('tolls'), isVisible('fuel'), isVisible('trip_amount'), isVisible('profit'), isVisible('status'), canEdit].filter(Boolean).length)}>Month Totals</TableCell>
+                          {isVisible('driver_amount') && <TableCell className="text-right">{formatCurrency(totals.driver_amount)}</TableCell>}
+                          {isVisible('commission') && <TableCell className="text-right">{formatCurrency(totals.commission)}</TableCell>}
+                          {isVisible('tolls') && <TableCell className="text-right">{formatCurrency(totals.tolls)}</TableCell>}
+                          {isVisible('fuel') && <TableCell className="text-right">{formatCurrency(totals.fuel_amount)}</TableCell>}
+                          {isVisible('trip_amount') && <TableCell className="text-right">{formatCurrency(totals.trip_amount)}</TableCell>}
+                          {isVisible('profit') && <TableCell className={`text-right ${totals.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {formatCurrency(totals.profit)}
-                          </TableCell>
-                          <TableCell></TableCell>
+                          </TableCell>}
+                          {isVisible('status') && <TableCell></TableCell>}
                           {canEdit && <TableCell></TableCell>}
                         </TableRow>
                         {monthTrips.map((trip) => {
@@ -379,7 +442,7 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
                               key={trip.id}
                               className={upcoming ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-l-4 border-l-orange-500 hover:bg-muted/30' : 'hover:bg-muted/30'}
                             >
-                              <TableCell>
+                              {isVisible('date') && <TableCell>
                                 <div className="flex items-center gap-2">
                                   {upcoming && (
                                     <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white animate-pulse flex items-center gap-1">
@@ -391,24 +454,24 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
                                     {new Date(trip.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                                   </span>
                                 </div>
-                              </TableCell>
-                              <TableCell className="font-medium">{trip.driver_name}</TableCell>
-                              {showPhoneNumbers && <TableCell>{trip.driver_number}</TableCell>}
-                              <TableCell>{trip.customer_name}</TableCell>
-                              {showPhoneNumbers && <TableCell>{trip.customer_number}</TableCell>}
-                              <TableCell>
+                              </TableCell>}
+                              {isVisible('driver') && <TableCell className="font-medium">{trip.driver_name}</TableCell>}
+                              {showPhoneNumbers && isVisible('driver') && <TableCell>{trip.driver_number}</TableCell>}
+                              {isVisible('customer') && <TableCell>{trip.customer_name}</TableCell>}
+                              {showPhoneNumbers && isVisible('customer') && <TableCell>{trip.customer_number}</TableCell>}
+                              {isVisible('route') && <TableCell>
                                 <span className="text-xs">{trip.from_location} → {trip.to_location}</span>
-                              </TableCell>
-                              <TableCell>{trip.company || '-'}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(trip.driver_amount)}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(trip.commission)}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(trip.tolls)}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(trip.fuel_amount)}</TableCell>
-                              <TableCell className="text-right font-semibold">{formatCurrency(trip.trip_amount)}</TableCell>
-                              <TableCell className={`text-right font-semibold ${trip.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              </TableCell>}
+                              {isVisible('company') && <TableCell>{trip.company || '-'}</TableCell>}
+                              {isVisible('driver_amount') && <TableCell className="text-right">{formatCurrency(trip.driver_amount)}</TableCell>}
+                              {isVisible('commission') && <TableCell className="text-right">{formatCurrency(trip.commission)}</TableCell>}
+                              {isVisible('tolls') && <TableCell className="text-right">{formatCurrency(trip.tolls)}</TableCell>}
+                              {isVisible('fuel') && <TableCell className="text-right">{formatCurrency(trip.fuel_amount)}</TableCell>}
+                              {isVisible('trip_amount') && <TableCell className="text-right font-semibold">{formatCurrency(trip.trip_amount)}</TableCell>}
+                              {isVisible('profit') && <TableCell className={`text-right font-semibold ${trip.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {formatCurrency(trip.profit)}
-                              </TableCell>
-                              <TableCell>
+                              </TableCell>}
+                              {isVisible('status') && <TableCell>
                                 {canEdit ? (
                                   <Select 
                                     value={trip.payment_status || 'pending'} 
@@ -425,7 +488,7 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
                                 ) : (
                                   getStatusBadge(trip.payment_status || 'pending')
                                 )}
-                              </TableCell>
+                              </TableCell>}
                               {canEdit && (
                                 <TableCell>
                                   <div className="flex gap-1">
