@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Pencil, Trash2, Download, FileText, Receipt, Phone, PhoneOff, AlertCircle, Clock, ChevronDown, ChevronRight, Columns3 } from 'lucide-react';
+import { Pencil, Trash2, Download, FileText, Receipt, Phone, PhoneOff, AlertCircle, Clock, ChevronDown, ChevronRight, Columns3, Search } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
