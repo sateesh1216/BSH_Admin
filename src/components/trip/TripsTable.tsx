@@ -310,12 +310,6 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
             )}
           </div>
           <div className="flex flex-wrap gap-2">
-            <Input
-              placeholder="Search trips..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full sm:w-48"
-            />
             <Select value={paymentFilter} onValueChange={setPaymentFilter}>
               <SelectTrigger className="w-32">
                 <SelectValue placeholder="Filter" />
@@ -364,6 +358,26 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
               Bulk Invoice
             </Button>
           </div>
+        </div>
+        {/* Global Search Bar */}
+        <div className="relative w-full sm:w-96 mt-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Search by driver, customer, company, route, or payment mode..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-4"
+          />
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+              onClick={() => setSearchTerm('')}
+            >
+              <span className="text-muted-foreground hover:text-foreground text-xs">✕</span>
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="pt-4">
