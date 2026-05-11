@@ -97,15 +97,19 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
 
   const filteredTrips = useMemo(() => {
     return trips.filter(trip => {
-      const matchesSearch = 
-        trip.driver_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trip.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trip.from_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trip.to_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trip.company?.toLowerCase().includes(searchTerm.toLowerCase());
-      
+      const term = searchTerm.toLowerCase().trim();
+      if (!term) return paymentFilter === 'all' || trip.payment_status === paymentFilter;
+
+      const matchesSearch =
+        trip.driver_name.toLowerCase().includes(term) ||
+        trip.customer_name.toLowerCase().includes(term) ||
+        trip.from_location.toLowerCase().includes(term) ||
+        trip.to_location.toLowerCase().includes(term) ||
+        trip.company?.toLowerCase().includes(term) ||
+        trip.payment_mode?.toLowerCase().includes(term);
+
       const matchesPayment = paymentFilter === 'all' || trip.payment_status === paymentFilter;
-      
+
       return matchesSearch && matchesPayment;
     });
   }, [trips, searchTerm, paymentFilter]);
