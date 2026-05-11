@@ -403,37 +403,36 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/20">
-                          <TableHead>Date</TableHead>
-                          <TableHead>Driver</TableHead>
-                          {showPhoneNumbers && <TableHead>Phone</TableHead>}
-                          <TableHead>Customer</TableHead>
-                          {showPhoneNumbers && <TableHead>Phone</TableHead>}
-                          <TableHead>Route</TableHead>
-                          <TableHead>Company</TableHead>
-                          <TableHead className="text-right">Driver ₹</TableHead>
-                          <TableHead className="text-right">Commission</TableHead>
-                          <TableHead className="text-right">Tolls</TableHead>
-                          <TableHead className="text-right">Fuel</TableHead>
-                          <TableHead className="text-right">Trip ₹</TableHead>
-                          <TableHead className="text-right">Profit</TableHead>
-                          <TableHead>Status</TableHead>
+                          {isVisible('date') && <TableHead>Date</TableHead>}
+                          {isVisible('driver') && <TableHead>Driver</TableHead>}
+                          {showPhoneNumbers && isVisible('driver') && <TableHead>Phone</TableHead>}
+                          {isVisible('customer') && <TableHead>Customer</TableHead>}
+                          {showPhoneNumbers && isVisible('customer') && <TableHead>Phone</TableHead>}
+                          {isVisible('route') && <TableHead>Route</TableHead>}
+                          {isVisible('company') && <TableHead>Company</TableHead>}
+                          {isVisible('driver_amount') && <TableHead className="text-right">Driver ₹</TableHead>}
+                          {isVisible('commission') && <TableHead className="text-right">Commission</TableHead>}
+                          {isVisible('tolls') && <TableHead className="text-right">Tolls</TableHead>}
+                          {isVisible('fuel') && <TableHead className="text-right">Fuel</TableHead>}
+                          {isVisible('trip_amount') && <TableHead className="text-right">Trip ₹</TableHead>}
+                          {isVisible('profit') && <TableHead className="text-right">Profit</TableHead>}
+                          {isVisible('status') && <TableHead>Status</TableHead>}
                           {canEdit && <TableHead>Actions</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {/* Month Totals Row */}
                         <TableRow className="bg-primary/10 font-bold">
-                          <TableCell colSpan={showPhoneNumbers ? 6 : 4}>Month Totals</TableCell>
-                          <TableCell></TableCell>
-                          <TableCell className="text-right">{formatCurrency(totals.driver_amount)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(totals.commission)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(totals.tolls)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(totals.fuel_amount)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(totals.trip_amount)}</TableCell>
-                          <TableCell className={`text-right ${totals.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <TableCell colSpan={Math.max(1, visibleCount - [isVisible('driver_amount'), isVisible('commission'), isVisible('tolls'), isVisible('fuel'), isVisible('trip_amount'), isVisible('profit'), isVisible('status'), canEdit].filter(Boolean).length)}>Month Totals</TableCell>
+                          {isVisible('driver_amount') && <TableCell className="text-right">{formatCurrency(totals.driver_amount)}</TableCell>}
+                          {isVisible('commission') && <TableCell className="text-right">{formatCurrency(totals.commission)}</TableCell>}
+                          {isVisible('tolls') && <TableCell className="text-right">{formatCurrency(totals.tolls)}</TableCell>}
+                          {isVisible('fuel') && <TableCell className="text-right">{formatCurrency(totals.fuel_amount)}</TableCell>}
+                          {isVisible('trip_amount') && <TableCell className="text-right">{formatCurrency(totals.trip_amount)}</TableCell>}
+                          {isVisible('profit') && <TableCell className={`text-right ${totals.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {formatCurrency(totals.profit)}
-                          </TableCell>
-                          <TableCell></TableCell>
+                          </TableCell>}
+                          {isVisible('status') && <TableCell></TableCell>}
                           {canEdit && <TableCell></TableCell>}
                         </TableRow>
                         {monthTrips.map((trip) => {
