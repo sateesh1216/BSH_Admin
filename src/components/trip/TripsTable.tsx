@@ -60,6 +60,41 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
   const [isBulkInvoiceOpen, setIsBulkInvoiceOpen] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<string[]>([]);
 
+  const ALL_COLUMNS = [
+    { key: 'date', label: 'Date' },
+    { key: 'driver', label: 'Driver' },
+    { key: 'customer', label: 'Customer' },
+    { key: 'route', label: 'Route' },
+    { key: 'company', label: 'Company' },
+    { key: 'driver_amount', label: 'Driver ₹' },
+    { key: 'commission', label: 'Commission' },
+    { key: 'tolls', label: 'Tolls' },
+    { key: 'fuel', label: 'Fuel' },
+    { key: 'trip_amount', label: 'Trip ₹' },
+    { key: 'profit', label: 'Profit' },
+    { key: 'status', label: 'Status' },
+  ] as const;
+
+  const STORAGE_KEY = 'trips-table-visible-cols';
+  const [visibleCols, setVisibleCols] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true]));
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(visibleCols)); } catch {}
+  }, [visibleCols]);
+
+  const isVisible = (k: string) => visibleCols[k] !== false;
+  const visibleCount =
+    ALL_COLUMNS.filter(c => isVisible(c.key)).length +
+    (showPhoneNumbers && isVisible('driver') ? 1 : 0) +
+    (showPhoneNumbers && isVisible('customer') ? 1 : 0) +
+    (canEdit ? 1 : 0);
+
   const filteredTrips = useMemo(() => {
     return trips.filter(trip => {
       const matchesSearch = 
