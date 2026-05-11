@@ -325,6 +325,32 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
             <Button variant="outline" size="sm" onClick={() => setShowPhoneNumbers(!showPhoneNumbers)}>
               {showPhoneNumbers ? <PhoneOff className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
             </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1">
+                  <Columns3 className="h-4 w-4" />
+                  Columns
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 bg-background z-50" align="end">
+                <div className="flex justify-between mb-2">
+                  <Button variant="ghost" size="sm" onClick={() => setVisibleCols(Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])))}>Show all</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setVisibleCols(Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])))}>Hide all</Button>
+                </div>
+                <div className="space-y-2 max-h-72 overflow-y-auto">
+                  {ALL_COLUMNS.map(c => (
+                    <div key={c.key} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`tcol-${c.key}`}
+                        checked={isVisible(c.key)}
+                        onCheckedChange={(v) => setVisibleCols(prev => ({ ...prev, [c.key]: !!v }))}
+                      />
+                      <Label htmlFor={`tcol-${c.key}`} className="text-sm cursor-pointer">{c.label}</Label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button onClick={exportToExcel} variant="outline" size="sm">
               <Download className="h-4 w-4 mr-1" />
               Export
