@@ -1,5 +1,8 @@
-import { useState, useMemo } from 'react';
-import { Pencil, Trash2, Download, FileText, Receipt, Phone, PhoneOff, AlertCircle, Clock, ChevronDown, ChevronRight } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Pencil, Trash2, Download, FileText, Receipt, Phone, PhoneOff, AlertCircle, Clock, ChevronDown, ChevronRight, Columns3 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { isAfter, startOfDay, parseISO, format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
