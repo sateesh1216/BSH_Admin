@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Pencil, Trash2, Download, FileText, Receipt, Phone, PhoneOff, AlertCircle, Clock, ChevronDown, ChevronRight, Columns3 } from 'lucide-react';
+import { Pencil, Trash2, Download, FileText, Receipt, Phone, PhoneOff, AlertCircle, Clock, ChevronDown, ChevronRight, Columns3, Search } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -97,15 +97,19 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
 
   const filteredTrips = useMemo(() => {
     return trips.filter(trip => {
-      const matchesSearch = 
-        trip.driver_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trip.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trip.from_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trip.to_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trip.company?.toLowerCase().includes(searchTerm.toLowerCase());
-      
+      const term = searchTerm.toLowerCase().trim();
+      if (!term) return paymentFilter === 'all' || trip.payment_status === paymentFilter;
+
+      const matchesSearch =
+        trip.driver_name.toLowerCase().includes(term) ||
+        trip.customer_name.toLowerCase().includes(term) ||
+        trip.from_location.toLowerCase().includes(term) ||
+        trip.to_location.toLowerCase().includes(term) ||
+        trip.company?.toLowerCase().includes(term) ||
+        trip.payment_mode?.toLowerCase().includes(term);
+
       const matchesPayment = paymentFilter === 'all' || trip.payment_status === paymentFilter;
-      
+
       return matchesSearch && matchesPayment;
     });
   }, [trips, searchTerm, paymentFilter]);
@@ -306,12 +310,6 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
             )}
           </div>
           <div className="flex flex-wrap gap-2">
-            <Input
-              placeholder="Search trips..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full sm:w-48"
-            />
             <Select value={paymentFilter} onValueChange={setPaymentFilter}>
               <SelectTrigger className="w-32">
                 <SelectValue placeholder="Filter" />
@@ -360,6 +358,26 @@ export const TripsTable = ({ trips, onTripUpdated, canEdit, allPendingTotal }: T
               Bulk Invoice
             </Button>
           </div>
+        </div>
+        {/* Global Search Bar */}
+        <div className="relative w-full sm:w-96 mt-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Search by driver, customer, company, route, or payment mode..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-4"
+          />
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+              onClick={() => setSearchTerm('')}
+            >
+              <span className="text-muted-foreground hover:text-foreground text-xs">✕</span>
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="pt-4">
