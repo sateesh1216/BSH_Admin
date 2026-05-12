@@ -361,7 +361,18 @@ export const UsersList = ({ searchTerm = '' }: UsersListProps) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {users
+                  .filter((user) => {
+                    if (!searchTerm.trim()) return true;
+                    const q = searchTerm.toLowerCase();
+                    return (
+                      (user.full_name || '').toLowerCase().includes(q) ||
+                      (user.username || '').toLowerCase().includes(q) ||
+                      (user.role || '').toLowerCase().includes(q) ||
+                      (user.status || '').toLowerCase().includes(q)
+                    );
+                  })
+                  .map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
                       <div>
