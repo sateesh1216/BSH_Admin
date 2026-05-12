@@ -83,7 +83,17 @@ export const LoginHistory = ({ searchTerm = '' }: LoginHistoryProps) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loginHistory.map((record) => (
+                {loginHistory
+                  .filter((record) => {
+                    if (!searchTerm.trim()) return true;
+                    const q = searchTerm.toLowerCase();
+                    return (
+                      (record.user_name || '').toLowerCase().includes(q) ||
+                      (record.user_email || '').toLowerCase().includes(q) ||
+                      (record.ip_address || '').toLowerCase().includes(q)
+                    );
+                  })
+                  .map((record) => (
                   <TableRow key={record.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
