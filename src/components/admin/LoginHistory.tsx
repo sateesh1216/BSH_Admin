@@ -16,7 +16,11 @@ interface LoginRecord {
   user_email?: string;
 }
 
-export const LoginHistory = () => {
+interface LoginHistoryProps {
+  searchTerm?: string;
+}
+
+export const LoginHistory = ({ searchTerm = '' }: LoginHistoryProps) => {
   // Fetch login history with user details
   const { data: loginHistory = [], isLoading } = useQuery({
     queryKey: ['login-history'],
