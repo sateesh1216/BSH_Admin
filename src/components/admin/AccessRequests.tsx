@@ -100,8 +100,18 @@ export const AccessRequests = ({ searchTerm = '' }: AccessRequestsProps) => {
     },
   });
 
-  const pendingRequests = requests.filter(r => r.status === 'pending');
-  const processedRequests = requests.filter(r => r.status !== 'pending');
+  const matchesSearch = (r: AccessRequest) => {
+    if (!searchTerm.trim()) return true;
+    const q = searchTerm.toLowerCase();
+    return (
+      (r.full_name || '').toLowerCase().includes(q) ||
+      (r.email || '').toLowerCase().includes(q) ||
+      (r.requested_role || '').toLowerCase().includes(q) ||
+      (r.status || '').toLowerCase().includes(q)
+    );
+  };
+  const pendingRequests = requests.filter(r => r.status === 'pending').filter(matchesSearch);
+  const processedRequests = requests.filter(r => r.status !== 'pending').filter(matchesSearch);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
