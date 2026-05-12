@@ -17,7 +17,11 @@ interface AccessRequest {
   created_at: string;
 }
 
-export const AccessRequests = () => {
+interface AccessRequestsProps {
+  searchTerm?: string;
+}
+
+export const AccessRequests = ({ searchTerm = '' }: AccessRequestsProps) => {
   const queryClient = useQueryClient();
 
   const { data: requests = [], isLoading } = useQuery({
