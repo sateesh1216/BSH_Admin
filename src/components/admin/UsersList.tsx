@@ -38,7 +38,11 @@ interface Profile {
   created_at: string | null;
 }
 
-export const UsersList = () => {
+interface UsersListProps {
+  searchTerm?: string;
+}
+
+export const UsersList = ({ searchTerm = '' }: UsersListProps) => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -357,7 +361,18 @@ export const UsersList = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {users
+                  .filter((user) => {
+                    if (!searchTerm.trim()) return true;
+                    const q = searchTerm.toLowerCase();
+                    return (
+                      (user.full_name || '').toLowerCase().includes(q) ||
+                      (user.username || '').toLowerCase().includes(q) ||
+                      (user.role || '').toLowerCase().includes(q) ||
+                      (user.status || '').toLowerCase().includes(q)
+                    );
+                  })
+                  .map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
                       <div>

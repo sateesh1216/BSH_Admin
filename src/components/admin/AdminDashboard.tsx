@@ -58,25 +58,29 @@ export const AdminDashboard = () => {
       title: 'Total Users',
       value: totalUsers,
       icon: Users,
-      color: 'text-blue-600 bg-blue-100 dark:bg-blue-900/30',
+      gradient: 'from-blue-500 to-indigo-500',
+      ring: 'ring-blue-500/20',
     },
     {
       title: 'Active Users',
       value: activeUsers,
       icon: UserCheck,
-      color: 'text-green-600 bg-green-100 dark:bg-green-900/30',
+      gradient: 'from-emerald-500 to-green-500',
+      ring: 'ring-emerald-500/20',
     },
     {
       title: 'Inactive Users',
       value: inactiveUsers,
       icon: UserX,
-      color: 'text-red-600 bg-red-100 dark:bg-red-900/30',
+      gradient: 'from-rose-500 to-red-500',
+      ring: 'ring-rose-500/20',
     },
     {
       title: 'Logins Today',
       value: loginsToday,
       icon: LogIn,
-      color: 'text-purple-600 bg-purple-100 dark:bg-purple-900/30',
+      gradient: 'from-violet-500 to-purple-500',
+      ring: 'ring-violet-500/20',
     },
   ];
 
@@ -84,8 +88,8 @@ export const AdminDashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Overview of your user management system</p>
+          <h1 className="text-xl font-bold">At a glance</h1>
+          <p className="text-sm text-muted-foreground">Overview of your user management system</p>
         </div>
         <Button onClick={() => setIsCombinedInvoiceOpen(true)} className="gap-2">
           <FileText className="h-4 w-4" />
@@ -96,17 +100,22 @@ export const AdminDashboard = () => {
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <Card
+            key={stat.title}
+            className={`relative overflow-hidden border-0 ring-1 ${stat.ring} shadow-sm hover:shadow-md transition-shadow`}
+          >
+            <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-[0.08]`} />
+            <div className={`absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br ${stat.gradient} opacity-20 blur-2xl`} />
+            <CardHeader className="relative flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {stat.title}
               </CardTitle>
-              <div className={`p-2 rounded-lg ${stat.color}`}>
+              <div className={`p-2 rounded-lg bg-gradient-to-br ${stat.gradient} text-white shadow-sm`}>
                 <stat.icon className="h-4 w-4" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
+            <CardContent className="relative">
+              <div className="text-3xl font-bold tracking-tight">{stat.value}</div>
             </CardContent>
           </Card>
         ))}
