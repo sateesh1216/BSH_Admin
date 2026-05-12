@@ -38,7 +38,11 @@ interface Profile {
   created_at: string | null;
 }
 
-export const UsersList = () => {
+interface UsersListProps {
+  searchTerm?: string;
+}
+
+export const UsersList = ({ searchTerm = '' }: UsersListProps) => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editingName, setEditingName] = useState('');
