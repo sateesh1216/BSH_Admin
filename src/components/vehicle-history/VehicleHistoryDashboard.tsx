@@ -789,6 +789,87 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                       </div>
                     )}
 
+                    {/* Battery Status - easy view */}
+                    <div
+                      className={`p-3 rounded-lg space-y-2 mb-2 border ${batStatus ? (batStatus.status === 'overdue' ? 'border-destructive/40 bg-destructive/5' : batStatus.status === 'due-soon' ? 'border-orange-400/40 bg-orange-500/5' : batStatus.status === 'watch' ? 'border-yellow-400/40 bg-yellow-500/5' : 'border-green-500/30 bg-green-500/5') : 'border-dashed border-muted-foreground/30 bg-muted/10'}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-semibold">
+                          {batStatus?.status === 'overdue' ? <BatteryWarning className="h-4 w-4 text-destructive" /> :
+                           batStatus?.status === 'due-soon' ? <BatteryLow className="h-4 w-4 text-orange-500" /> :
+                           batStatus ? <BatteryCharging className="h-4 w-4 text-green-600" /> :
+                           <Battery className="h-4 w-4 text-muted-foreground" />}
+                          <span>Battery</span>
+                          {batStatus && (
+                            <Badge className={`text-[10px] ${batStatus.status === 'overdue' ? 'bg-destructive' : batStatus.status === 'due-soon' ? 'bg-orange-500' : batStatus.status === 'watch' ? 'bg-yellow-500' : 'bg-green-600'} text-white`}>
+                              {batStatus.emoji} {batStatus.badge}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {battery && (
+                            <>
+                              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEditBattery(battery)}>
+                                <Edit className="h-3.5 w-3.5" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-7 px-2"><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete battery record?</AlertDialogTitle>
+                                    <AlertDialogDescription>This will remove the battery info for {vehicle.vehicleNumber}.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteBattery(battery.id)}>Delete</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          )}
+                          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => battery ? openEditBattery(battery) : openAddBattery(vehicle.vehicleNumber)}>
+                            {battery ? 'Update' : <><Plus className="h-3 w-3 mr-1" />Add</>}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {battery && batStatus ? (
+                        <>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="p-2 bg-background/60 rounded">
+                              <p className="text-muted-foreground text-[10px]">Replaced on</p>
+                              <p className="font-semibold">{format(new Date(battery.last_replacement_date), 'dd MMM yyyy')}</p>
+                              <p className="text-[10px] text-muted-foreground">{batStatus.monthsUsed} months ago</p>
+                            </div>
+                            <div className="p-2 bg-background/60 rounded">
+                              <p className="text-muted-foreground text-[10px]">Replace by</p>
+                              <p className="font-semibold">{format(batStatus.expectedExpiryDate, 'dd MMM yyyy')}</p>
+                              <p className="text-[10px] text-muted-foreground">Life: {battery.expected_life_months} months</p>
+                            </div>
+                          </div>
+                          {(battery.brand || battery.model || battery.cost > 0) && (
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                              {battery.brand && <span><strong className="text-foreground">{battery.brand}</strong>{battery.model ? ` · ${battery.model}` : ''}</span>}
+                              {battery.cost > 0 && <span>Cost: <strong className="text-foreground">₹{battery.cost.toLocaleString()}</strong></span>}
+                            </div>
+                          )}
+                          <div className="space-y-1">
+                            <Progress value={batStatus.progress} className="h-2" />
+                            <div className="flex justify-between text-[10px]">
+                              <span className="text-muted-foreground">0 mo</span>
+                              <span className={`font-medium ${batStatus.color}`}>{batStatus.label}</span>
+                              <span className="text-muted-foreground">{battery.expected_life_months} mo</span>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">No battery info yet. Click <strong>Add</strong> to track replacement date and life.</p>
+                      )}
+                    </div>
+
                     {/* Expanded Detail Table */}
                     {isExpanded && (
                       <div className="mt-4" onClick={(e) => e.stopPropagation()}>
