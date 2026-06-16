@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, differenceInMonths, differenceInDays, addMonths, isBefore, isAfter, startOfDay } from 'date-fns';
-import { Car, AlertTriangle, ChevronDown, ChevronRight, Wrench, Gauge, CreditCard, AlignCenter, Plus, Trash2, Edit, Droplets, Shield, Wind } from 'lucide-react';
+import { Car, AlertTriangle, ChevronDown, ChevronRight, Wrench, Gauge, CreditCard, AlignCenter, Plus, Trash2, Edit, Droplets, Shield, Wind, BatteryCharging, Battery, BatteryLow, BatteryWarning } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
