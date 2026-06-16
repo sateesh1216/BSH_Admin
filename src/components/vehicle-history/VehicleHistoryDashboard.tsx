@@ -233,6 +233,18 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
   const [polExpiryDate, setPolExpiryDate] = useState('');
   const [editingPolId, setEditingPolId] = useState<string | null>(null);
 
+  // Battery state
+  const [batteryRecords, setBatteryRecords] = useState<VehicleBattery[]>([]);
+  const [batteryDialogOpen, setBatteryDialogOpen] = useState(false);
+  const [editingBatteryId, setEditingBatteryId] = useState<string | null>(null);
+  const [batVehicle, setBatVehicle] = useState('');
+  const [batDate, setBatDate] = useState('');
+  const [batBrand, setBatBrand] = useState('');
+  const [batModel, setBatModel] = useState('');
+  const [batLife, setBatLife] = useState('36');
+  const [batCost, setBatCost] = useState('');
+  const [batNotes, setBatNotes] = useState('');
+
   useEffect(() => {
     if (user) {
       fetchEmiRecords();
