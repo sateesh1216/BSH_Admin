@@ -92,6 +92,32 @@ interface VehiclePollution {
   expiry_date: string;
 }
 
+interface VehicleBattery {
+  id: string;
+  vehicle_number: string;
+  last_replacement_date: string;
+  brand: string | null;
+  model: string | null;
+  expected_life_months: number;
+  cost: number;
+  notes: string | null;
+}
+
+const getBatteryStatus = (battery: VehicleBattery) => {
+  const today = new Date();
+  const last = new Date(battery.last_replacement_date);
+  const monthsUsed = Math.max(0, differenceInMonths(today, last));
+  const expected = battery.expected_life_months || 36;
+  const remaining = expected - monthsUsed;
+  const progress = Math.max(0, Math.min(100, (monthsUsed / expected) * 100));
+  const expectedExpiryDate = addMonths(last, expected);
+
+  if (remaining <= 0) return { status: 'overdue' as const, monthsUsed, remaining, progress: 100, expectedExpiryDate, color: 'text-destructive', bg: 'bg-destructive/10', label: `Overdue by ${Math.abs(remaining)} months`, badge: 'Replace Now', emoji: '🔴' };
+  if (remaining <= 3) return { status: 'due-soon' as const, monthsUsed, remaining, progress, expectedExpiryDate, color: 'text-orange-500', bg: 'bg-orange-500/10', label: `Replace in ~${remaining} months`, badge: 'Due Soon', emoji: '🟠' };
+  if (remaining <= 6) return { status: 'watch' as const, monthsUsed, remaining, progress, expectedExpiryDate, color: 'text-yellow-600', bg: 'bg-yellow-500/10', label: `~${remaining} months left`, badge: 'Watch', emoji: '🟡' };
+  return { status: 'ok' as const, monthsUsed, remaining, progress, expectedExpiryDate, color: 'text-green-600', bg: 'bg-green-500/10', label: `Healthy · ${remaining} months left`, badge: 'Healthy', emoji: '🟢' };
+};
+
 const getOilChangeStatus = (currentKm: number | null, nextOilChangeKm: number | null) => {
   if (!currentKm || !nextOilChangeKm) return null;
   const remaining = nextOilChangeKm - currentKm;
