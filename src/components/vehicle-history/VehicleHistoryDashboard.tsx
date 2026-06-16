@@ -692,6 +692,16 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                             <Wind className="h-3 w-3 mr-1" />PUC Expiring
                           </Badge>
                         )}
+                        {batStatus?.status === 'overdue' && (
+                          <Badge variant="destructive" className="text-xs animate-pulse">
+                            <BatteryWarning className="h-3 w-3 mr-1" />Battery Replace
+                          </Badge>
+                        )}
+                        {batStatus?.status === 'due-soon' && (
+                          <Badge className="bg-orange-500 text-white text-xs">
+                            <BatteryLow className="h-3 w-3 mr-1" />Battery Soon
+                          </Badge>
+                        )}
                         {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       </div>
                     </CardTitle>
