@@ -252,9 +252,64 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
       fetchOilChangeRecords();
       fetchInsuranceRecords();
       fetchPollutionRecords();
+      fetchBatteryRecords();
       fetchLatestTripKms();
     }
   }, [user]);
+
+  const fetchBatteryRecords = async () => {
+    const { data, error } = await (supabase as any).from('vehicle_battery').select('*').order('vehicle_number');
+    if (!error && data) setBatteryRecords(data as VehicleBattery[]);
+  };
+
+  const openAddBattery = (vehicleNumber: string) => {
+    setEditingBatteryId(null);
+    setBatVehicle(vehicleNumber);
+    setBatDate(format(new Date(), 'yyyy-MM-dd'));
+    setBatBrand(''); setBatModel(''); setBatLife('36'); setBatCost(''); setBatNotes('');
+    setBatteryDialogOpen(true);
+  };
+
+  const openEditBattery = (b: VehicleBattery) => {
+    setEditingBatteryId(b.id);
+    setBatVehicle(b.vehicle_number);
+    setBatDate(b.last_replacement_date);
+    setBatBrand(b.brand || '');
+    setBatModel(b.model || '');
+    setBatLife(String(b.expected_life_months));
+    setBatCost(String(b.cost));
+    setBatNotes(b.notes || '');
+    setBatteryDialogOpen(true);
+  };
+
+  const handleBatterySubmit = async () => {
+    if (!batVehicle || !batDate) {
+      toast({ title: 'Error', description: 'Vehicle number and replacement date are required', variant: 'destructive' });
+      return;
+    }
+    const payload = {
+      vehicle_number: batVehicle,
+      last_replacement_date: batDate,
+      brand: batBrand || null,
+      model: batModel || null,
+      expected_life_months: parseInt(batLife) || 36,
+      cost: batCost ? parseFloat(batCost) : 0,
+      notes: batNotes || null,
+      created_by: user?.id,
+    };
+    const result = editingBatteryId
+      ? await (supabase as any).from('vehicle_battery').update(payload).eq('id', editingBatteryId)
+      : await (supabase as any).from('vehicle_battery').insert([payload]);
+    if (result.error) { toast({ title: 'Error', description: result.error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Success', description: `Battery record ${editingBatteryId ? 'updated' : 'added'} successfully` });
+    setBatteryDialogOpen(false);
+    fetchBatteryRecords();
+  };
+
+  const handleDeleteBattery = async (id: string) => {
+    const { error } = await (supabase as any).from('vehicle_battery').delete().eq('id', id);
+    if (!error) { toast({ title: 'Deleted', description: 'Battery record removed' }); fetchBatteryRecords(); }
+  };
 
   const fetchLatestTripKms = async () => {
     const { data, error } = await supabase
