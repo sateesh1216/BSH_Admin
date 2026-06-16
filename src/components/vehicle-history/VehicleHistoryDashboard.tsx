@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, differenceInMonths, differenceInDays, addMonths, isBefore, isAfter, startOfDay } from 'date-fns';
-import { Car, AlertTriangle, ChevronDown, ChevronRight, Wrench, Gauge, CreditCard, AlignCenter, Plus, Trash2, Edit, Droplets, Shield, Wind, BatteryCharging, Battery, BatteryLow, BatteryWarning } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Car, AlertTriangle, ChevronDown, ChevronRight, Wrench, Gauge, CreditCard, AlignCenter, Plus, Trash2, Edit, Droplets, Shield, Wind } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -91,32 +90,6 @@ interface VehiclePollution {
   issue_date: string;
   expiry_date: string;
 }
-
-interface VehicleBattery {
-  id: string;
-  vehicle_number: string;
-  last_replacement_date: string;
-  brand: string | null;
-  model: string | null;
-  expected_life_months: number;
-  cost: number;
-  notes: string | null;
-}
-
-const getBatteryStatus = (battery: VehicleBattery) => {
-  const today = new Date();
-  const last = new Date(battery.last_replacement_date);
-  const monthsUsed = Math.max(0, differenceInMonths(today, last));
-  const expected = battery.expected_life_months || 36;
-  const remaining = expected - monthsUsed;
-  const progress = Math.max(0, Math.min(100, (monthsUsed / expected) * 100));
-  const expectedExpiryDate = addMonths(last, expected);
-
-  if (remaining <= 0) return { status: 'overdue' as const, monthsUsed, remaining, progress: 100, expectedExpiryDate, color: 'text-destructive', bg: 'bg-destructive/10', label: `Overdue by ${Math.abs(remaining)} months`, badge: 'Replace Now', emoji: '🔴' };
-  if (remaining <= 3) return { status: 'due-soon' as const, monthsUsed, remaining, progress, expectedExpiryDate, color: 'text-orange-500', bg: 'bg-orange-500/10', label: `Replace in ~${remaining} months`, badge: 'Due Soon', emoji: '🟠' };
-  if (remaining <= 6) return { status: 'watch' as const, monthsUsed, remaining, progress, expectedExpiryDate, color: 'text-yellow-600', bg: 'bg-yellow-500/10', label: `~${remaining} months left`, badge: 'Watch', emoji: '🟡' };
-  return { status: 'ok' as const, monthsUsed, remaining, progress, expectedExpiryDate, color: 'text-green-600', bg: 'bg-green-500/10', label: `Healthy · ${remaining} months left`, badge: 'Healthy', emoji: '🟢' };
-};
 
 const getOilChangeStatus = (currentKm: number | null, nextOilChangeKm: number | null) => {
   if (!currentKm || !nextOilChangeKm) return null;
@@ -233,18 +206,6 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
   const [polExpiryDate, setPolExpiryDate] = useState('');
   const [editingPolId, setEditingPolId] = useState<string | null>(null);
 
-  // Battery state
-  const [batteryRecords, setBatteryRecords] = useState<VehicleBattery[]>([]);
-  const [batteryDialogOpen, setBatteryDialogOpen] = useState(false);
-  const [editingBatteryId, setEditingBatteryId] = useState<string | null>(null);
-  const [batVehicle, setBatVehicle] = useState('');
-  const [batDate, setBatDate] = useState('');
-  const [batBrand, setBatBrand] = useState('');
-  const [batModel, setBatModel] = useState('');
-  const [batLife, setBatLife] = useState('36');
-  const [batCost, setBatCost] = useState('');
-  const [batNotes, setBatNotes] = useState('');
-
   useEffect(() => {
     if (user) {
       fetchEmiRecords();
@@ -252,64 +213,9 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
       fetchOilChangeRecords();
       fetchInsuranceRecords();
       fetchPollutionRecords();
-      fetchBatteryRecords();
       fetchLatestTripKms();
     }
   }, [user]);
-
-  const fetchBatteryRecords = async () => {
-    const { data, error } = await (supabase as any).from('vehicle_battery').select('*').order('vehicle_number');
-    if (!error && data) setBatteryRecords(data as VehicleBattery[]);
-  };
-
-  const openAddBattery = (vehicleNumber: string) => {
-    setEditingBatteryId(null);
-    setBatVehicle(vehicleNumber);
-    setBatDate(format(new Date(), 'yyyy-MM-dd'));
-    setBatBrand(''); setBatModel(''); setBatLife('36'); setBatCost(''); setBatNotes('');
-    setBatteryDialogOpen(true);
-  };
-
-  const openEditBattery = (b: VehicleBattery) => {
-    setEditingBatteryId(b.id);
-    setBatVehicle(b.vehicle_number);
-    setBatDate(b.last_replacement_date);
-    setBatBrand(b.brand || '');
-    setBatModel(b.model || '');
-    setBatLife(String(b.expected_life_months));
-    setBatCost(String(b.cost));
-    setBatNotes(b.notes || '');
-    setBatteryDialogOpen(true);
-  };
-
-  const handleBatterySubmit = async () => {
-    if (!batVehicle || !batDate) {
-      toast({ title: 'Error', description: 'Vehicle number and replacement date are required', variant: 'destructive' });
-      return;
-    }
-    const payload = {
-      vehicle_number: batVehicle,
-      last_replacement_date: batDate,
-      brand: batBrand || null,
-      model: batModel || null,
-      expected_life_months: parseInt(batLife) || 36,
-      cost: batCost ? parseFloat(batCost) : 0,
-      notes: batNotes || null,
-      created_by: user?.id,
-    };
-    const result = editingBatteryId
-      ? await (supabase as any).from('vehicle_battery').update(payload).eq('id', editingBatteryId)
-      : await (supabase as any).from('vehicle_battery').insert([payload]);
-    if (result.error) { toast({ title: 'Error', description: result.error.message, variant: 'destructive' }); return; }
-    toast({ title: 'Success', description: `Battery record ${editingBatteryId ? 'updated' : 'added'} successfully` });
-    setBatteryDialogOpen(false);
-    fetchBatteryRecords();
-  };
-
-  const handleDeleteBattery = async (id: string) => {
-    const { error } = await (supabase as any).from('vehicle_battery').delete().eq('id', id);
-    if (!error) { toast({ title: 'Deleted', description: 'Battery record removed' }); fetchBatteryRecords(); }
-  };
 
   const fetchLatestTripKms = async () => {
     const { data, error } = await supabase
@@ -635,8 +541,6 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               const insStatus = insurance ? getDateExpiryStatus(insurance.expiry_date) : null;
               const pollution = pollutionRecords.find(p => p.vehicle_number === vehicle.vehicleNumber);
               const polStatus = pollution ? getDateExpiryStatus(pollution.expiry_date) : null;
-              const battery = batteryRecords.find(b => b.vehicle_number === vehicle.vehicleNumber);
-              const batStatus = battery ? getBatteryStatus(battery) : null;
               const isExpanded = expandedVehicle === vehicle.vehicleNumber;
 
               return (
@@ -690,16 +594,6 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                         {polStatus?.status === 'expiring-soon' && (
                           <Badge className="bg-orange-500 text-white text-xs">
                             <Wind className="h-3 w-3 mr-1" />PUC Expiring
-                          </Badge>
-                        )}
-                        {batStatus?.status === 'overdue' && (
-                          <Badge variant="destructive" className="text-xs animate-pulse">
-                            <BatteryWarning className="h-3 w-3 mr-1" />Battery Replace
-                          </Badge>
-                        )}
-                        {batStatus?.status === 'due-soon' && (
-                          <Badge className="bg-orange-500 text-white text-xs">
-                            <BatteryLow className="h-3 w-3 mr-1" />Battery Soon
                           </Badge>
                         )}
                         {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -788,87 +682,6 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                         </div>
                       </div>
                     )}
-
-                    {/* Battery Status - easy view */}
-                    <div
-                      className={`p-3 rounded-lg space-y-2 mb-2 border ${batStatus ? (batStatus.status === 'overdue' ? 'border-destructive/40 bg-destructive/5' : batStatus.status === 'due-soon' ? 'border-orange-400/40 bg-orange-500/5' : batStatus.status === 'watch' ? 'border-yellow-400/40 bg-yellow-500/5' : 'border-green-500/30 bg-green-500/5') : 'border-dashed border-muted-foreground/30 bg-muted/10'}`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-semibold">
-                          {batStatus?.status === 'overdue' ? <BatteryWarning className="h-4 w-4 text-destructive" /> :
-                           batStatus?.status === 'due-soon' ? <BatteryLow className="h-4 w-4 text-orange-500" /> :
-                           batStatus ? <BatteryCharging className="h-4 w-4 text-green-600" /> :
-                           <Battery className="h-4 w-4 text-muted-foreground" />}
-                          <span>Battery</span>
-                          {batStatus && (
-                            <Badge className={`text-[10px] ${batStatus.status === 'overdue' ? 'bg-destructive' : batStatus.status === 'due-soon' ? 'bg-orange-500' : batStatus.status === 'watch' ? 'bg-yellow-500' : 'bg-green-600'} text-white`}>
-                              {batStatus.emoji} {batStatus.badge}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {battery && (
-                            <>
-                              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openEditBattery(battery)}>
-                                <Edit className="h-3.5 w-3.5" />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-7 px-2"><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete battery record?</AlertDialogTitle>
-                                    <AlertDialogDescription>This will remove the battery info for {vehicle.vehicleNumber}.</AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteBattery(battery.id)}>Delete</AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </>
-                          )}
-                          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => battery ? openEditBattery(battery) : openAddBattery(vehicle.vehicleNumber)}>
-                            {battery ? 'Update' : <><Plus className="h-3 w-3 mr-1" />Add</>}
-                          </Button>
-                        </div>
-                      </div>
-
-                      {battery && batStatus ? (
-                        <>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div className="p-2 bg-background/60 rounded">
-                              <p className="text-muted-foreground text-[10px]">Replaced on</p>
-                              <p className="font-semibold">{format(new Date(battery.last_replacement_date), 'dd MMM yyyy')}</p>
-                              <p className="text-[10px] text-muted-foreground">{batStatus.monthsUsed} months ago</p>
-                            </div>
-                            <div className="p-2 bg-background/60 rounded">
-                              <p className="text-muted-foreground text-[10px]">Replace by</p>
-                              <p className="font-semibold">{format(batStatus.expectedExpiryDate, 'dd MMM yyyy')}</p>
-                              <p className="text-[10px] text-muted-foreground">Life: {battery.expected_life_months} months</p>
-                            </div>
-                          </div>
-                          {(battery.brand || battery.model || battery.cost > 0) && (
-                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                              {battery.brand && <span><strong className="text-foreground">{battery.brand}</strong>{battery.model ? ` · ${battery.model}` : ''}</span>}
-                              {battery.cost > 0 && <span>Cost: <strong className="text-foreground">₹{battery.cost.toLocaleString()}</strong></span>}
-                            </div>
-                          )}
-                          <div className="space-y-1">
-                            <Progress value={batStatus.progress} className="h-2" />
-                            <div className="flex justify-between text-[10px]">
-                              <span className="text-muted-foreground">0 mo</span>
-                              <span className={`font-medium ${batStatus.color}`}>{batStatus.label}</span>
-                              <span className="text-muted-foreground">{battery.expected_life_months} mo</span>
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">No battery info yet. Click <strong>Add</strong> to track replacement date and life.</p>
-                      )}
-                    </div>
 
                     {/* Expanded Detail Table */}
                     {isExpanded && (
@@ -1473,52 +1286,6 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
           })}
         </TabsContent>
       </Tabs>
-
-      {/* Battery Add/Edit Dialog */}
-      <Dialog open={batteryDialogOpen} onOpenChange={setBatteryDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <BatteryCharging className="h-5 w-5 text-primary" />
-              {editingBatteryId ? 'Update Battery' : 'Add Battery'} — {batVehicle}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1 sm:col-span-2">
-              <Label>Vehicle Number *</Label>
-              <Input value={batVehicle} onChange={e => setBatVehicle(e.target.value)} placeholder="e.g. AP39UF1216" />
-            </div>
-            <div className="space-y-1">
-              <Label>Last Replacement Date *</Label>
-              <Input type="date" value={batDate} onChange={e => setBatDate(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label>Expected Life (months)</Label>
-              <Input type="number" value={batLife} onChange={e => setBatLife(e.target.value)} placeholder="36" />
-            </div>
-            <div className="space-y-1">
-              <Label>Brand</Label>
-              <Input value={batBrand} onChange={e => setBatBrand(e.target.value)} placeholder="e.g. Exide, Amaron" />
-            </div>
-            <div className="space-y-1">
-              <Label>Model</Label>
-              <Input value={batModel} onChange={e => setBatModel(e.target.value)} placeholder="e.g. FEX0-FEX35" />
-            </div>
-            <div className="space-y-1">
-              <Label>Replacement Cost (₹)</Label>
-              <Input type="number" value={batCost} onChange={e => setBatCost(e.target.value)} placeholder="0" />
-            </div>
-            <div className="space-y-1">
-              <Label>Notes</Label>
-              <Input value={batNotes} onChange={e => setBatNotes(e.target.value)} placeholder="Optional" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBatteryDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleBatterySubmit}>{editingBatteryId ? 'Update' : 'Save'} Battery</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

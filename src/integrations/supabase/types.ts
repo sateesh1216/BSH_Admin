@@ -362,48 +362,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vehicle_battery: {
-        Row: {
-          brand: string | null
-          cost: number
-          created_at: string
-          created_by: string | null
-          expected_life_months: number
-          id: string
-          last_replacement_date: string
-          model: string | null
-          notes: string | null
-          updated_at: string
-          vehicle_number: string
-        }
-        Insert: {
-          brand?: string | null
-          cost?: number
-          created_at?: string
-          created_by?: string | null
-          expected_life_months?: number
-          id?: string
-          last_replacement_date: string
-          model?: string | null
-          notes?: string | null
-          updated_at?: string
-          vehicle_number: string
-        }
-        Update: {
-          brand?: string | null
-          cost?: number
-          created_at?: string
-          created_by?: string | null
-          expected_life_months?: number
-          id?: string
-          last_replacement_date?: string
-          model?: string | null
-          notes?: string | null
-          updated_at?: string
-          vehicle_number?: string
-        }
-        Relationships: []
-      }
       vehicle_emi: {
         Row: {
           created_at: string | null
