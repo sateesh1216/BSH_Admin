@@ -635,6 +635,8 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               const insStatus = insurance ? getDateExpiryStatus(insurance.expiry_date) : null;
               const pollution = pollutionRecords.find(p => p.vehicle_number === vehicle.vehicleNumber);
               const polStatus = pollution ? getDateExpiryStatus(pollution.expiry_date) : null;
+              const battery = batteryRecords.find(b => b.vehicle_number === vehicle.vehicleNumber);
+              const batStatus = battery ? getBatteryStatus(battery) : null;
               const isExpanded = expandedVehicle === vehicle.vehicleNumber;
 
               return (
