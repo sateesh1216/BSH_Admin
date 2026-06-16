@@ -1473,6 +1473,52 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
           })}
         </TabsContent>
       </Tabs>
+
+      {/* Battery Add/Edit Dialog */}
+      <Dialog open={batteryDialogOpen} onOpenChange={setBatteryDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BatteryCharging className="h-5 w-5 text-primary" />
+              {editingBatteryId ? 'Update Battery' : 'Add Battery'} — {batVehicle}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1 sm:col-span-2">
+              <Label>Vehicle Number *</Label>
+              <Input value={batVehicle} onChange={e => setBatVehicle(e.target.value)} placeholder="e.g. AP39UF1216" />
+            </div>
+            <div className="space-y-1">
+              <Label>Last Replacement Date *</Label>
+              <Input type="date" value={batDate} onChange={e => setBatDate(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Expected Life (months)</Label>
+              <Input type="number" value={batLife} onChange={e => setBatLife(e.target.value)} placeholder="36" />
+            </div>
+            <div className="space-y-1">
+              <Label>Brand</Label>
+              <Input value={batBrand} onChange={e => setBatBrand(e.target.value)} placeholder="e.g. Exide, Amaron" />
+            </div>
+            <div className="space-y-1">
+              <Label>Model</Label>
+              <Input value={batModel} onChange={e => setBatModel(e.target.value)} placeholder="e.g. FEX0-FEX35" />
+            </div>
+            <div className="space-y-1">
+              <Label>Replacement Cost (₹)</Label>
+              <Input type="number" value={batCost} onChange={e => setBatCost(e.target.value)} placeholder="0" />
+            </div>
+            <div className="space-y-1">
+              <Label>Notes</Label>
+              <Input value={batNotes} onChange={e => setBatNotes(e.target.value)} placeholder="Optional" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBatteryDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleBatterySubmit}>{editingBatteryId ? 'Update' : 'Save'} Battery</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
