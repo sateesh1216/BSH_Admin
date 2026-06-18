@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings, History, ChevronRight, User, Menu } from 'lucide-react';
+import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings, History, ChevronRight, User, Menu, FileDown } from 'lucide-react';
+import { exportSummaryPdf } from '@/utils/exportSummaryPdf';
 import { startOfDay, parseISO, isAfter } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -486,6 +487,26 @@ export const Dashboard = () => {
             <DateFilter currentFilter={dateFilter} onFilterChange={setDateFilter} />
 
             {/* Summary Cards */}
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const label =
+                    dateFilter.type === 'monthly' && dateFilter.month
+                      ? format(parseISO(`${dateFilter.month}-01`), 'MMMM yyyy')
+                      : dateFilter.type === 'yearly' && dateFilter.year
+                      ? String(dateFilter.year)
+                      : 'All Time';
+                  exportSummaryPdf(calculateSummary, label);
+                  toast({ title: 'PDF exported', description: 'Summary PDF downloaded' });
+                }}
+                className="shadow-sm"
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                Export Summary PDF
+              </Button>
+            </div>
             <DashboardSummary data={calculateSummary} onCardClick={setSummaryDetailType} />
 
             {/* Summary Detail Modal */}
