@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, parseISO } from 'date-fns';
+import bshLogo from '@/assets/bsh-logo.png';
 
 interface SummaryExportData {
   totalTrips: number;
@@ -63,17 +64,54 @@ const fmtDate = (d: string) => {
   try { return format(parseISO(d), 'dd MMM yyyy'); } catch { return d; }
 };
 
-const drawHeader = (doc: jsPDF, subtitle: string) => {
+async function loadLogo(): Promise<string | null> {
+  try {
+    const res = await fetch(bshLogo);
+    const blob = await res.blob();
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+const BRAND = [15, 23, 42] as [number, number, number];          // slate-900
+const ACCENT = [234, 179, 8] as [number, number, number];        // amber-500
+const TRIPS_COLOR = [37, 99, 235] as [number, number, number];
+const OUTSIDE_COLOR = [147, 51, 234] as [number, number, number];
+const MAINT_COLOR = [234, 88, 12] as [number, number, number];
+const PROFIT_COLOR = [16, 122, 87] as [number, number, number];
+
+const drawHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
   const pageWidth = doc.internal.pageSize.getWidth();
-  doc.setFillColor(30, 64, 175);
-  doc.rect(0, 0, pageWidth, 24, 'F');
+  // Main band
+  doc.setFillColor(...BRAND);
+  doc.rect(0, 0, pageWidth, 30, 'F');
+  // Accent stripe
+  doc.setFillColor(...ACCENT);
+  doc.rect(0, 30, pageWidth, 1.5, 'F');
+
+  // Logo
+  if (logo) {
+    try { doc.addImage(logo, 'PNG', 12, 5, 20, 20); } catch { /* ignore */ }
+  }
+
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('BSH Taxi Service', 14, 11);
+  doc.setFontSize(15);
+  doc.text('BSH Taxi Service', 36, 13);
   doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(203, 213, 225);
+  doc.text('Palanati Colony, Kancharapelam, Vizag', 36, 19);
   doc.setFontSize(9);
-  doc.text(subtitle, 14, 18);
+  doc.setTextColor(255, 255, 255);
+  doc.text(subtitle, 36, 25);
+
   doc.setTextColor(0, 0, 0);
 };
 
@@ -83,17 +121,63 @@ const drawFooter = (doc: jsPDF) => {
   const total = doc.getNumberOfPages();
   for (let i = 1; i <= total; i++) {
     doc.setPage(i);
+    doc.setDrawColor(226, 232, 240);
+    doc.line(14, pageHeight - 12, pageWidth - 14, pageHeight - 12);
     doc.setFontSize(8);
-    doc.setTextColor(120, 120, 120);
-    doc.text(
-      'BSH Taxi Service, Palanati Colony, Kancharapelam, Vizag',
-      pageWidth / 2, pageHeight - 8, { align: 'center' }
-    );
-    doc.text(`Page ${i} of ${total}`, pageWidth - 14, pageHeight - 8, { align: 'right' });
+    doc.setTextColor(100, 116, 139);
+    doc.text('BSH Taxi Service - Confidential Financial Report', 14, pageHeight - 6);
+    doc.text(`Page ${i} of ${total}`, pageWidth - 14, pageHeight - 6, { align: 'right' });
   }
 };
 
-export function exportSummaryPdf(
+// Draw 4 KPI boxes
+const drawKpiCards = (
+  doc: jsPDF,
+  y: number,
+  cards: { label: string; value: string; color: [number, number, number] }[]
+) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 14;
+  const gap = 4;
+  const cardW = (pageWidth - margin * 2 - gap * (cards.length - 1)) / cards.length;
+  const cardH = 22;
+
+  cards.forEach((c, i) => {
+    const x = margin + i * (cardW + gap);
+    // background
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(x, y, cardW, cardH, 2, 2, 'F');
+    // left accent bar
+    doc.setFillColor(...c.color);
+    doc.roundedRect(x, y, 2, cardH, 1, 1, 'F');
+    // label
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text(c.label.toUpperCase(), x + 6, y + 7);
+    // value
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...c.color);
+    doc.text(c.value, x + 6, y + 16);
+  });
+  doc.setTextColor(0, 0, 0);
+  return y + cardH + 6;
+};
+
+const sectionTitle = (doc: jsPDF, y: number, text: string, color: [number, number, number]) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  doc.setFillColor(...color);
+  doc.roundedRect(14, y, pageWidth - 28, 8, 1.5, 1.5, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text(text, 18, y + 5.5);
+  doc.setTextColor(0, 0, 0);
+  return y + 11;
+};
+
+export async function exportSummaryPdf(
   data: SummaryExportData,
   periodLabel: string,
   trips: Trip[] = [],
@@ -101,58 +185,62 @@ export function exportSummaryPdf(
   maintenance: Maintenance[] = []
 ) {
   const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
+  const logo = await loadLogo();
 
-  // ============ PAGE 1: SUMMARY ============
-  drawHeader(doc, 'Summary Report (All amounts in Indian Rupees)');
-  doc.setFontSize(10);
-  doc.text(`Period: ${periodLabel}`, 14, 32);
-  doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy, hh:mm a')}`, 14, 38);
+  // ============ PAGE 1 — SUMMARY ============
+  drawHeader(doc, `Summary Report - ${periodLabel}`, logo);
 
-  let y = 46;
-  const section = (title: string, color: [number, number, number], rows: [string, string][]) => {
-    autoTable(doc, {
-      startY: y,
-      head: [[{ content: title, colSpan: 2, styles: { fillColor: color, textColor: 255, fontStyle: 'bold', fontSize: 12, halign: 'left' } }]],
-      body: rows,
-      theme: 'grid',
-      styles: { fontSize: 11, cellPadding: 4 },
-      columnStyles: {
-        0: { fontStyle: 'bold', fillColor: [245, 245, 250], cellWidth: 90 },
-        1: { halign: 'right' },
-      },
-      margin: { left: 14, right: 14 },
-    });
-    y = (doc as any).lastAutoTable.finalY + 8;
-  };
+  doc.setFontSize(9);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy, hh:mm a')}`, 14, 40);
+  doc.text('All amounts in Indian Rupees (INR)', doc.internal.pageSize.getWidth() - 14, 40, { align: 'right' });
 
-  section('TRIPS', [37, 99, 235], [
-    ['Total Trips', String(data.totalTrips)],
-    ['Total Trip Money', rupee(data.totalTripMoney)],
-    ['Total Expenses', rupee(data.totalExpenses)],
-    ['Total Profit', rupee(data.totalProfit)],
-  ]);
-  section('OUTSIDE VEHICLES', [147, 51, 234], [
-    ['Outside Vehicle Trips', String(data.totalOutsideVehicleTrips)],
-    ['Outside Vehicle Amount', rupee(data.totalOutsideVehicleMoney)],
-    ['Outside Pending Amount', rupee(data.pendingOutsideVehicleMoney)],
-  ]);
-  section('MAINTENANCE', [234, 88, 12], [
-    ['Total Maintenance Records', String(data.totalMaintenance)],
-    ['Maintenance Expenses', rupee(data.maintenanceExpenses)],
-  ]);
-  section('GRAND TOTALS', [16, 122, 87], [
-    ['Total Money In', rupee(data.totalTripMoney + data.totalOutsideVehicleMoney)],
-    ['Total Expenses', rupee(data.totalExpenses)],
-    ['Net Profit', rupee(data.totalProfit)],
+  let y = 48;
+
+  // KPI Row 1 - main
+  y = drawKpiCards(doc, y, [
+    { label: 'Total Trips', value: String(data.totalTrips), color: TRIPS_COLOR },
+    { label: 'Trip Money', value: rupee(data.totalTripMoney), color: TRIPS_COLOR },
+    { label: 'Total Expenses', value: rupee(data.totalExpenses), color: MAINT_COLOR },
+    { label: 'Net Profit', value: rupee(data.totalProfit), color: PROFIT_COLOR },
   ]);
 
-  // ============ PAGE 2+: TRIPS DETAIL ============
+  // KPI Row 2 - outside
+  y = drawKpiCards(doc, y, [
+    { label: 'Outside Trips', value: String(data.totalOutsideVehicleTrips), color: OUTSIDE_COLOR },
+    { label: 'Outside Amount', value: rupee(data.totalOutsideVehicleMoney), color: OUTSIDE_COLOR },
+    { label: 'Outside Pending', value: rupee(data.pendingOutsideVehicleMoney), color: [220, 38, 38] },
+    { label: 'Maintenance', value: rupee(data.maintenanceExpenses), color: MAINT_COLOR },
+  ]);
+
+  // Breakdown table
+  y = sectionTitle(doc, y + 2, 'FINANCIAL BREAKDOWN', BRAND);
+  autoTable(doc, {
+    startY: y,
+    head: [['Category', 'Count', 'Amount']],
+    body: [
+      ['Trips Revenue', String(data.totalTrips), rupee(data.totalTripMoney)],
+      ['Outside Vehicle Revenue', String(data.totalOutsideVehicleTrips), rupee(data.totalOutsideVehicleMoney)],
+      ['Maintenance Expense', String(data.totalMaintenance), rupee(data.maintenanceExpenses)],
+      ['Total Expenses (incl. trip costs)', '-', rupee(data.totalExpenses)],
+      ['Outside Pending Payments', '-', rupee(data.pendingOutsideVehicleMoney)],
+    ],
+    foot: [['NET PROFIT', '', rupee(data.totalProfit)]],
+    theme: 'grid',
+    headStyles: { fillColor: [241, 245, 249], textColor: 30, fontStyle: 'bold', fontSize: 10 },
+    footStyles: { fillColor: PROFIT_COLOR, textColor: 255, fontStyle: 'bold', fontSize: 11 },
+    styles: { fontSize: 10, cellPadding: 4 },
+    columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right', fontStyle: 'bold' } },
+    margin: { left: 14, right: 14 },
+  });
+
+  // ============ TRIPS DETAIL ============
   if (trips.length > 0) {
     doc.addPage();
-    drawHeader(doc, `Trips Detail - ${periodLabel} (${trips.length} records)`);
+    drawHeader(doc, `Trips Detail (${trips.length} records)`, logo);
+    sectionTitle(doc, 38, 'TRIPS RECORDS', TRIPS_COLOR);
     autoTable(doc, {
-      startY: 32,
+      startY: 50,
       head: [['Date', 'Driver', 'Customer', 'Route', 'Company', 'Pay', 'Status', 'Amount', 'Profit']],
       body: trips.map(t => [
         fmtDate(t.date),
@@ -171,13 +259,11 @@ export function exportSummaryPdf(
         rupee(trips.reduce((s, t) => s + t.profit, 0)),
       ]],
       theme: 'striped',
-      headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 9 },
+      headStyles: { fillColor: TRIPS_COLOR, textColor: 255, fontSize: 9 },
       footStyles: { fillColor: [219, 234, 254], textColor: 0, fontStyle: 'bold', fontSize: 9 },
-      styles: { fontSize: 8, cellPadding: 2 },
-      columnStyles: {
-        7: { halign: 'right' },
-        8: { halign: 'right' },
-      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      columnStyles: { 7: { halign: 'right' }, 8: { halign: 'right' } },
       margin: { left: 8, right: 8 },
     });
   }
@@ -185,9 +271,10 @@ export function exportSummaryPdf(
   // ============ OUTSIDE VEHICLES DETAIL ============
   if (outsideTrips.length > 0) {
     doc.addPage();
-    drawHeader(doc, `Outside Vehicle Trips - ${periodLabel} (${outsideTrips.length} records)`);
+    drawHeader(doc, `Outside Vehicle Trips (${outsideTrips.length} records)`, logo);
+    sectionTitle(doc, 38, 'OUTSIDE VEHICLE RECORDS', OUTSIDE_COLOR);
     autoTable(doc, {
-      startY: 32,
+      startY: 50,
       head: [['Date', 'Driver', 'Travel Co.', 'Vehicle', 'Route', 'Veh No.', 'Given By', 'Status', 'Amount']],
       body: outsideTrips.map(t => [
         fmtDate(t.date),
@@ -205,9 +292,10 @@ export function exportSummaryPdf(
         rupee(outsideTrips.reduce((s, t) => s + t.trip_amount, 0)),
       ]],
       theme: 'striped',
-      headStyles: { fillColor: [147, 51, 234], textColor: 255, fontSize: 9 },
+      headStyles: { fillColor: OUTSIDE_COLOR, textColor: 255, fontSize: 9 },
       footStyles: { fillColor: [243, 232, 255], textColor: 0, fontStyle: 'bold', fontSize: 9 },
-      styles: { fontSize: 8, cellPadding: 2 },
+      alternateRowStyles: { fillColor: [250, 245, 255] },
+      styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 8: { halign: 'right' } },
       margin: { left: 8, right: 8 },
     });
@@ -216,9 +304,10 @@ export function exportSummaryPdf(
   // ============ MAINTENANCE DETAIL ============
   if (maintenance.length > 0) {
     doc.addPage();
-    drawHeader(doc, `Maintenance Records - ${periodLabel} (${maintenance.length} records)`);
+    drawHeader(doc, `Maintenance Records (${maintenance.length} records)`, logo);
+    sectionTitle(doc, 38, 'MAINTENANCE RECORDS', MAINT_COLOR);
     autoTable(doc, {
-      startY: 32,
+      startY: 50,
       head: [['Date', 'Vehicle', 'Driver', 'Type', 'Description', 'Payment', 'Amount']],
       body: maintenance.map(m => [
         fmtDate(m.date),
@@ -234,9 +323,10 @@ export function exportSummaryPdf(
         rupee(maintenance.reduce((s, m) => s + m.amount, 0)),
       ]],
       theme: 'striped',
-      headStyles: { fillColor: [234, 88, 12], textColor: 255, fontSize: 9 },
+      headStyles: { fillColor: MAINT_COLOR, textColor: 255, fontSize: 9 },
       footStyles: { fillColor: [254, 215, 170], textColor: 0, fontStyle: 'bold', fontSize: 9 },
-      styles: { fontSize: 8, cellPadding: 2 },
+      alternateRowStyles: { fillColor: [255, 247, 237] },
+      styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 6: { halign: 'right' } },
       margin: { left: 8, right: 8 },
     });
