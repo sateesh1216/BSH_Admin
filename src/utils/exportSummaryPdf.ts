@@ -86,10 +86,12 @@ const OUTSIDE_COLOR = [147, 51, 234] as [number, number, number];
 const MAINT_COLOR = [234, 88, 12] as [number, number, number];
 const PROFIT_COLOR = [16, 122, 87] as [number, number, number];
 
+const BANNER_GRAY = [203, 203, 203] as [number, number, number]; // #CBCBCB
+
 const drawHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
   const pageWidth = doc.internal.pageSize.getWidth();
-  // Light header background so the black logo is visible
-  doc.setFillColor(248, 250, 252); // slate-50
+  // Light gray banner so the black logo is visible
+  doc.setFillColor(...BANNER_GRAY);
   doc.rect(0, 0, pageWidth, 30, 'F');
   // Dark accent stripe at the bottom of header
   doc.setFillColor(...BRAND);
@@ -98,12 +100,12 @@ const drawHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
   doc.setFillColor(...ACCENT);
   doc.rect(0, 28.5, pageWidth, 1.5, 'F');
 
-  // Logo (black logo now visible on light bg)
+  // Logo (black logo visible on light gray bg)
   if (logo) {
     try { doc.addImage(logo, 'PNG', 12, 5, 20, 20); } catch { /* ignore */ }
   }
 
-  // Dark title text on light background
+  // Dark title text on light gray background
   doc.setTextColor(...BRAND);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
@@ -181,6 +183,11 @@ const sectionTitle = (doc: jsPDF, y: number, text: string, color: [number, numbe
   return y + 11;
 };
 
+// Continuation header — same layout, but different subtitle on extra pages
+const drawContinuationHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
+  drawHeader(doc, subtitle, logo);
+};
+
 export async function exportSummaryPdf(
   data: SummaryExportData,
   periodLabel: string,
@@ -191,7 +198,7 @@ export async function exportSummaryPdf(
   const doc = new jsPDF();
   const logo = await loadLogo();
 
-  // ============ PAGE 1 — SUMMARY ============
+  // ============ PAGE 1 — SUMMARY ONLY ============
   drawHeader(doc, `Summary Report - ${periodLabel}`, logo);
 
   doc.setFontSize(9);
@@ -238,24 +245,21 @@ export async function exportSummaryPdf(
     margin: { left: 14, right: 14 },
   });
 
-  // Continuation-flow helpers: avoid forcing a new page for every section
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const bottomLimit = pageHeight - 18;
+  // Helper to get Y after last table
   const getY = () => (doc as any).lastAutoTable?.finalY ?? y;
 
-  const ensureSpace = (needed: number, subtitle: string): number => {
-    const currentY = getY();
-    if (currentY + needed > bottomLimit) {
-      doc.addPage();
-      drawHeader(doc, subtitle, logo);
-      return 38;
-    }
-    return currentY + 6;
+  // Helper: start a detail section on a fresh page if needed
+  const startDetailPage = (subtitle: string): number => {
+    doc.addPage();
+    drawContinuationHeader(doc, subtitle, logo);
+    return 38;
   };
 
-  // ============ TRIPS DETAIL ============
+  // ============ PAGE 2+ — DETAIL TABLES ============
+
+  // TRIPS DETAIL
   if (trips.length > 0) {
-    const startY = ensureSpace(40, `Trips Detail (${trips.length} records)`);
+    const startY = startDetailPage(`Trips Detail (${trips.length} records)`);
     const afterTitle = sectionTitle(doc, startY, `TRIPS RECORDS (${trips.length})`, TRIPS_COLOR);
     autoTable(doc, {
       startY: afterTitle,
@@ -283,13 +287,20 @@ export async function exportSummaryPdf(
       styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 7: { halign: 'right' }, 8: { halign: 'right' } },
       margin: { left: 8, right: 8 },
-      didDrawPage: (d: any) => { if (d.pageNumber > 1) drawHeader(doc, `Trips Detail (continued)`, logo); },
+      didDrawPage: (d: any) => {
+        if (d.pageNumber > 1) drawContinuationHeader(doc, `Trips Detail (continued)`, logo);
+      },
     });
   }
 
-  // ============ OUTSIDE VEHICLES DETAIL ============
+  // OUTSIDE VEHICLES DETAIL
   if (outsideTrips.length > 0) {
-    const startY = ensureSpace(40, `Outside Vehicle Trips (${outsideTrips.length} records)`);
+    const currentY = getY();
+    const pageH = doc.internal.pageSize.getHeight();
+    const needsNewPage = currentY + 40 > pageH - 18;
+    const startY = needsNewPage
+      ? startDetailPage(`Outside Vehicle Trips (${outsideTrips.length} records)`)
+      : currentY + 10;
     const afterTitle = sectionTitle(doc, startY, `OUTSIDE VEHICLE RECORDS (${outsideTrips.length})`, OUTSIDE_COLOR);
     autoTable(doc, {
       startY: afterTitle,
@@ -316,13 +327,20 @@ export async function exportSummaryPdf(
       styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 8: { halign: 'right' } },
       margin: { left: 8, right: 8 },
-      didDrawPage: (d: any) => { if (d.pageNumber > 1) drawHeader(doc, `Outside Vehicle Trips (continued)`, logo); },
+      didDrawPage: (d: any) => {
+        if (d.pageNumber > 1) drawContinuationHeader(doc, `Outside Vehicle Trips (continued)`, logo);
+      },
     });
   }
 
-  // ============ MAINTENANCE DETAIL ============
+  // MAINTENANCE DETAIL
   if (maintenance.length > 0) {
-    const startY = ensureSpace(40, `Maintenance Records (${maintenance.length} records)`);
+    const currentY = getY();
+    const pageH = doc.internal.pageSize.getHeight();
+    const needsNewPage = currentY + 40 > pageH - 18;
+    const startY = needsNewPage
+      ? startDetailPage(`Maintenance Records (${maintenance.length} records)`)
+      : currentY + 10;
     const afterTitle = sectionTitle(doc, startY, `MAINTENANCE RECORDS (${maintenance.length})`, MAINT_COLOR);
     autoTable(doc, {
       startY: afterTitle,
@@ -347,7 +365,9 @@ export async function exportSummaryPdf(
       styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 6: { halign: 'right' } },
       margin: { left: 8, right: 8 },
-      didDrawPage: (d: any) => { if (d.pageNumber > 1) drawHeader(doc, `Maintenance Records (continued)`, logo); },
+      didDrawPage: (d: any) => {
+        if (d.pageNumber > 1) drawContinuationHeader(doc, `Maintenance Records (continued)`, logo);
+      },
     });
   }
 
