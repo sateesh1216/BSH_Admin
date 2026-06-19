@@ -88,28 +88,32 @@ const PROFIT_COLOR = [16, 122, 87] as [number, number, number];
 
 const drawHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
   const pageWidth = doc.internal.pageSize.getWidth();
-  // Main band
-  doc.setFillColor(...BRAND);
+  // Light header background so the black logo is visible
+  doc.setFillColor(248, 250, 252); // slate-50
   doc.rect(0, 0, pageWidth, 30, 'F');
-  // Accent stripe
-  doc.setFillColor(...ACCENT);
+  // Dark accent stripe at the bottom of header
+  doc.setFillColor(...BRAND);
   doc.rect(0, 30, pageWidth, 1.5, 'F');
+  // Amber thin line above the dark stripe
+  doc.setFillColor(...ACCENT);
+  doc.rect(0, 28.5, pageWidth, 1.5, 'F');
 
-  // Logo
+  // Logo (black logo now visible on light bg)
   if (logo) {
     try { doc.addImage(logo, 'PNG', 12, 5, 20, 20); } catch { /* ignore */ }
   }
 
-  doc.setTextColor(255, 255, 255);
+  // Dark title text on light background
+  doc.setTextColor(...BRAND);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.text('BSH Taxi Service', 36, 13);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.setTextColor(203, 213, 225);
+  doc.setTextColor(100, 116, 139);
   doc.text('Palanati Colony, Kancharapelam, Vizag', 36, 19);
   doc.setFontSize(9);
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(...BRAND);
   doc.text(subtitle, 36, 25);
 
   doc.setTextColor(0, 0, 0);
