@@ -283,7 +283,7 @@ export async function exportSummaryPdf(
       styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 7: { halign: 'right' }, 8: { halign: 'right' } },
       margin: { left: 8, right: 8 },
-      didDrawPage: () => drawHeader(doc, `Trips Detail (continued)`, logo),
+      didDrawPage: (d: any) => { if (d.pageNumber > 1) drawHeader(doc, `Trips Detail (continued)`, logo); },
     });
   }
 
@@ -316,7 +316,7 @@ export async function exportSummaryPdf(
       styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 8: { halign: 'right' } },
       margin: { left: 8, right: 8 },
-      didDrawPage: () => drawHeader(doc, `Outside Vehicle Trips (continued)`, logo),
+      didDrawPage: (d: any) => { if (d.pageNumber > 1) drawHeader(doc, `Outside Vehicle Trips (continued)`, logo); },
     });
   }
 
@@ -347,7 +347,7 @@ export async function exportSummaryPdf(
       styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 6: { halign: 'right' } },
       margin: { left: 8, right: 8 },
-      didDrawPage: () => drawHeader(doc, `Maintenance Records (continued)`, logo),
+      didDrawPage: (d: any) => { if (d.pageNumber > 1) drawHeader(doc, `Maintenance Records (continued)`, logo); },
     });
   }
 
