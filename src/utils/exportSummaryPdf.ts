@@ -347,6 +347,7 @@ export async function exportSummaryPdf(
       styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 6: { halign: 'right' } },
       margin: { left: 8, right: 8 },
+      didDrawPage: () => drawHeader(doc, `Maintenance Records (continued)`, logo),
     });
   }
 
