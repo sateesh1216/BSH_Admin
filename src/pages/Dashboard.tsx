@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings, History, ChevronRight, User, Menu, FileDown } from 'lucide-react';
+import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings, History, ChevronRight, User, Menu, FileDown, Calendar } from 'lucide-react';
 import { exportSummaryPdf } from '@/utils/exportSummaryPdf';
 import { startOfDay, parseISO, isAfter } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DashboardSummary } from '@/components/dashboard/DashboardSummary';
@@ -210,6 +211,53 @@ export const Dashboard = () => {
     const pendingOutsideVehicleMoney = outsideVehicleTrips.filter(trip => trip.payment_status === 'pending').reduce((sum, trip) => sum + trip.trip_amount, 0);
     return { totalTrips, totalTripMoney, totalExpenses, totalProfit, totalMaintenance: maintenance.length, maintenanceExpenses, totalOutsideVehicleTrips, totalOutsideVehicleMoney, pendingOutsideVehicleMoney };
   }, [trips, maintenance, outsideVehicleTrips]);
+
+  const monthlyBreakdown = useMemo(() => {
+    if (dateFilter.type !== 'all') return [];
+
+    const map = new Map<string, {
+      monthLabel: string;
+      sortDate: Date;
+      totalTrips: number;
+      totalTripMoney: number;
+      maintenanceExpenses: number;
+      totalOutsideVehicleTrips: number;
+      totalOutsideVehicleMoney: number;
+    }>();
+
+    const ensureMonth = (dateStr: string) => {
+      const d = parseISO(dateStr);
+      const label = format(d, 'MMMM yyyy');
+      if (!map.has(label)) {
+        map.set(label, {
+          monthLabel: label,
+          sortDate: new Date(d.getFullYear(), d.getMonth(), 1),
+          totalTrips: 0, totalTripMoney: 0, maintenanceExpenses: 0,
+          totalOutsideVehicleTrips: 0, totalOutsideVehicleMoney: 0
+        });
+      }
+      return map.get(label)!;
+    };
+
+    trips.forEach(t => {
+      const m = ensureMonth(t.date);
+      m.totalTrips++;
+      m.totalTripMoney += t.trip_amount;
+    });
+
+    maintenance.forEach(mr => {
+      const m = ensureMonth(mr.date);
+      m.maintenanceExpenses += mr.amount;
+    });
+
+    outsideVehicleTrips.forEach(t => {
+      const m = ensureMonth(t.date);
+      m.totalOutsideVehicleTrips++;
+      m.totalOutsideVehicleMoney += t.trip_amount;
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime());
+  }, [trips, maintenance, outsideVehicleTrips, dateFilter.type]);
 
   const upcomingTrips = useMemo(() => {
     const today = startOfDay(new Date());
@@ -508,6 +556,53 @@ export const Dashboard = () => {
               </Button>
             </div>
             <DashboardSummary data={calculateSummary} onCardClick={setSummaryDetailType} />
+
+            {/* Monthly Breakdown Cards (shown only when All is selected) */}
+            {dateFilter.type === 'all' && monthlyBreakdown.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Monthly Breakdown
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {monthlyBreakdown.map((month) => (
+                    <Card key={month.monthLabel} className="border-border bg-card hover:bg-accent/50 transition-all duration-200 shadow-sm">
+                      <CardContent className="p-3 space-y-2">
+                        <p className="text-sm font-bold text-foreground">{month.monthLabel}</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <p className="text-muted-foreground">Trips</p>
+                            <p className="font-semibold text-primary">{month.totalTrips}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Trip Money</p>
+                            <p className="font-semibold text-blue-600">₹{month.totalTripMoney.toLocaleString('en-IN')}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Outside</p>
+                            <p className="font-semibold text-purple-600">{month.totalOutsideVehicleTrips}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Outside Amt</p>
+                            <p className="font-semibold text-purple-600">₹{month.totalOutsideVehicleMoney.toLocaleString('en-IN')}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Maintenance</p>
+                            <p className="font-semibold text-orange-600">₹{month.maintenanceExpenses.toLocaleString('en-IN')}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Net Profit</p>
+                            <p className="font-semibold text-green-600">
+                              ₹{(month.totalTripMoney - month.maintenanceExpenses).toLocaleString('en-IN')}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Summary Detail Modal */}
             <SummaryDetailModal
