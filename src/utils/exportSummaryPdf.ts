@@ -88,28 +88,32 @@ const PROFIT_COLOR = [16, 122, 87] as [number, number, number];
 
 const drawHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
   const pageWidth = doc.internal.pageSize.getWidth();
-  // Main band
-  doc.setFillColor(...BRAND);
+  // Light header background so the black logo is visible
+  doc.setFillColor(248, 250, 252); // slate-50
   doc.rect(0, 0, pageWidth, 30, 'F');
-  // Accent stripe
-  doc.setFillColor(...ACCENT);
+  // Dark accent stripe at the bottom of header
+  doc.setFillColor(...BRAND);
   doc.rect(0, 30, pageWidth, 1.5, 'F');
+  // Amber thin line above the dark stripe
+  doc.setFillColor(...ACCENT);
+  doc.rect(0, 28.5, pageWidth, 1.5, 'F');
 
-  // Logo
+  // Logo (black logo now visible on light bg)
   if (logo) {
     try { doc.addImage(logo, 'PNG', 12, 5, 20, 20); } catch { /* ignore */ }
   }
 
-  doc.setTextColor(255, 255, 255);
+  // Dark title text on light background
+  doc.setTextColor(...BRAND);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.text('BSH Taxi Service', 36, 13);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.setTextColor(203, 213, 225);
+  doc.setTextColor(100, 116, 139);
   doc.text('Palanati Colony, Kancharapelam, Vizag', 36, 19);
   doc.setFontSize(9);
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(...BRAND);
   doc.text(subtitle, 36, 25);
 
   doc.setTextColor(0, 0, 0);
@@ -234,13 +238,27 @@ export async function exportSummaryPdf(
     margin: { left: 14, right: 14 },
   });
 
+  // Continuation-flow helpers: avoid forcing a new page for every section
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const bottomLimit = pageHeight - 18;
+  const getY = () => (doc as any).lastAutoTable?.finalY ?? y;
+
+  const ensureSpace = (needed: number, subtitle: string): number => {
+    const currentY = getY();
+    if (currentY + needed > bottomLimit) {
+      doc.addPage();
+      drawHeader(doc, subtitle, logo);
+      return 38;
+    }
+    return currentY + 6;
+  };
+
   // ============ TRIPS DETAIL ============
   if (trips.length > 0) {
-    doc.addPage();
-    drawHeader(doc, `Trips Detail (${trips.length} records)`, logo);
-    sectionTitle(doc, 38, 'TRIPS RECORDS', TRIPS_COLOR);
+    const startY = ensureSpace(40, `Trips Detail (${trips.length} records)`);
+    const afterTitle = sectionTitle(doc, startY, `TRIPS RECORDS (${trips.length})`, TRIPS_COLOR);
     autoTable(doc, {
-      startY: 50,
+      startY: afterTitle,
       head: [['Date', 'Driver', 'Customer', 'Route', 'Company', 'Pay', 'Status', 'Amount', 'Profit']],
       body: trips.map(t => [
         fmtDate(t.date),
@@ -265,16 +283,16 @@ export async function exportSummaryPdf(
       styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 7: { halign: 'right' }, 8: { halign: 'right' } },
       margin: { left: 8, right: 8 },
+      didDrawPage: (d: any) => { if (d.pageNumber > 1) drawHeader(doc, `Trips Detail (continued)`, logo); },
     });
   }
 
   // ============ OUTSIDE VEHICLES DETAIL ============
   if (outsideTrips.length > 0) {
-    doc.addPage();
-    drawHeader(doc, `Outside Vehicle Trips (${outsideTrips.length} records)`, logo);
-    sectionTitle(doc, 38, 'OUTSIDE VEHICLE RECORDS', OUTSIDE_COLOR);
+    const startY = ensureSpace(40, `Outside Vehicle Trips (${outsideTrips.length} records)`);
+    const afterTitle = sectionTitle(doc, startY, `OUTSIDE VEHICLE RECORDS (${outsideTrips.length})`, OUTSIDE_COLOR);
     autoTable(doc, {
-      startY: 50,
+      startY: afterTitle,
       head: [['Date', 'Driver', 'Travel Co.', 'Vehicle', 'Route', 'Veh No.', 'Given By', 'Status', 'Amount']],
       body: outsideTrips.map(t => [
         fmtDate(t.date),
@@ -298,16 +316,16 @@ export async function exportSummaryPdf(
       styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 8: { halign: 'right' } },
       margin: { left: 8, right: 8 },
+      didDrawPage: (d: any) => { if (d.pageNumber > 1) drawHeader(doc, `Outside Vehicle Trips (continued)`, logo); },
     });
   }
 
   // ============ MAINTENANCE DETAIL ============
   if (maintenance.length > 0) {
-    doc.addPage();
-    drawHeader(doc, `Maintenance Records (${maintenance.length} records)`, logo);
-    sectionTitle(doc, 38, 'MAINTENANCE RECORDS', MAINT_COLOR);
+    const startY = ensureSpace(40, `Maintenance Records (${maintenance.length} records)`);
+    const afterTitle = sectionTitle(doc, startY, `MAINTENANCE RECORDS (${maintenance.length})`, MAINT_COLOR);
     autoTable(doc, {
-      startY: 50,
+      startY: afterTitle,
       head: [['Date', 'Vehicle', 'Driver', 'Type', 'Description', 'Payment', 'Amount']],
       body: maintenance.map(m => [
         fmtDate(m.date),
@@ -329,6 +347,7 @@ export async function exportSummaryPdf(
       styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 6: { halign: 'right' } },
       margin: { left: 8, right: 8 },
+      didDrawPage: (d: any) => { if (d.pageNumber > 1) drawHeader(doc, `Maintenance Records (continued)`, logo); },
     });
   }
 
