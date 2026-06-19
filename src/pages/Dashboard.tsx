@@ -211,6 +211,53 @@ export const Dashboard = () => {
     return { totalTrips, totalTripMoney, totalExpenses, totalProfit, totalMaintenance: maintenance.length, maintenanceExpenses, totalOutsideVehicleTrips, totalOutsideVehicleMoney, pendingOutsideVehicleMoney };
   }, [trips, maintenance, outsideVehicleTrips]);
 
+  const monthlyBreakdown = useMemo(() => {
+    if (dateFilter.type !== 'all') return [];
+
+    const map = new Map<string, {
+      monthLabel: string;
+      sortDate: Date;
+      totalTrips: number;
+      totalTripMoney: number;
+      maintenanceExpenses: number;
+      totalOutsideVehicleTrips: number;
+      totalOutsideVehicleMoney: number;
+    }>();
+
+    const ensureMonth = (dateStr: string) => {
+      const d = parseISO(dateStr);
+      const label = format(d, 'MMMM yyyy');
+      if (!map.has(label)) {
+        map.set(label, {
+          monthLabel: label,
+          sortDate: new Date(d.getFullYear(), d.getMonth(), 1),
+          totalTrips: 0, totalTripMoney: 0, maintenanceExpenses: 0,
+          totalOutsideVehicleTrips: 0, totalOutsideVehicleMoney: 0
+        });
+      }
+      return map.get(label)!;
+    };
+
+    trips.forEach(t => {
+      const m = ensureMonth(t.date);
+      m.totalTrips++;
+      m.totalTripMoney += t.trip_amount;
+    });
+
+    maintenance.forEach(mr => {
+      const m = ensureMonth(mr.date);
+      m.maintenanceExpenses += mr.amount;
+    });
+
+    outsideVehicleTrips.forEach(t => {
+      const m = ensureMonth(t.date);
+      m.totalOutsideVehicleTrips++;
+      m.totalOutsideVehicleMoney += t.trip_amount;
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime());
+  }, [trips, maintenance, outsideVehicleTrips, dateFilter.type]);
+
   const upcomingTrips = useMemo(() => {
     const today = startOfDay(new Date());
     return trips.filter(trip => isAfter(startOfDay(parseISO(trip.date)), today)).sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());

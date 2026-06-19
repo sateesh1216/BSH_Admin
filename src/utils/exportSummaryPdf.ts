@@ -372,5 +372,6 @@ export async function exportSummaryPdf(
   }
 
   drawFooter(doc);
-  doc.save(`BSH_Summary_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`);
+  const safeLabel = periodLabel.replace(/[^a-zA-Z0-9_-]/g, '_');
+  doc.save(`BSH_Summary_${safeLabel}_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`);
 }
