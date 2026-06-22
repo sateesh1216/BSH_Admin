@@ -432,13 +432,15 @@ export async function exportSummaryPdf(
         rupee(maintenance.reduce((s, m) => s + m.amount, 0)),
       ]],
       theme: 'striped',
-      headStyles: { fillColor: MAINT_COLOR, textColor: 255, fontSize: 9 },
+      headStyles: { fillColor: MAINT_COLOR, textColor: 255, fontSize: 9, halign: 'left', cellPadding: 3 },
       footStyles: { fillColor: [254, 215, 170], textColor: 0, fontStyle: 'bold', fontSize: 9 },
       alternateRowStyles: { fillColor: [255, 247, 237] },
-      styles: { fontSize: 8, cellPadding: 2.5 },
+      styles: { fontSize: 8, cellPadding: 3, minCellHeight: 8, valign: 'middle', overflow: 'linebreak' },
       columnStyles: { 6: { halign: 'right' } },
-      margin: { left: 8, right: 8 },
+      margin: { left: 10, right: 10, top: 40 },
       showFoot: 'lastPage',
+      showHead: 'everyPage',
+      rowPageBreak: 'avoid',
       didDrawPage: (d: any) => {
         if (d.pageNumber > 1) drawContinuationHeader(doc, `Maintenance Records (continued)`, logo);
       },
@@ -446,6 +448,26 @@ export async function exportSummaryPdf(
   }
 
   drawFooter(doc);
-  const safeLabel = periodLabel.replace(/[^a-zA-Z0-9_-]/g, '_');
-  doc.save(`BSH_Summary_${safeLabel}_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`);
+
+  // Build a clean, descriptive filename. Examples:
+  //   BSH_Taxi_Summary_June_2025_2025-06-22_1430.pdf
+  //   BSH_Taxi_Summary_All_Time_2025-06-22_1430.pdf
+  const safeLabel = periodLabel.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_');
+  const fileName = `BSH_Taxi_Summary_${safeLabel}_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`;
+
+  // PDF preview step — open the exact file in a new tab before downloading,
+  // so the user sees header colors, layout, and totals placement as they will appear.
+  try {
+    const blobUrl = doc.output('bloburl') as unknown as string;
+    const previewWin = window.open(blobUrl, '_blank');
+    if (!previewWin) {
+      // Popup blocked — fall back to direct download
+      doc.save(fileName);
+    } else {
+      // Trigger the named download as well so the file lands on disk
+      doc.save(fileName);
+    }
+  } catch {
+    doc.save(fileName);
+  }
 }
