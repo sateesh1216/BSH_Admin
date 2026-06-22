@@ -348,13 +348,15 @@ export async function exportSummaryPdf(
         rupee(trips.reduce((s, t) => s + t.profit, 0)),
       ]],
       theme: 'striped',
-      headStyles: { fillColor: TRIPS_COLOR, textColor: 255, fontSize: 9 },
+      headStyles: { fillColor: TRIPS_COLOR, textColor: 255, fontSize: 9, halign: 'left', cellPadding: 3 },
       footStyles: { fillColor: [219, 234, 254], textColor: 0, fontStyle: 'bold', fontSize: 9 },
       alternateRowStyles: { fillColor: [248, 250, 252] },
-      styles: { fontSize: 8, cellPadding: 2.5 },
+      styles: { fontSize: 8, cellPadding: 3, minCellHeight: 8, valign: 'middle', overflow: 'linebreak' },
       columnStyles: { 7: { halign: 'right' }, 8: { halign: 'right' } },
-      margin: { left: 8, right: 8 },
+      margin: { left: 10, right: 10, top: 40 },
       showFoot: 'lastPage',
+      showHead: 'everyPage',
+      rowPageBreak: 'avoid',
       didDrawPage: (d: any) => {
         if (d.pageNumber > 1) drawContinuationHeader(doc, `Trips Detail (continued)`, logo);
       },
