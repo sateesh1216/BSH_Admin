@@ -547,7 +547,7 @@ export const Dashboard = () => {
                       : dateFilter.type === 'yearly' && dateFilter.year
                       ? String(dateFilter.year)
                       : 'All Time';
-                  exportSummaryPdf(calculateSummary, label, trips, outsideVehicleTrips, maintenance);
+                  exportSummaryPdf(calculateSummary, label, trips, outsideVehicleTrips, maintenance, monthlyBreakdown);
                   toast({ title: 'PDF exported', description: 'Summary PDF downloaded' });
                 }}
                 className="shadow-sm"
