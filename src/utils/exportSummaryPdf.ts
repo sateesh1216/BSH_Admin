@@ -56,6 +56,15 @@ interface OutsideVehicleTrip {
   trip_amount: number;
 }
 
+interface MonthlyBreakdownEntry {
+  monthLabel: string;
+  totalTrips: number;
+  totalTripMoney: number;
+  maintenanceExpenses: number;
+  totalOutsideVehicleTrips: number;
+  totalOutsideVehicleMoney: number;
+}
+
 const rupee = (n: number) =>
   'Rs. ' +
   new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n || 0);
