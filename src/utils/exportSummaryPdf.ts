@@ -270,7 +270,7 @@ export async function exportSummaryPdf(
   const startDetailPage = (subtitle: string): number => {
     doc.addPage();
     drawContinuationHeader(doc, subtitle, logo);
-    return 38;
+    return 40;
   };
 
   // ============ PAGE 2+ — DETAIL TABLES ============
@@ -315,6 +315,7 @@ export async function exportSummaryPdf(
         6: { halign: 'right', fontStyle: 'bold', textColor: PROFIT_COLOR as any },
       },
       margin: { left: 14, right: 14 },
+      showFoot: 'lastPage',
       didDrawPage: (d: any) => {
         if (d.pageNumber > 1) drawContinuationHeader(doc, `Monthly Breakdown (continued)`, logo);
       },
@@ -352,6 +353,7 @@ export async function exportSummaryPdf(
       styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 7: { halign: 'right' }, 8: { halign: 'right' } },
       margin: { left: 8, right: 8 },
+      showFoot: 'lastPage',
       didDrawPage: (d: any) => {
         if (d.pageNumber > 1) drawContinuationHeader(doc, `Trips Detail (continued)`, logo);
       },
@@ -392,6 +394,7 @@ export async function exportSummaryPdf(
       styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 8: { halign: 'right' } },
       margin: { left: 8, right: 8 },
+      showFoot: 'lastPage',
       didDrawPage: (d: any) => {
         if (d.pageNumber > 1) drawContinuationHeader(doc, `Outside Vehicle Trips (continued)`, logo);
       },
@@ -430,6 +433,7 @@ export async function exportSummaryPdf(
       styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: { 6: { halign: 'right' } },
       margin: { left: 8, right: 8 },
+      showFoot: 'lastPage',
       didDrawPage: (d: any) => {
         if (d.pageNumber > 1) drawContinuationHeader(doc, `Maintenance Records (continued)`, logo);
       },
