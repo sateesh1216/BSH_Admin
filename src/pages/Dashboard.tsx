@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings, History, ChevronRight, User, Menu, FileDown, Calendar } from 'lucide-react';
+import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings, History, ChevronRight, User, Menu, FileDown, Calendar, Eye, EyeOff } from 'lucide-react';
 import { exportSummaryPdf } from '@/utils/exportSummaryPdf';
 import { startOfDay, parseISO, isAfter } from 'date-fns';
 import { Button } from '@/components/ui/button';
