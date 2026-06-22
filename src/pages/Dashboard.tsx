@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings, History, ChevronRight, User, Menu, FileDown, Calendar } from 'lucide-react';
+import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings, History, ChevronRight, User, Menu, FileDown, Calendar, Eye, EyeOff } from 'lucide-react';
 import { exportSummaryPdf } from '@/utils/exportSummaryPdf';
 import { startOfDay, parseISO, isAfter } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -113,6 +113,7 @@ export const Dashboard = () => {
   const [summaryDetailType, setSummaryDetailType] = useState<DetailType>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [showMonthlyBreakdown, setShowMonthlyBreakdown] = useState(true);
 
   const isAdmin = userRole === 'admin';
 
@@ -546,7 +547,7 @@ export const Dashboard = () => {
                       : dateFilter.type === 'yearly' && dateFilter.year
                       ? String(dateFilter.year)
                       : 'All Time';
-                  exportSummaryPdf(calculateSummary, label, trips, outsideVehicleTrips, maintenance);
+                  exportSummaryPdf(calculateSummary, label, trips, outsideVehicleTrips, maintenance, monthlyBreakdown);
                   toast({ title: 'PDF exported', description: 'Summary PDF downloaded' });
                 }}
                 className="shadow-sm"
@@ -560,47 +561,62 @@ export const Dashboard = () => {
             {/* Monthly Breakdown Cards (shown only when All is selected) */}
             {dateFilter.type === 'all' && monthlyBreakdown.length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Monthly Breakdown
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {monthlyBreakdown.map((month) => (
-                    <Card key={month.monthLabel} className="border-border bg-card hover:bg-accent/50 transition-all duration-200 shadow-sm">
-                      <CardContent className="p-3 space-y-2">
-                        <p className="text-sm font-bold text-foreground">{month.monthLabel}</p>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <p className="text-muted-foreground">Trips</p>
-                            <p className="font-semibold text-primary">{month.totalTrips}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Trip Money</p>
-                            <p className="font-semibold text-blue-600">₹{month.totalTripMoney.toLocaleString('en-IN')}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Outside</p>
-                            <p className="font-semibold text-purple-600">{month.totalOutsideVehicleTrips}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Outside Amt</p>
-                            <p className="font-semibold text-purple-600">₹{month.totalOutsideVehicleMoney.toLocaleString('en-IN')}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Maintenance</p>
-                            <p className="font-semibold text-orange-600">₹{month.maintenanceExpenses.toLocaleString('en-IN')}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Net Profit</p>
-                            <p className="font-semibold text-green-600">
-                              ₹{(month.totalTripMoney - month.maintenanceExpenses).toLocaleString('en-IN')}
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Monthly Breakdown
+                  </h3>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowMonthlyBreakdown(v => !v)}
+                  >
+                    {showMonthlyBreakdown ? (
+                      <><EyeOff className="h-4 w-4 mr-2" /> Hide</>
+                    ) : (
+                      <><Eye className="h-4 w-4 mr-2" /> View</>
+                    )}
+                  </Button>
                 </div>
+                {showMonthlyBreakdown && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {monthlyBreakdown.map((month) => (
+                      <Card key={month.monthLabel} className="border-border bg-card hover:bg-accent/50 transition-all duration-200 shadow-sm">
+                        <CardContent className="p-3 space-y-2">
+                          <p className="text-sm font-bold text-foreground">{month.monthLabel}</p>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <p className="text-muted-foreground">Trips</p>
+                              <p className="font-semibold text-primary">{month.totalTrips}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Trip Money</p>
+                              <p className="font-semibold text-blue-600">₹{month.totalTripMoney.toLocaleString('en-IN')}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Outside</p>
+                              <p className="font-semibold text-purple-600">{month.totalOutsideVehicleTrips}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Outside Amt</p>
+                              <p className="font-semibold text-purple-600">₹{month.totalOutsideVehicleMoney.toLocaleString('en-IN')}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Maintenance</p>
+                              <p className="font-semibold text-orange-600">₹{month.maintenanceExpenses.toLocaleString('en-IN')}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Net Profit</p>
+                              <p className="font-semibold text-green-600">
+                                ₹{(month.totalTripMoney - month.maintenanceExpenses).toLocaleString('en-IN')}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

@@ -56,6 +56,15 @@ interface OutsideVehicleTrip {
   trip_amount: number;
 }
 
+interface MonthlyBreakdownEntry {
+  monthLabel: string;
+  totalTrips: number;
+  totalTripMoney: number;
+  maintenanceExpenses: number;
+  totalOutsideVehicleTrips: number;
+  totalOutsideVehicleMoney: number;
+}
+
 const rupee = (n: number) =>
   'Rs. ' +
   new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n || 0);
@@ -193,7 +202,8 @@ export async function exportSummaryPdf(
   periodLabel: string,
   trips: Trip[] = [],
   outsideTrips: OutsideVehicleTrip[] = [],
-  maintenance: Maintenance[] = []
+  maintenance: Maintenance[] = [],
+  monthlyBreakdown: MonthlyBreakdownEntry[] = []
 ) {
   const doc = new jsPDF();
   const logo = await loadLogo();
@@ -256,6 +266,53 @@ export async function exportSummaryPdf(
   };
 
   // ============ PAGE 2+ — DETAIL TABLES ============
+
+  // MONTHLY BREAKDOWN (own page)
+  if (monthlyBreakdown.length > 0) {
+    const startY = startDetailPage(`Monthly Breakdown (${monthlyBreakdown.length} months)`);
+    const afterTitle = sectionTitle(doc, startY, `MONTHLY BREAKDOWN (${monthlyBreakdown.length})`, BRAND);
+    autoTable(doc, {
+      startY: afterTitle,
+      head: [['Month', 'Trips', 'Trip Money', 'Outside', 'Outside Amt', 'Maintenance', 'Net Profit']],
+      body: monthlyBreakdown.map(m => [
+        m.monthLabel,
+        String(m.totalTrips),
+        rupee(m.totalTripMoney),
+        String(m.totalOutsideVehicleTrips),
+        rupee(m.totalOutsideVehicleMoney),
+        rupee(m.maintenanceExpenses),
+        rupee(m.totalTripMoney - m.maintenanceExpenses),
+      ]),
+      foot: [[
+        'TOTAL',
+        String(monthlyBreakdown.reduce((s, m) => s + m.totalTrips, 0)),
+        rupee(monthlyBreakdown.reduce((s, m) => s + m.totalTripMoney, 0)),
+        String(monthlyBreakdown.reduce((s, m) => s + m.totalOutsideVehicleTrips, 0)),
+        rupee(monthlyBreakdown.reduce((s, m) => s + m.totalOutsideVehicleMoney, 0)),
+        rupee(monthlyBreakdown.reduce((s, m) => s + m.maintenanceExpenses, 0)),
+        rupee(monthlyBreakdown.reduce((s, m) => s + (m.totalTripMoney - m.maintenanceExpenses), 0)),
+      ]],
+      theme: 'striped',
+      headStyles: { fillColor: BRAND, textColor: 255, fontSize: 9, fontStyle: 'bold' },
+      footStyles: { fillColor: PROFIT_COLOR, textColor: 255, fontStyle: 'bold', fontSize: 9 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      styles: { fontSize: 9, cellPadding: 3 },
+      columnStyles: {
+        0: { fontStyle: 'bold' },
+        1: { halign: 'center' },
+        2: { halign: 'right' },
+        3: { halign: 'center' },
+        4: { halign: 'right' },
+        5: { halign: 'right' },
+        6: { halign: 'right', fontStyle: 'bold', textColor: PROFIT_COLOR as any },
+      },
+      margin: { left: 14, right: 14 },
+      didDrawPage: (d: any) => {
+        if (d.pageNumber > 1) drawContinuationHeader(doc, `Monthly Breakdown (continued)`, logo);
+      },
+    });
+  }
+
 
   // TRIPS DETAIL
   if (trips.length > 0) {
