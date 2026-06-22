@@ -95,40 +95,48 @@ const OUTSIDE_COLOR = [147, 51, 234] as [number, number, number];
 const MAINT_COLOR = [234, 88, 12] as [number, number, number];
 const PROFIT_COLOR = [16, 122, 87] as [number, number, number];
 
-const BANNER_GRAY = [203, 203, 203] as [number, number, number]; // #CBCBCB
+// Header palette — clean white band with subtle accents so the black logo pops
+const HEADER_BG = [255, 255, 255] as [number, number, number];
+const HEADER_BORDER = [226, 232, 240] as [number, number, number]; // slate-200
 
 const drawHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
   const pageWidth = doc.internal.pageSize.getWidth();
-  // Light gray banner so the black logo is visible
-  doc.setFillColor(...BANNER_GRAY);
-  doc.rect(0, 0, pageWidth, 30, 'F');
-  // Dark accent stripe at the bottom of header
-  doc.setFillColor(...BRAND);
-  doc.rect(0, 30, pageWidth, 1.5, 'F');
-  // Amber thin line above the dark stripe
+  // White header band
+  doc.setFillColor(...HEADER_BG);
+  doc.rect(0, 0, pageWidth, 32, 'F');
+  // Thin slate border under header
+  doc.setFillColor(...HEADER_BORDER);
+  doc.rect(0, 32, pageWidth, 0.4, 'F');
+  // Amber accent ribbon
   doc.setFillColor(...ACCENT);
-  doc.rect(0, 28.5, pageWidth, 1.5, 'F');
+  doc.rect(0, 32.4, pageWidth, 1.2, 'F');
+  // Deep brand stripe
+  doc.setFillColor(...BRAND);
+  doc.rect(0, 33.6, pageWidth, 0.6, 'F');
 
-  // Logo (black logo visible on light gray bg)
+  // Logo
   if (logo) {
-    try { doc.addImage(logo, 'PNG', 12, 5, 20, 20); } catch { /* ignore */ }
+    try { doc.addImage(logo, 'PNG', 12, 5, 22, 22); } catch { /* ignore */ }
   }
 
-  // Dark title text on light gray background
+  // Title block
   doc.setTextColor(...BRAND);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.text('BSH Taxi Service', 36, 13);
+  doc.setFontSize(16);
+  doc.text('BSH Taxi Service', 38, 13);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
-  doc.text('Palanati Colony, Kancharapelam, Vizag', 36, 19);
+  doc.text('Palanati Colony, Kancharapelam, Vizag', 38, 19);
   doc.setFontSize(9);
-  doc.setTextColor(...BRAND);
-  doc.text(subtitle, 36, 25);
+  doc.setTextColor(...ACCENT);
+  doc.setFont('helvetica', 'bold');
+  doc.text(subtitle, 38, 26);
 
   doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'normal');
 };
+
 
 const drawFooter = (doc: jsPDF) => {
   const pageWidth = doc.internal.pageSize.getWidth();
