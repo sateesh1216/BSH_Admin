@@ -113,6 +113,7 @@ export const Dashboard = () => {
   const [summaryDetailType, setSummaryDetailType] = useState<DetailType>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [showMonthlyBreakdown, setShowMonthlyBreakdown] = useState(true);
 
   const isAdmin = userRole === 'admin';
 
