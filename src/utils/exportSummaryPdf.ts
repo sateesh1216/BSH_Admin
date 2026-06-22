@@ -88,50 +88,51 @@ async function loadLogo(): Promise<string | null> {
   }
 }
 
-const BRAND = [15, 23, 42] as [number, number, number];          // slate-900
-const ACCENT = [234, 179, 8] as [number, number, number];        // amber-500
+// On-screen theme: green primary (#4CAF50)
+const BRAND = [76, 175, 80] as [number, number, number];         // green-500 primary
+const BRAND_DARK = [46, 125, 50] as [number, number, number];    // green-800
+const ACCENT = [234, 179, 8] as [number, number, number];        // amber-500 accent stripe
 const TRIPS_COLOR = [37, 99, 235] as [number, number, number];
 const OUTSIDE_COLOR = [147, 51, 234] as [number, number, number];
 const MAINT_COLOR = [234, 88, 12] as [number, number, number];
 const PROFIT_COLOR = [16, 122, 87] as [number, number, number];
 
-// Header palette — clean white band with subtle accents so the black logo pops
-const HEADER_BG = [255, 255, 255] as [number, number, number];
+// Header palette — green band matching app theme; white text for high contrast
+const HEADER_BG = BRAND;
 const HEADER_BORDER = [226, 232, 240] as [number, number, number]; // slate-200
 
 const drawHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
   const pageWidth = doc.internal.pageSize.getWidth();
-  // White header band
+  // Green header band
   doc.setFillColor(...HEADER_BG);
   doc.rect(0, 0, pageWidth, 32, 'F');
-  // Thin slate border under header
-  doc.setFillColor(...HEADER_BORDER);
-  doc.rect(0, 32, pageWidth, 0.4, 'F');
   // Amber accent ribbon
   doc.setFillColor(...ACCENT);
-  doc.rect(0, 32.4, pageWidth, 1.2, 'F');
-  // Deep brand stripe
-  doc.setFillColor(...BRAND);
-  doc.rect(0, 33.6, pageWidth, 0.6, 'F');
+  doc.rect(0, 32, pageWidth, 1.4, 'F');
+  // Deep green stripe
+  doc.setFillColor(...BRAND_DARK);
+  doc.rect(0, 33.4, pageWidth, 0.8, 'F');
 
-  // Logo
+  // Logo on white rounded plate so the dark logo stays crisp on green
   if (logo) {
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(10, 4, 26, 24, 2, 2, 'F');
     try { doc.addImage(logo, 'PNG', 12, 5, 22, 22); } catch { /* ignore */ }
   }
 
-  // Title block
-  doc.setTextColor(...BRAND);
+  // Title block — white for contrast on green
+  doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('BSH Taxi Service', 38, 13);
+  doc.text('BSH Taxi Service', 40, 13);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text('Palanati Colony, Kancharapelam, Vizag', 38, 19);
+  doc.setTextColor(235, 245, 235);
+  doc.text('Palanati Colony, Kancharapelam, Vizag', 40, 19);
   doc.setFontSize(9);
-  doc.setTextColor(...ACCENT);
+  doc.setTextColor(255, 248, 200); // light amber for subtitle
   doc.setFont('helvetica', 'bold');
-  doc.text(subtitle, 38, 26);
+  doc.text(subtitle, 40, 26);
 
   doc.setTextColor(0, 0, 0);
   doc.setFont('helvetica', 'normal');
