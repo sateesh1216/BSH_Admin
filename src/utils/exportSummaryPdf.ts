@@ -202,7 +202,8 @@ export async function exportSummaryPdf(
   periodLabel: string,
   trips: Trip[] = [],
   outsideTrips: OutsideVehicleTrip[] = [],
-  maintenance: Maintenance[] = []
+  maintenance: Maintenance[] = [],
+  monthlyBreakdown: MonthlyBreakdownEntry[] = []
 ) {
   const doc = new jsPDF();
   const logo = await loadLogo();
