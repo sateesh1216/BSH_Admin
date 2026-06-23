@@ -113,11 +113,9 @@ const drawHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
   doc.setFillColor(...BRAND_DARK);
   doc.rect(0, 33.4, pageWidth, 0.8, 'F');
 
-  // Logo on white rounded plate so the dark logo stays crisp on green
+  // Logo — no background plate; let the navy header show through
   if (logo) {
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(10, 4, 26, 24, 2, 2, 'F');
-    try { doc.addImage(logo, 'PNG', 12, 5, 22, 22); } catch { /* ignore */ }
+    try { doc.addImage(logo, 'PNG', 10, 5, 22, 22); } catch { /* ignore */ }
   }
 
   // Title block — white for contrast on green
@@ -455,19 +453,6 @@ export async function exportSummaryPdf(
   const safeLabel = periodLabel.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_');
   const fileName = `BSH_Taxi_Summary_${safeLabel}_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`;
 
-  // PDF preview step — open the exact file in a new tab before downloading,
-  // so the user sees header colors, layout, and totals placement as they will appear.
-  try {
-    const blobUrl = doc.output('bloburl') as unknown as string;
-    const previewWin = window.open(blobUrl, '_blank');
-    if (!previewWin) {
-      // Popup blocked — fall back to direct download
-      doc.save(fileName);
-    } else {
-      // Trigger the named download as well so the file lands on disk
-      doc.save(fileName);
-    }
-  } catch {
-    doc.save(fileName);
-  }
+  // Direct download — no preview popup
+  doc.save(fileName);
 }
