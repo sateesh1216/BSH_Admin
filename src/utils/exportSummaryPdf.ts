@@ -88,16 +88,16 @@ async function loadLogo(): Promise<string | null> {
   }
 }
 
-// On-screen theme: green primary (#4CAF50)
-const BRAND = [76, 175, 80] as [number, number, number];         // green-500 primary
-const BRAND_DARK = [46, 125, 50] as [number, number, number];    // green-800
+// Theme: deep navy primary (#001D39)
+const BRAND = [0, 29, 57] as [number, number, number];           // navy primary
+const BRAND_DARK = [0, 15, 30] as [number, number, number];      // darker navy
 const ACCENT = [234, 179, 8] as [number, number, number];        // amber-500 accent stripe
 const TRIPS_COLOR = [37, 99, 235] as [number, number, number];
 const OUTSIDE_COLOR = [147, 51, 234] as [number, number, number];
 const MAINT_COLOR = [234, 88, 12] as [number, number, number];
 const PROFIT_COLOR = [16, 122, 87] as [number, number, number];
 
-// Header palette — green band matching app theme; white text for high contrast
+// Header palette — deep navy band; white text for high contrast
 const HEADER_BG = BRAND;
 const HEADER_BORDER = [226, 232, 240] as [number, number, number]; // slate-200
 
@@ -125,14 +125,14 @@ const drawHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.text('BSH Taxi Service', 40, 13);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(235, 245, 235);
-  doc.text('Palanati Colony, Kancharapelam, Vizag', 40, 19);
-  doc.setFontSize(9);
-  doc.setTextColor(255, 248, 200); // light amber for subtitle
-  doc.setFont('helvetica', 'bold');
-  doc.text(subtitle, 40, 26);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.text('Palanati Colony, Kancharapelam, Vizag', 40, 19);
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255); // white for maximum contrast on navy
+    doc.setFont('helvetica', 'bold');
+    doc.text(subtitle, 40, 26);
 
   doc.setTextColor(0, 0, 0);
   doc.setFont('helvetica', 'normal');
