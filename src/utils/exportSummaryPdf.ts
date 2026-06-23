@@ -92,9 +92,10 @@ async function loadLogo(): Promise<string | null> {
 const BRAND = [0, 29, 57] as [number, number, number];           // navy primary
 const BRAND_DARK = [0, 15, 30] as [number, number, number];      // darker navy
 const ACCENT = [234, 179, 8] as [number, number, number];        // amber-500 accent stripe
-const TRIPS_COLOR = [37, 99, 235] as [number, number, number];
-const OUTSIDE_COLOR = [147, 51, 234] as [number, number, number];
-const MAINT_COLOR = [234, 88, 12] as [number, number, number];
+// Elegant platinum-cool palette for section headers
+const TRIPS_COLOR = [30, 45, 60] as [number, number, number];      // deep obsidian slate
+const OUTSIDE_COLOR = [65, 80, 95] as [number, number, number];   // gunmetal steel
+const MAINT_COLOR = [95, 110, 125] as [number, number, number];  // cool steel blue-gray
 const PROFIT_COLOR = [16, 122, 87] as [number, number, number];
 
 // Header palette — deep navy band; white text for high contrast
