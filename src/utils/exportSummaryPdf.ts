@@ -125,14 +125,14 @@ const drawHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.text('BSH Taxi Service', 40, 13);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(235, 245, 235);
-  doc.text('Palanati Colony, Kancharapelam, Vizag', 40, 19);
-  doc.setFontSize(9);
-  doc.setTextColor(255, 248, 200); // light amber for subtitle
-  doc.setFont('helvetica', 'bold');
-  doc.text(subtitle, 40, 26);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.text('Palanati Colony, Kancharapelam, Vizag', 40, 19);
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255); // white for maximum contrast on navy
+    doc.setFont('helvetica', 'bold');
+    doc.text(subtitle, 40, 26);
 
   doc.setTextColor(0, 0, 0);
   doc.setFont('helvetica', 'normal');
