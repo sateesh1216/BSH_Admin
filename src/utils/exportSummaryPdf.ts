@@ -92,9 +92,10 @@ async function loadLogo(): Promise<string | null> {
 const BRAND = [0, 29, 57] as [number, number, number];           // navy primary
 const BRAND_DARK = [0, 15, 30] as [number, number, number];      // darker navy
 const ACCENT = [234, 179, 8] as [number, number, number];        // amber-500 accent stripe
-const TRIPS_COLOR = [37, 99, 235] as [number, number, number];
-const OUTSIDE_COLOR = [147, 51, 234] as [number, number, number];
-const MAINT_COLOR = [234, 88, 12] as [number, number, number];
+// Elegant platinum-cool palette for section headers
+const TRIPS_COLOR = [30, 45, 60] as [number, number, number];      // deep obsidian slate
+const OUTSIDE_COLOR = [65, 80, 95] as [number, number, number];   // gunmetal steel
+const MAINT_COLOR = [95, 110, 125] as [number, number, number];  // cool steel blue-gray
 const PROFIT_COLOR = [16, 122, 87] as [number, number, number];
 
 // Header palette — deep navy band; white text for high contrast
@@ -347,8 +348,8 @@ export async function exportSummaryPdf(
       ]],
       theme: 'striped',
       headStyles: { fillColor: TRIPS_COLOR, textColor: 255, fontSize: 9, halign: 'left', cellPadding: 3 },
-      footStyles: { fillColor: [219, 234, 254], textColor: 0, fontStyle: 'bold', fontSize: 9 },
-      alternateRowStyles: { fillColor: [248, 250, 252] },
+      footStyles: { fillColor: [224, 230, 236], textColor: 0, fontStyle: 'bold', fontSize: 9 },
+      alternateRowStyles: { fillColor: [244, 246, 248] },
       styles: { fontSize: 8, cellPadding: 3, minCellHeight: 8, valign: 'middle', overflow: 'linebreak' },
       columnStyles: { 7: { halign: 'right' }, 8: { halign: 'right' } },
       margin: { left: 10, right: 10, top: 40 },
@@ -390,8 +391,8 @@ export async function exportSummaryPdf(
       ]],
       theme: 'striped',
       headStyles: { fillColor: OUTSIDE_COLOR, textColor: 255, fontSize: 9, halign: 'left', cellPadding: 3 },
-      footStyles: { fillColor: [243, 232, 255], textColor: 0, fontStyle: 'bold', fontSize: 9 },
-      alternateRowStyles: { fillColor: [250, 245, 255] },
+      footStyles: { fillColor: [232, 235, 238], textColor: 0, fontStyle: 'bold', fontSize: 9 },
+      alternateRowStyles: { fillColor: [246, 248, 250] },
       styles: { fontSize: 8, cellPadding: 3, minCellHeight: 8, valign: 'middle', overflow: 'linebreak' },
       columnStyles: { 8: { halign: 'right' } },
       margin: { left: 10, right: 10, top: 40 },
@@ -431,8 +432,8 @@ export async function exportSummaryPdf(
       ]],
       theme: 'striped',
       headStyles: { fillColor: MAINT_COLOR, textColor: 255, fontSize: 9, halign: 'left', cellPadding: 3 },
-      footStyles: { fillColor: [254, 215, 170], textColor: 0, fontStyle: 'bold', fontSize: 9 },
-      alternateRowStyles: { fillColor: [255, 247, 237] },
+      footStyles: { fillColor: [236, 238, 240], textColor: 0, fontStyle: 'bold', fontSize: 9 },
+      alternateRowStyles: { fillColor: [248, 249, 250] },
       styles: { fontSize: 8, cellPadding: 3, minCellHeight: 8, valign: 'middle', overflow: 'linebreak' },
       columnStyles: { 6: { halign: 'right' } },
       margin: { left: 10, right: 10, top: 40 },
