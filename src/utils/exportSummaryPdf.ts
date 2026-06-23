@@ -453,19 +453,6 @@ export async function exportSummaryPdf(
   const safeLabel = periodLabel.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_');
   const fileName = `BSH_Taxi_Summary_${safeLabel}_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`;
 
-  // PDF preview step — open the exact file in a new tab before downloading,
-  // so the user sees header colors, layout, and totals placement as they will appear.
-  try {
-    const blobUrl = doc.output('bloburl') as unknown as string;
-    const previewWin = window.open(blobUrl, '_blank');
-    if (!previewWin) {
-      // Popup blocked — fall back to direct download
-      doc.save(fileName);
-    } else {
-      // Trigger the named download as well so the file lands on disk
-      doc.save(fileName);
-    }
-  } catch {
-    doc.save(fileName);
-  }
+  // Direct download — no preview popup
+  doc.save(fileName);
 }
