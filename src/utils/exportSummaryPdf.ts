@@ -97,7 +97,7 @@ const OUTSIDE_COLOR = [147, 51, 234] as [number, number, number];
 const MAINT_COLOR = [234, 88, 12] as [number, number, number];
 const PROFIT_COLOR = [16, 122, 87] as [number, number, number];
 
-// Header palette — green band matching app theme; white text for high contrast
+// Header palette — deep navy band; white text for high contrast
 const HEADER_BG = BRAND;
 const HEADER_BORDER = [226, 232, 240] as [number, number, number]; // slate-200
 
