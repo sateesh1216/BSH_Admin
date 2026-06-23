@@ -88,9 +88,9 @@ async function loadLogo(): Promise<string | null> {
   }
 }
 
-// On-screen theme: green primary (#4CAF50)
-const BRAND = [76, 175, 80] as [number, number, number];         // green-500 primary
-const BRAND_DARK = [46, 125, 50] as [number, number, number];    // green-800
+// Theme: deep navy primary (#001D39)
+const BRAND = [0, 29, 57] as [number, number, number];           // navy primary
+const BRAND_DARK = [0, 15, 30] as [number, number, number];      // darker navy
 const ACCENT = [234, 179, 8] as [number, number, number];        // amber-500 accent stripe
 const TRIPS_COLOR = [37, 99, 235] as [number, number, number];
 const OUTSIDE_COLOR = [147, 51, 234] as [number, number, number];
