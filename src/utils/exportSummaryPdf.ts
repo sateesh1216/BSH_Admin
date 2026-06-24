@@ -102,7 +102,7 @@ const PROFIT_COLOR = [16, 122, 87] as [number, number, number];
 const HEADER_BG = BRAND;
 const HEADER_BORDER = [226, 232, 240] as [number, number, number]; // slate-200
 
-const drawHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
+const drawHeader = (doc: jsPDF, subtitle: string) => {
   const pageWidth = doc.internal.pageSize.getWidth();
   // Green header band
   doc.setFillColor(...HEADER_BG);
@@ -113,11 +113,6 @@ const drawHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
   // Deep green stripe
   doc.setFillColor(...BRAND_DARK);
   doc.rect(0, 33.4, pageWidth, 0.8, 'F');
-
-  // Logo — no background plate; let the navy header show through
-  if (logo) {
-    try { doc.addImage(logo, 'PNG', 10, 5, 22, 22); } catch { /* ignore */ }
-  }
 
   // Title block — white for contrast on green
   doc.setTextColor(255, 255, 255);
