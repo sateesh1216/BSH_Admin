@@ -78,9 +78,9 @@ const BRAND = [0, 29, 57] as [number, number, number];           // navy primary
 const BRAND_DARK = [0, 15, 30] as [number, number, number];      // darker navy
 const ACCENT = [234, 179, 8] as [number, number, number];        // amber-500 accent stripe
 // Elegant platinum-cool palette for section headers
-const TRIPS_COLOR = [30, 45, 60] as [number, number, number];      // deep obsidian slate
-const OUTSIDE_COLOR = [65, 80, 95] as [number, number, number];   // gunmetal steel
-const MAINT_COLOR = [95, 110, 125] as [number, number, number];  // cool steel blue-gray
+const TRIPS_COLOR = [30, 58, 95] as [number, number, number];     // cool deep navy-blue
+const OUTSIDE_COLOR = [37, 99, 122] as [number, number, number];  // cool teal-cyan
+const MAINT_COLOR = [76, 59, 122] as [number, number, number];    // cool indigo-violet
 const PROFIT_COLOR = [16, 122, 87] as [number, number, number];
 
 // Header palette — deep navy band; white text for high contrast
