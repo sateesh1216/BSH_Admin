@@ -1,7 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, parseISO } from 'date-fns';
-import bshLogo from '@/assets/bsh-logo.png';
 
 interface SummaryExportData {
   totalTrips: number;
@@ -73,20 +72,6 @@ const fmtDate = (d: string) => {
   try { return format(parseISO(d), 'dd MMM yyyy'); } catch { return d; }
 };
 
-async function loadLogo(): Promise<string | null> {
-  try {
-    const res = await fetch(bshLogo);
-    const blob = await res.blob();
-    return await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
-}
 
 // Theme: deep navy primary (#001D39)
 const BRAND = [0, 29, 57] as [number, number, number];           // navy primary
@@ -102,7 +87,7 @@ const PROFIT_COLOR = [16, 122, 87] as [number, number, number];
 const HEADER_BG = BRAND;
 const HEADER_BORDER = [226, 232, 240] as [number, number, number]; // slate-200
 
-const drawHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
+const drawHeader = (doc: jsPDF, subtitle: string) => {
   const pageWidth = doc.internal.pageSize.getWidth();
   // Green header band
   doc.setFillColor(...HEADER_BG);
@@ -113,11 +98,6 @@ const drawHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
   // Deep green stripe
   doc.setFillColor(...BRAND_DARK);
   doc.rect(0, 33.4, pageWidth, 0.8, 'F');
-
-  // Logo — no background plate; let the navy header show through
-  if (logo) {
-    try { doc.addImage(logo, 'PNG', 10, 5, 22, 22); } catch { /* ignore */ }
-  }
 
   // Title block — white for contrast on green
   doc.setTextColor(255, 255, 255);
@@ -201,11 +181,11 @@ const sectionTitle = (doc: jsPDF, y: number, text: string, color: [number, numbe
 };
 
 // Continuation header — same layout, but different subtitle on extra pages
-const drawContinuationHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
-  drawHeader(doc, subtitle, logo);
+const drawContinuationHeader = (doc: jsPDF, subtitle: string) => {
+  drawHeader(doc, subtitle);
 };
 
-export async function exportSummaryPdf(
+export function exportSummaryPdf(
   data: SummaryExportData,
   periodLabel: string,
   trips: Trip[] = [],
@@ -214,10 +194,9 @@ export async function exportSummaryPdf(
   monthlyBreakdown: MonthlyBreakdownEntry[] = []
 ) {
   const doc = new jsPDF();
-  const logo = await loadLogo();
 
   // ============ PAGE 1 — SUMMARY ONLY ============
-  drawHeader(doc, `Summary Report - ${periodLabel}`, logo);
+  drawHeader(doc, `Summary Report - ${periodLabel}`);
 
   doc.setFontSize(9);
   doc.setTextColor(100, 116, 139);
@@ -269,7 +248,7 @@ export async function exportSummaryPdf(
   // Helper: start a detail section on a fresh page if needed
   const startDetailPage = (subtitle: string): number => {
     doc.addPage();
-    drawContinuationHeader(doc, subtitle, logo);
+    drawContinuationHeader(doc, subtitle);
     return 40;
   };
 
@@ -317,7 +296,7 @@ export async function exportSummaryPdf(
       margin: { left: 14, right: 14 },
       showFoot: 'lastPage',
       didDrawPage: (d: any) => {
-        if (d.pageNumber > 1) drawContinuationHeader(doc, `Monthly Breakdown (continued)`, logo);
+        if (d.pageNumber > 1) drawContinuationHeader(doc, `Monthly Breakdown (continued)`);
       },
     });
   }
@@ -357,7 +336,7 @@ export async function exportSummaryPdf(
       showHead: 'everyPage',
       rowPageBreak: 'avoid',
       didDrawPage: (d: any) => {
-        if (d.pageNumber > 1) drawContinuationHeader(doc, `Trips Detail (continued)`, logo);
+        if (d.pageNumber > 1) drawContinuationHeader(doc, `Trips Detail (continued)`);
       },
     });
   }
@@ -400,7 +379,7 @@ export async function exportSummaryPdf(
       showHead: 'everyPage',
       rowPageBreak: 'avoid',
       didDrawPage: (d: any) => {
-        if (d.pageNumber > 1) drawContinuationHeader(doc, `Outside Vehicle Trips (continued)`, logo);
+        if (d.pageNumber > 1) drawContinuationHeader(doc, `Outside Vehicle Trips (continued)`);
       },
     });
   }
@@ -441,7 +420,7 @@ export async function exportSummaryPdf(
       showHead: 'everyPage',
       rowPageBreak: 'avoid',
       didDrawPage: (d: any) => {
-        if (d.pageNumber > 1) drawContinuationHeader(doc, `Maintenance Records (continued)`, logo);
+        if (d.pageNumber > 1) drawContinuationHeader(doc, `Maintenance Records (continued)`);
       },
     });
   }
