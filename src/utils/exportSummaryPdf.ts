@@ -196,8 +196,8 @@ const sectionTitle = (doc: jsPDF, y: number, text: string, color: [number, numbe
 };
 
 // Continuation header — same layout, but different subtitle on extra pages
-const drawContinuationHeader = (doc: jsPDF, subtitle: string, logo: string | null) => {
-  drawHeader(doc, subtitle, logo);
+const drawContinuationHeader = (doc: jsPDF, subtitle: string) => {
+  drawHeader(doc, subtitle);
 };
 
 export async function exportSummaryPdf(
