@@ -78,9 +78,9 @@ const BRAND = [0, 29, 57] as [number, number, number];           // navy primary
 const BRAND_DARK = [0, 15, 30] as [number, number, number];      // darker navy
 const ACCENT = [234, 179, 8] as [number, number, number];        // amber-500 accent stripe
 // Elegant platinum-cool palette for section headers
-const TRIPS_COLOR = [30, 45, 60] as [number, number, number];      // deep obsidian slate
-const OUTSIDE_COLOR = [65, 80, 95] as [number, number, number];   // gunmetal steel
-const MAINT_COLOR = [95, 110, 125] as [number, number, number];  // cool steel blue-gray
+const TRIPS_COLOR = [30, 58, 95] as [number, number, number];     // cool deep navy-blue
+const OUTSIDE_COLOR = [37, 99, 122] as [number, number, number];  // cool teal-cyan
+const MAINT_COLOR = [76, 59, 122] as [number, number, number];    // cool indigo-violet
 const PROFIT_COLOR = [16, 122, 87] as [number, number, number];
 
 // Header palette — deep navy band; white text for high contrast
@@ -99,19 +99,17 @@ const drawHeader = (doc: jsPDF, subtitle: string) => {
   doc.setFillColor(...BRAND_DARK);
   doc.rect(0, 33.4, pageWidth, 0.8, 'F');
 
-  // Title block — white for contrast on green
+  // Title block — white for contrast on navy, aligned with content margin
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('BSH Taxi Service', 40, 13);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(255, 255, 255);
-    doc.text('Palanati Colony, Kancharapelam, Vizag', 40, 19);
-    doc.setFontSize(9);
-    doc.setTextColor(255, 255, 255); // white for maximum contrast on navy
-    doc.setFont('helvetica', 'bold');
-    doc.text(subtitle, 40, 26);
+  doc.text('BSH Taxi Service', 14, 13);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('Palanati Colony, Kancharapelam, Vizag', 14, 19);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text(subtitle, 14, 26);
 
   doc.setTextColor(0, 0, 0);
   doc.setFont('helvetica', 'normal');
