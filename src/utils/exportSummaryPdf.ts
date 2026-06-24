@@ -1,7 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, parseISO } from 'date-fns';
-import bshLogo from '@/assets/bsh-logo.png';
 
 interface SummaryExportData {
   totalTrips: number;
@@ -73,20 +72,6 @@ const fmtDate = (d: string) => {
   try { return format(parseISO(d), 'dd MMM yyyy'); } catch { return d; }
 };
 
-async function loadLogo(): Promise<string | null> {
-  try {
-    const res = await fetch(bshLogo);
-    const blob = await res.blob();
-    return await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
-}
 
 // Theme: deep navy primary (#001D39)
 const BRAND = [0, 29, 57] as [number, number, number];           // navy primary
@@ -200,7 +185,7 @@ const drawContinuationHeader = (doc: jsPDF, subtitle: string) => {
   drawHeader(doc, subtitle);
 };
 
-export async function exportSummaryPdf(
+export function exportSummaryPdf(
   data: SummaryExportData,
   periodLabel: string,
   trips: Trip[] = [],
