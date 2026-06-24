@@ -209,10 +209,9 @@ export async function exportSummaryPdf(
   monthlyBreakdown: MonthlyBreakdownEntry[] = []
 ) {
   const doc = new jsPDF();
-  const logo = await loadLogo();
 
   // ============ PAGE 1 — SUMMARY ONLY ============
-  drawHeader(doc, `Summary Report - ${periodLabel}`, logo);
+  drawHeader(doc, `Summary Report - ${periodLabel}`);
 
   doc.setFontSize(9);
   doc.setTextColor(100, 116, 139);
@@ -264,7 +263,7 @@ export async function exportSummaryPdf(
   // Helper: start a detail section on a fresh page if needed
   const startDetailPage = (subtitle: string): number => {
     doc.addPage();
-    drawContinuationHeader(doc, subtitle, logo);
+    drawContinuationHeader(doc, subtitle);
     return 40;
   };
 
@@ -312,7 +311,7 @@ export async function exportSummaryPdf(
       margin: { left: 14, right: 14 },
       showFoot: 'lastPage',
       didDrawPage: (d: any) => {
-        if (d.pageNumber > 1) drawContinuationHeader(doc, `Monthly Breakdown (continued)`, logo);
+        if (d.pageNumber > 1) drawContinuationHeader(doc, `Monthly Breakdown (continued)`);
       },
     });
   }
@@ -352,7 +351,7 @@ export async function exportSummaryPdf(
       showHead: 'everyPage',
       rowPageBreak: 'avoid',
       didDrawPage: (d: any) => {
-        if (d.pageNumber > 1) drawContinuationHeader(doc, `Trips Detail (continued)`, logo);
+        if (d.pageNumber > 1) drawContinuationHeader(doc, `Trips Detail (continued)`);
       },
     });
   }
@@ -395,7 +394,7 @@ export async function exportSummaryPdf(
       showHead: 'everyPage',
       rowPageBreak: 'avoid',
       didDrawPage: (d: any) => {
-        if (d.pageNumber > 1) drawContinuationHeader(doc, `Outside Vehicle Trips (continued)`, logo);
+        if (d.pageNumber > 1) drawContinuationHeader(doc, `Outside Vehicle Trips (continued)`);
       },
     });
   }
@@ -436,7 +435,7 @@ export async function exportSummaryPdf(
       showHead: 'everyPage',
       rowPageBreak: 'avoid',
       didDrawPage: (d: any) => {
-        if (d.pageNumber > 1) drawContinuationHeader(doc, `Maintenance Records (continued)`, logo);
+        if (d.pageNumber > 1) drawContinuationHeader(doc, `Maintenance Records (continued)`);
       },
     });
   }
