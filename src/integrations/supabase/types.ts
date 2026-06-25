@@ -440,6 +440,42 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_fc: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          expiry_date: string
+          fc_number: string | null
+          id: string
+          issue_date: string
+          updated_at: string
+          vehicle_number: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          expiry_date: string
+          fc_number?: string | null
+          id?: string
+          issue_date: string
+          updated_at?: string
+          vehicle_number: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          expiry_date?: string
+          fc_number?: string | null
+          id?: string
+          issue_date?: string
+          updated_at?: string
+          vehicle_number?: string
+        }
+        Relationships: []
+      }
       vehicle_insurance: {
         Row: {
           created_at: string | null
@@ -514,6 +550,45 @@ export type Database = {
           next_oil_change_km?: number | null
           oil_type?: string | null
           updated_at?: string | null
+          vehicle_number?: string
+        }
+        Relationships: []
+      }
+      vehicle_permit: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          expiry_date: string
+          id: string
+          issue_date: string
+          issuing_state: string | null
+          permit_number: string | null
+          updated_at: string
+          vehicle_number: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          expiry_date: string
+          id?: string
+          issue_date: string
+          issuing_state?: string | null
+          permit_number?: string | null
+          updated_at?: string
+          vehicle_number: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          expiry_date?: string
+          id?: string
+          issue_date?: string
+          issuing_state?: string | null
+          permit_number?: string | null
+          updated_at?: string
           vehicle_number?: string
         }
         Relationships: []
