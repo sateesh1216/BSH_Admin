@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, differenceInMonths, differenceInDays, addMonths, isBefore, isAfter, startOfDay } from 'date-fns';
-import { Car, AlertTriangle, ChevronDown, ChevronRight, Wrench, Gauge, CreditCard, AlignCenter, Plus, Trash2, Edit, Droplets, Shield, Wind } from 'lucide-react';
+import { Car, AlertTriangle, ChevronDown, ChevronRight, Wrench, Gauge, CreditCard, AlignCenter, Plus, Trash2, Edit, Droplets, Shield, Wind, FileCheck, MapPin, History } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -91,12 +92,31 @@ interface VehiclePollution {
   expiry_date: string;
 }
 
+interface VehicleFc {
+  id: string;
+  vehicle_number: string;
+  fc_number: string | null;
+  issue_date: string;
+  expiry_date: string;
+  amount: number;
+}
+
+interface VehiclePermit {
+  id: string;
+  vehicle_number: string;
+  permit_number: string | null;
+  issuing_state: string | null;
+  issue_date: string;
+  expiry_date: string;
+  amount: number;
+}
+
 const getOilChangeStatus = (currentKm: number | null, nextOilChangeKm: number | null) => {
   if (!currentKm || !nextOilChangeKm) return null;
   const remaining = nextOilChangeKm - currentKm;
   const totalInterval = nextOilChangeKm - (currentKm - 10000);
   const progress = Math.max(0, Math.min(100, ((totalInterval - remaining) / totalInterval) * 100));
-  
+
   if (remaining <= 0) return { status: 'overdue', remaining, progress: 100, color: 'text-destructive' };
   if (remaining <= 1000) return { status: 'due-soon', remaining, progress, color: 'text-orange-500' };
   return { status: 'ok', remaining, progress, color: 'text-green-600' };
@@ -112,7 +132,7 @@ const getEmiStatus = (emi: VehicleEmi) => {
   const totalAmount = totalMonths * emi.emi_amount;
   const paidAmount = Math.min(paidMonths, totalMonths) * emi.emi_amount;
   const progress = Math.min(100, (paidMonths / totalMonths) * 100);
-  
+
   let nextEmiDate: Date | null = null;
   if (isBefore(today, endDate)) {
     const currentMonth = new Date(today.getFullYear(), today.getMonth(), emi.emi_day);
@@ -125,7 +145,7 @@ const getEmiStatus = (emi: VehicleEmi) => {
   }
 
   const isCompleted = isAfter(today, endDate) || paidMonths >= totalMonths;
-  
+
   return { totalMonths, paidMonths: Math.min(paidMonths, totalMonths), remainingMonths, totalAmount, paidAmount, progress, nextEmiDate, isCompleted };
 };
 
@@ -134,7 +154,7 @@ const getAlignmentStatus = (alignment: VehicleAlignment, currentKm: number | nul
   const kmSinceAlignment = currentKm - alignment.last_alignment_km;
   const remaining = alignment.alignment_interval_km - kmSinceAlignment;
   const progress = Math.max(0, Math.min(100, (kmSinceAlignment / alignment.alignment_interval_km) * 100));
-  
+
   if (remaining <= 0) return { status: 'overdue', remaining, progress: 100, color: 'text-destructive' };
   if (remaining <= 1000) return { status: 'due-soon', remaining, progress, color: 'text-orange-500' };
   return { status: 'ok', remaining, progress, color: 'text-green-600' };
@@ -144,11 +164,74 @@ const getDateExpiryStatus = (expiryDate: string) => {
   const today = startOfDay(new Date());
   const expiry = startOfDay(new Date(expiryDate));
   const daysRemaining = differenceInDays(expiry, today);
-  
+
   if (daysRemaining < 0) return { status: 'expired', daysRemaining, color: 'text-destructive', label: `Expired ${Math.abs(daysRemaining)} days ago` };
   if (daysRemaining <= 15) return { status: 'expiring-soon', daysRemaining, color: 'text-orange-500', label: `Expires in ${daysRemaining} days` };
   if (daysRemaining <= 30) return { status: 'due-soon', daysRemaining, color: 'text-yellow-600', label: `Expires in ${daysRemaining} days` };
   return { status: 'ok', daysRemaining, color: 'text-green-600', label: `${daysRemaining} days remaining` };
+};
+
+// Group records by vehicle; latest = highest sortDate; rest become previous renewals.
+function groupByVehicleLatest<T extends { id: string; vehicle_number: string }>(
+  records: T[],
+  getSortDate: (r: T) => string | null | undefined,
+  getSortKm?: (r: T) => number,
+): { latest: T[]; previous: Record<string, T[]> } {
+  const byVeh: Record<string, T[]> = {};
+  records.forEach((r) => {
+    (byVeh[r.vehicle_number] ??= []).push(r);
+  });
+  const latest: T[] = [];
+  const previous: Record<string, T[]> = {};
+  Object.values(byVeh).forEach((rows) => {
+    rows.sort((a, b) => {
+      const ad = getSortDate(a);
+      const bd = getSortDate(b);
+      const at = ad ? new Date(ad).getTime() : 0;
+      const bt = bd ? new Date(bd).getTime() : 0;
+      if (at !== bt) return bt - at;
+      if (getSortKm) return getSortKm(b) - getSortKm(a);
+      return 0;
+    });
+    const [first, ...rest] = rows;
+    latest.push(first);
+    previous[first.id] = rest;
+  });
+  return { latest, previous };
+}
+
+const PreviousRenewals = <T extends { id: string }>({
+  items,
+  renderRow,
+}: {
+  items: T[] | undefined;
+  renderRow: (r: T) => React.ReactNode;
+}) => {
+  const [open, setOpen] = useState(false);
+  if (!items || items.length === 0) return null;
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="mt-2">
+      <CollapsibleTrigger asChild>
+        <Button variant="ghost" size="sm" className="w-full justify-between text-xs h-7 px-2">
+          <span className="flex items-center gap-1.5 text-muted-foreground">
+            <History className="h-3 w-3" />
+            Previous renewals ({items.length})
+          </span>
+          {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="space-y-1 mt-1 pl-2 border-l-2 border-muted">
+          {items.map((r) => (
+            <div key={r.id} className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Renewed</Badge>
+              <div className="flex-1">{renderRow(r)}</div>
+            </div>
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
 };
 
 export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboardProps) => {
@@ -160,20 +243,24 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
   const [oilChangeRecords, setOilChangeRecords] = useState<VehicleOilChange[]>([]);
   const [insuranceRecords, setInsuranceRecords] = useState<VehicleInsurance[]>([]);
   const [pollutionRecords, setPollutionRecords] = useState<VehiclePollution[]>([]);
+  const [fcRecords, setFcRecords] = useState<VehicleFc[]>([]);
+  const [permitRecords, setPermitRecords] = useState<VehiclePermit[]>([]);
   const [vehicleLatestTripKm, setVehicleLatestTripKm] = useState<Record<string, number>>({});
   const [showEmiForm, setShowEmiForm] = useState(false);
   const [showAlignmentForm, setShowAlignmentForm] = useState(false);
   const [showOilChangeForm, setShowOilChangeForm] = useState(false);
   const [showInsuranceForm, setShowInsuranceForm] = useState(false);
   const [showPollutionForm, setShowPollutionForm] = useState(false);
-  
+  const [showFcForm, setShowFcForm] = useState(false);
+  const [showPermitForm, setShowPermitForm] = useState(false);
+
   // EMI form state
   const [emiVehicle, setEmiVehicle] = useState('');
   const [emiAmount, setEmiAmount] = useState('');
   const [emiStartDate, setEmiStartDate] = useState('2022-07-20');
   const [emiEndDate, setEmiEndDate] = useState('2026-06-20');
   const [editingEmiId, setEditingEmiId] = useState<string | null>(null);
-  
+
   // Alignment form state
   const [alignVehicle, setAlignVehicle] = useState('');
   const [alignLastKm, setAlignLastKm] = useState('');
@@ -206,6 +293,23 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
   const [polExpiryDate, setPolExpiryDate] = useState('');
   const [editingPolId, setEditingPolId] = useState<string | null>(null);
 
+  // FC form state
+  const [fcVehicle, setFcVehicle] = useState('');
+  const [fcNumber, setFcNumber] = useState('');
+  const [fcIssueDate, setFcIssueDate] = useState('');
+  const [fcExpiryDate, setFcExpiryDate] = useState('');
+  const [fcAmount, setFcAmount] = useState('');
+  const [editingFcId, setEditingFcId] = useState<string | null>(null);
+
+  // Permit form state
+  const [permitVehicle, setPermitVehicle] = useState('');
+  const [permitNumber, setPermitNumber] = useState('');
+  const [permitState, setPermitState] = useState('');
+  const [permitIssueDate, setPermitIssueDate] = useState('');
+  const [permitExpiryDate, setPermitExpiryDate] = useState('');
+  const [permitAmount, setPermitAmount] = useState('');
+  const [editingPermitId, setEditingPermitId] = useState<string | null>(null);
+
   useEffect(() => {
     if (user) {
       fetchEmiRecords();
@@ -213,6 +317,8 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
       fetchOilChangeRecords();
       fetchInsuranceRecords();
       fetchPollutionRecords();
+      fetchFcRecords();
+      fetchPermitRecords();
       fetchLatestTripKms();
     }
   }, [user]);
@@ -224,7 +330,7 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
       .not('ending_km', 'is', null)
       .not('car_number', 'is', null)
       .order('date', { ascending: false });
-    
+
     if (!error && data) {
       const kmMap: Record<string, number> = {};
       data.forEach((trip: any) => {
@@ -259,6 +365,16 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
   const fetchPollutionRecords = async () => {
     const { data, error } = await supabase.from('vehicle_pollution').select('*').order('vehicle_number');
     if (!error && data) setPollutionRecords(data as VehiclePollution[]);
+  };
+
+  const fetchFcRecords = async () => {
+    const { data, error } = await (supabase as any).from('vehicle_fc').select('*').order('vehicle_number');
+    if (!error && data) setFcRecords(data as VehicleFc[]);
+  };
+
+  const fetchPermitRecords = async () => {
+    const { data, error } = await (supabase as any).from('vehicle_permit').select('*').order('vehicle_number');
+    if (!error && data) setPermitRecords(data as VehiclePermit[]);
   };
 
   // === EMI handlers ===
@@ -351,6 +467,42 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
   const handleDeletePollution = async (id: string) => { const { error } = await supabase.from('vehicle_pollution').delete().eq('id', id); if (!error) { toast({ title: 'Deleted', description: 'Pollution record removed' }); fetchPollutionRecords(); } };
   const handleEditPollution = (p: VehiclePollution) => { setPolVehicle(p.vehicle_number); setPolCertNo(p.certificate_number || ''); setPolIssueDate(p.issue_date); setPolExpiryDate(p.expiry_date); setEditingPolId(p.id); setShowPollutionForm(true); };
 
+  // === FC handlers ===
+  const handleFcSubmit = async () => {
+    if (!fcVehicle || !fcIssueDate || !fcExpiryDate) {
+      toast({ title: 'Error', description: 'Vehicle number, issue date and expiry date are required', variant: 'destructive' });
+      return;
+    }
+    const payload = { vehicle_number: fcVehicle, fc_number: fcNumber || null, issue_date: fcIssueDate, expiry_date: fcExpiryDate, amount: fcAmount ? parseFloat(fcAmount) : 0, created_by: user?.id };
+    const result = editingFcId
+      ? await (supabase as any).from('vehicle_fc').update(payload).eq('id', editingFcId)
+      : await (supabase as any).from('vehicle_fc').insert([payload]);
+    if (result.error) { toast({ title: 'Error', description: result.error.message, variant: 'destructive' }); }
+    else { toast({ title: 'Success', description: `FC record ${editingFcId ? 'updated' : 'added'} successfully` }); resetFcForm(); fetchFcRecords(); }
+  };
+
+  const resetFcForm = () => { setFcVehicle(''); setFcNumber(''); setFcIssueDate(''); setFcExpiryDate(''); setFcAmount(''); setEditingFcId(null); setShowFcForm(false); };
+  const handleDeleteFc = async (id: string) => { const { error } = await (supabase as any).from('vehicle_fc').delete().eq('id', id); if (!error) { toast({ title: 'Deleted', description: 'FC record removed' }); fetchFcRecords(); } };
+  const handleEditFc = (f: VehicleFc) => { setFcVehicle(f.vehicle_number); setFcNumber(f.fc_number || ''); setFcIssueDate(f.issue_date); setFcExpiryDate(f.expiry_date); setFcAmount(String(f.amount || '')); setEditingFcId(f.id); setShowFcForm(true); };
+
+  // === Permit handlers ===
+  const handlePermitSubmit = async () => {
+    if (!permitVehicle || !permitIssueDate || !permitExpiryDate) {
+      toast({ title: 'Error', description: 'Vehicle number, issue date and expiry date are required', variant: 'destructive' });
+      return;
+    }
+    const payload = { vehicle_number: permitVehicle, permit_number: permitNumber || null, issuing_state: permitState || null, issue_date: permitIssueDate, expiry_date: permitExpiryDate, amount: permitAmount ? parseFloat(permitAmount) : 0, created_by: user?.id };
+    const result = editingPermitId
+      ? await (supabase as any).from('vehicle_permit').update(payload).eq('id', editingPermitId)
+      : await (supabase as any).from('vehicle_permit').insert([payload]);
+    if (result.error) { toast({ title: 'Error', description: result.error.message, variant: 'destructive' }); }
+    else { toast({ title: 'Success', description: `Permit record ${editingPermitId ? 'updated' : 'added'} successfully` }); resetPermitForm(); fetchPermitRecords(); }
+  };
+
+  const resetPermitForm = () => { setPermitVehicle(''); setPermitNumber(''); setPermitState(''); setPermitIssueDate(''); setPermitExpiryDate(''); setPermitAmount(''); setEditingPermitId(null); setShowPermitForm(false); };
+  const handleDeletePermit = async (id: string) => { const { error } = await (supabase as any).from('vehicle_permit').delete().eq('id', id); if (!error) { toast({ title: 'Deleted', description: 'Permit record removed' }); fetchPermitRecords(); } };
+  const handleEditPermit = (p: VehiclePermit) => { setPermitVehicle(p.vehicle_number); setPermitNumber(p.permit_number || ''); setPermitState(p.issuing_state || ''); setPermitIssueDate(p.issue_date); setPermitExpiryDate(p.expiry_date); setPermitAmount(String(p.amount || '')); setEditingPermitId(p.id); setShowPermitForm(true); };
+
   const vehicleSummaries = useMemo(() => {
     const vehicleMap: { [key: string]: VehicleSummary } = {};
     const sorted = [...maintenance].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -381,13 +533,41 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
     const vehicle = vehicleSummaries.find(v => v.vehicleNumber === vehicleNumber);
     const maintenanceKm = vehicle?.latestKm || null;
     const tripKm = vehicleLatestTripKm[vehicleNumber] || null;
-    
-    // Return the higher of maintenance KM or trip ending KM
     if (maintenanceKm && tripKm) return Math.max(maintenanceKm, tripKm);
     return tripKm || maintenanceKm;
   };
 
-  if (maintenance.length === 0 && emiRecords.length === 0 && alignmentRecords.length === 0 && oilChangeRecords.length === 0 && insuranceRecords.length === 0 && pollutionRecords.length === 0) {
+  // Latest-per-vehicle groupings
+  const alignmentGrouped = useMemo(
+    () => groupByVehicleLatest(alignmentRecords, (r) => r.last_alignment_date, (r) => r.last_alignment_km),
+    [alignmentRecords],
+  );
+  const oilGrouped = useMemo(
+    () => groupByVehicleLatest(oilChangeRecords, (r) => r.last_oil_change_date),
+    [oilChangeRecords],
+  );
+  const insuranceGrouped = useMemo(
+    () => groupByVehicleLatest(insuranceRecords, (r) => r.expiry_date),
+    [insuranceRecords],
+  );
+  const pollutionGrouped = useMemo(
+    () => groupByVehicleLatest(pollutionRecords, (r) => r.expiry_date),
+    [pollutionRecords],
+  );
+  const fcGrouped = useMemo(
+    () => groupByVehicleLatest(fcRecords, (r) => r.expiry_date),
+    [fcRecords],
+  );
+  const permitGrouped = useMemo(
+    () => groupByVehicleLatest(permitRecords, (r) => r.expiry_date),
+    [permitRecords],
+  );
+
+  if (
+    maintenance.length === 0 && emiRecords.length === 0 && alignmentRecords.length === 0 &&
+    oilChangeRecords.length === 0 && insuranceRecords.length === 0 && pollutionRecords.length === 0 &&
+    fcRecords.length === 0 && permitRecords.length === 0
+  ) {
     return (
       <Card className="shadow-lg border-primary/20">
         <CardContent className="py-12">
@@ -404,7 +584,8 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
   // Reusable expiry-based tracking tab renderer
   const renderExpiryTrackingTab = <T extends { id: string; vehicle_number: string }>(
     config: {
-      records: T[];
+      records: T[]; // latest-per-vehicle
+      previous?: Record<string, T[]>;
       icon: React.ReactNode;
       title: string;
       emptyText: string;
@@ -415,8 +596,9 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
       getExpiryDate: (record: T) => string;
       renderForm: () => React.ReactNode;
       renderCardDetails: (record: T) => React.ReactNode;
+      renderHistoryRow?: (record: T) => React.ReactNode;
       deleteTitle: string;
-    }
+    },
   ) => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -440,8 +622,9 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {config.records.map(record => {
+          {config.records.map((record) => {
             const expiryStatus = getDateExpiryStatus(config.getExpiryDate(record));
+            const prev = config.previous?.[record.id];
             return (
               <Card key={record.id} className={`shadow-md border-primary/20 ${expiryStatus.status === 'expired' ? 'border-destructive/50' : expiryStatus.status === 'expiring-soon' ? 'border-orange-400/50' : ''}`}>
                 <CardHeader className="pb-2">
@@ -482,6 +665,12 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                     <p className={`text-xs font-medium ${expiryStatus.color}`}>{expiryStatus.label}</p>
                     <p className="text-xs text-muted-foreground mt-1">Expiry: {format(new Date(config.getExpiryDate(record)), 'dd MMM yyyy')}</p>
                   </div>
+                  <PreviousRenewals
+                    items={prev}
+                    renderRow={config.renderHistoryRow ?? ((r) => (
+                      <span>Expired {format(new Date(config.getExpiryDate(r)), 'dd MMM yyyy')}</span>
+                    ))}
+                  />
                 </CardContent>
               </Card>
             );
@@ -520,6 +709,14 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               <Wind className="h-3.5 w-3.5" />
               <span>PUC</span>
             </TabsTrigger>
+            <TabsTrigger value="fc" className="flex items-center gap-1 text-xs">
+              <FileCheck className="h-3.5 w-3.5" />
+              <span>FC</span>
+            </TabsTrigger>
+            <TabsTrigger value="permit" className="flex items-center gap-1 text-xs">
+              <MapPin className="h-3.5 w-3.5" />
+              <span>Permit</span>
+            </TabsTrigger>
           </TabsList>
         </ScrollArea>
 
@@ -532,15 +729,19 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {vehicleSummaries.map((vehicle) => {
               const currentVehicleKm = getLatestKmForVehicle(vehicle.vehicleNumber);
-              const oilChange = oilChangeRecords.find(o => o.vehicle_number === vehicle.vehicleNumber);
+              const oilChange = oilGrouped.latest.find(o => o.vehicle_number === vehicle.vehicleNumber);
               const oilNextKm = oilChange?.next_oil_change_km ?? vehicle.nextOilChangeKm;
               const oilStatus = getOilChangeStatus(currentVehicleKm, oilNextKm);
-              const alignment = alignmentRecords.find(a => a.vehicle_number === vehicle.vehicleNumber);
+              const alignment = alignmentGrouped.latest.find(a => a.vehicle_number === vehicle.vehicleNumber);
               const alignStatus = alignment ? getAlignmentStatus(alignment, currentVehicleKm) : null;
-              const insurance = insuranceRecords.find(i => i.vehicle_number === vehicle.vehicleNumber);
+              const insurance = insuranceGrouped.latest.find(i => i.vehicle_number === vehicle.vehicleNumber);
               const insStatus = insurance ? getDateExpiryStatus(insurance.expiry_date) : null;
-              const pollution = pollutionRecords.find(p => p.vehicle_number === vehicle.vehicleNumber);
+              const pollution = pollutionGrouped.latest.find(p => p.vehicle_number === vehicle.vehicleNumber);
               const polStatus = pollution ? getDateExpiryStatus(pollution.expiry_date) : null;
+              const fc = fcGrouped.latest.find(f => f.vehicle_number === vehicle.vehicleNumber);
+              const fcStatus = fc ? getDateExpiryStatus(fc.expiry_date) : null;
+              const permit = permitGrouped.latest.find(p => p.vehicle_number === vehicle.vehicleNumber);
+              const permitStatus = permit ? getDateExpiryStatus(permit.expiry_date) : null;
               const isExpanded = expandedVehicle === vehicle.vehicleNumber;
 
               return (
@@ -594,6 +795,26 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                         {polStatus?.status === 'expiring-soon' && (
                           <Badge className="bg-orange-500 text-white text-xs">
                             <Wind className="h-3 w-3 mr-1" />PUC Expiring
+                          </Badge>
+                        )}
+                        {fcStatus?.status === 'expired' && (
+                          <Badge variant="destructive" className="text-xs animate-pulse">
+                            <FileCheck className="h-3 w-3 mr-1" />FC Expired
+                          </Badge>
+                        )}
+                        {fcStatus?.status === 'expiring-soon' && (
+                          <Badge className="bg-orange-500 text-white text-xs">
+                            <FileCheck className="h-3 w-3 mr-1" />FC Expiring
+                          </Badge>
+                        )}
+                        {permitStatus?.status === 'expired' && (
+                          <Badge variant="destructive" className="text-xs animate-pulse">
+                            <MapPin className="h-3 w-3 mr-1" />Permit Expired
+                          </Badge>
+                        )}
+                        {permitStatus?.status === 'expiring-soon' && (
+                          <Badge className="bg-orange-500 text-white text-xs">
+                            <MapPin className="h-3 w-3 mr-1" />Permit Expiring
                           </Badge>
                         )}
                         {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -679,6 +900,26 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                         <div className="flex items-center justify-between text-xs font-medium">
                           <span className="flex items-center gap-2"><Wind className="h-3.5 w-3.5 text-primary" />PUC</span>
                           <span className={polStatus.color}>{polStatus.label}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* FC Status */}
+                    {fc && fcStatus && (
+                      <div className="p-3 bg-muted/20 rounded-lg space-y-1 mb-2">
+                        <div className="flex items-center justify-between text-xs font-medium">
+                          <span className="flex items-center gap-2"><FileCheck className="h-3.5 w-3.5 text-primary" />FC</span>
+                          <span className={fcStatus.color}>{fcStatus.label}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Permit Status */}
+                    {permit && permitStatus && (
+                      <div className="p-3 bg-muted/20 rounded-lg space-y-1 mb-2">
+                        <div className="flex items-center justify-between text-xs font-medium">
+                          <span className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-primary" />All India Permit</span>
+                          <span className={permitStatus.color}>{permitStatus.label}</span>
                         </div>
                       </div>
                     )}
@@ -915,7 +1156,7 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               </Card>
             )}
 
-            {alignmentRecords.length === 0 ? (
+            {alignmentGrouped.latest.length === 0 ? (
               <Card className="shadow-md border-primary/20">
                 <CardContent className="py-8 text-center text-muted-foreground">
                   <AlignCenter className="h-10 w-10 mx-auto mb-3 opacity-50" />
@@ -924,9 +1165,10 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {alignmentRecords.map(a => {
+                {alignmentGrouped.latest.map(a => {
                   const currentKm = getLatestKmForVehicle(a.vehicle_number);
                   const status = getAlignmentStatus(a, currentKm);
+                  const prev = alignmentGrouped.previous[a.id];
                   return (
                     <Card key={a.id} className={`shadow-md border-primary/20 ${status?.status === 'overdue' ? 'border-destructive/50' : status?.status === 'due-soon' ? 'border-orange-400/50' : ''}`}>
                       <CardHeader className="pb-2">
@@ -988,6 +1230,14 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                             Add KM data in maintenance to enable tracking
                           </p>
                         )}
+                        <PreviousRenewals
+                          items={prev}
+                          renderRow={(r) => (
+                            <span>
+                              {r.last_alignment_date ? format(new Date(r.last_alignment_date), 'dd MMM yyyy') : '—'} · {r.last_alignment_km.toLocaleString()} km
+                            </span>
+                          )}
+                        />
                       </CardContent>
                     </Card>
                   );
@@ -1047,7 +1297,7 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               </Card>
             )}
 
-            {oilChangeRecords.length === 0 ? (
+            {oilGrouped.latest.length === 0 ? (
               <Card className="shadow-md border-primary/20">
                 <CardContent className="py-8 text-center text-muted-foreground">
                   <Droplets className="h-10 w-10 mx-auto mb-3 opacity-50" />
@@ -1056,17 +1306,18 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {oilChangeRecords.map(r => {
+                {oilGrouped.latest.map(r => {
                   const currentKm = getLatestKmForVehicle(r.vehicle_number);
                   const kmStatus = r.next_oil_change_km && currentKm ? (() => {
-                    const remaining = r.next_oil_change_km - currentKm;
-                    const interval = r.next_oil_change_km - r.last_oil_change_km;
+                    const remaining = r.next_oil_change_km! - currentKm;
+                    const interval = r.next_oil_change_km! - r.last_oil_change_km;
                     const progress = interval > 0 ? Math.max(0, Math.min(100, ((currentKm - r.last_oil_change_km) / interval) * 100)) : 0;
                     if (remaining <= 0) return { status: 'overdue', remaining, progress: 100, color: 'text-destructive' };
                     if (remaining <= 1000) return { status: 'due-soon', remaining, progress, color: 'text-orange-500' };
                     return { status: 'ok', remaining, progress, color: 'text-green-600' };
                   })() : null;
                   const dateStatus = r.next_oil_change_date ? getDateExpiryStatus(r.next_oil_change_date) : null;
+                  const prev = oilGrouped.previous[r.id];
 
                   return (
                     <Card key={r.id} className={`shadow-md border-primary/20 ${kmStatus?.status === 'overdue' || dateStatus?.status === 'expired' ? 'border-destructive/50' : kmStatus?.status === 'due-soon' || dateStatus?.status === 'expiring-soon' ? 'border-orange-400/50' : ''}`}>
@@ -1117,7 +1368,6 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                         </div>
                         {r.oil_type && <p className="text-xs text-muted-foreground text-center">Oil Type: {r.oil_type}</p>}
 
-                        {/* KM-based progress tracking from maintenance */}
                         {r.next_oil_change_km && (
                           <div className="p-3 bg-muted/20 rounded-lg space-y-2">
                             <div className="flex items-center gap-2 text-xs font-medium">
@@ -1143,13 +1393,21 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                           </div>
                         )}
 
-                        {/* Date-based expiry */}
                         {dateStatus && r.next_oil_change_date && (
                           <div className={`p-2 rounded-lg text-center ${dateStatus.status === 'expired' ? 'bg-destructive/10' : dateStatus.status === 'expiring-soon' ? 'bg-orange-500/10' : 'bg-green-500/10'}`}>
                             <p className={`text-xs font-medium ${dateStatus.color}`}>{dateStatus.label}</p>
                             <p className="text-xs text-muted-foreground mt-1">Next Date: {format(new Date(r.next_oil_change_date), 'dd MMM yyyy')}</p>
                           </div>
                         )}
+
+                        <PreviousRenewals
+                          items={prev}
+                          renderRow={(rr) => (
+                            <span>
+                              {format(new Date(rr.last_oil_change_date), 'dd MMM yyyy')} · {rr.last_oil_change_km.toLocaleString()} km
+                            </span>
+                          )}
+                        />
                       </CardContent>
                     </Card>
                   );
@@ -1162,7 +1420,8 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
         {/* Insurance Tracking Sub-Tab */}
         <TabsContent value="insurance">
           {renderExpiryTrackingTab<VehicleInsurance>({
-            records: insuranceRecords,
+            records: insuranceGrouped.latest,
+            previous: insuranceGrouped.previous,
             icon: <Shield className="h-5 w-5" />,
             title: 'Insurance Renewal Tracking',
             emptyText: 'No insurance records yet. Click "Add" to start tracking.',
@@ -1176,30 +1435,12 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               <Card className="shadow-md border-primary/20">
                 <CardContent className="pt-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Vehicle Number *</Label>
-                      <Input value={insVehicle} onChange={e => setInsVehicle(e.target.value)} placeholder="e.g. MH12AB1234" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Insurance Company</Label>
-                      <Input value={insCompany} onChange={e => setInsCompany(e.target.value)} placeholder="e.g. ICICI Lombard" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Policy Number</Label>
-                      <Input value={insPolicyNo} onChange={e => setInsPolicyNo(e.target.value)} placeholder="Policy No." />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Start Date *</Label>
-                      <Input type="date" value={insStartDate} onChange={e => setInsStartDate(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Expiry Date *</Label>
-                      <Input type="date" value={insExpiryDate} onChange={e => setInsExpiryDate(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Premium Amount (₹)</Label>
-                      <Input type="number" value={insPremium} onChange={e => setInsPremium(e.target.value)} placeholder="0" />
-                    </div>
+                    <div className="space-y-2"><Label>Vehicle Number *</Label><Input value={insVehicle} onChange={e => setInsVehicle(e.target.value)} placeholder="e.g. MH12AB1234" /></div>
+                    <div className="space-y-2"><Label>Insurance Company</Label><Input value={insCompany} onChange={e => setInsCompany(e.target.value)} placeholder="e.g. ICICI Lombard" /></div>
+                    <div className="space-y-2"><Label>Policy Number</Label><Input value={insPolicyNo} onChange={e => setInsPolicyNo(e.target.value)} placeholder="Policy No." /></div>
+                    <div className="space-y-2"><Label>Start Date *</Label><Input type="date" value={insStartDate} onChange={e => setInsStartDate(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Expiry Date *</Label><Input type="date" value={insExpiryDate} onChange={e => setInsExpiryDate(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Premium Amount (₹)</Label><Input type="number" value={insPremium} onChange={e => setInsPremium(e.target.value)} placeholder="0" /></div>
                   </div>
                   <div className="flex gap-2 mt-4">
                     <Button onClick={handleInsuranceSubmit}>{editingInsId ? 'Update' : 'Save'}</Button>
@@ -1224,13 +1465,20 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                 {r.policy_number && <p className="text-xs text-muted-foreground text-center">Policy: {r.policy_number}</p>}
               </>
             ),
+            renderHistoryRow: (r) => (
+              <span>
+                {format(new Date(r.start_date), 'dd MMM yy')} – {format(new Date(r.expiry_date), 'dd MMM yy')}
+                {r.policy_number ? ` · ${r.policy_number}` : ''} · ₹{r.premium_amount.toLocaleString()}
+              </span>
+            ),
           })}
         </TabsContent>
 
         {/* Pollution (PUC) Tracking Sub-Tab */}
         <TabsContent value="pollution">
           {renderExpiryTrackingTab<VehiclePollution>({
-            records: pollutionRecords,
+            records: pollutionGrouped.latest,
+            previous: pollutionGrouped.previous,
             icon: <Wind className="h-5 w-5" />,
             title: 'Pollution (PUC) Certificate Tracking',
             emptyText: 'No PUC records yet. Click "Add" to start tracking.',
@@ -1244,22 +1492,10 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
               <Card className="shadow-md border-primary/20">
                 <CardContent className="pt-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="space-y-2">
-                      <Label>Vehicle Number *</Label>
-                      <Input value={polVehicle} onChange={e => setPolVehicle(e.target.value)} placeholder="e.g. MH12AB1234" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Certificate Number</Label>
-                      <Input value={polCertNo} onChange={e => setPolCertNo(e.target.value)} placeholder="Certificate No." />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Issue Date *</Label>
-                      <Input type="date" value={polIssueDate} onChange={e => setPolIssueDate(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Expiry Date *</Label>
-                      <Input type="date" value={polExpiryDate} onChange={e => setPolExpiryDate(e.target.value)} />
-                    </div>
+                    <div className="space-y-2"><Label>Vehicle Number *</Label><Input value={polVehicle} onChange={e => setPolVehicle(e.target.value)} placeholder="e.g. MH12AB1234" /></div>
+                    <div className="space-y-2"><Label>Certificate Number</Label><Input value={polCertNo} onChange={e => setPolCertNo(e.target.value)} placeholder="Certificate No." /></div>
+                    <div className="space-y-2"><Label>Issue Date *</Label><Input type="date" value={polIssueDate} onChange={e => setPolIssueDate(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Expiry Date *</Label><Input type="date" value={polExpiryDate} onChange={e => setPolExpiryDate(e.target.value)} /></div>
                   </div>
                   <div className="flex gap-2 mt-4">
                     <Button onClick={handlePollutionSubmit}>{editingPolId ? 'Update' : 'Save'}</Button>
@@ -1282,6 +1518,124 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
                 </div>
                 {r.certificate_number && <p className="text-xs text-muted-foreground text-center">Cert: {r.certificate_number}</p>}
               </>
+            ),
+            renderHistoryRow: (r) => (
+              <span>
+                {format(new Date(r.issue_date), 'dd MMM yy')} – {format(new Date(r.expiry_date), 'dd MMM yy')}
+                {r.certificate_number ? ` · ${r.certificate_number}` : ''}
+              </span>
+            ),
+          })}
+        </TabsContent>
+
+        {/* FC Sub-Tab */}
+        <TabsContent value="fc">
+          {renderExpiryTrackingTab<VehicleFc>({
+            records: fcGrouped.latest,
+            previous: fcGrouped.previous,
+            icon: <FileCheck className="h-5 w-5" />,
+            title: 'Fitness Certificate (FC) Tracking',
+            emptyText: 'No FC records yet. Click "Add" to start tracking.',
+            showForm: showFcForm,
+            onAdd: () => { resetFcForm(); setShowFcForm(true); },
+            onDelete: handleDeleteFc,
+            onEdit: handleEditFc,
+            getExpiryDate: (r) => r.expiry_date,
+            deleteTitle: 'FC Record',
+            renderForm: () => (
+              <Card className="shadow-md border-primary/20">
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-2"><Label>Vehicle Number *</Label><Input value={fcVehicle} onChange={e => setFcVehicle(e.target.value)} placeholder="e.g. MH12AB1234" /></div>
+                    <div className="space-y-2"><Label>FC Number</Label><Input value={fcNumber} onChange={e => setFcNumber(e.target.value)} placeholder="FC No." /></div>
+                    <div className="space-y-2"><Label>Amount (₹)</Label><Input type="number" value={fcAmount} onChange={e => setFcAmount(e.target.value)} placeholder="0" /></div>
+                    <div className="space-y-2"><Label>Issue Date *</Label><Input type="date" value={fcIssueDate} onChange={e => setFcIssueDate(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Expiry Date *</Label><Input type="date" value={fcExpiryDate} onChange={e => setFcExpiryDate(e.target.value)} /></div>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button onClick={handleFcSubmit}>{editingFcId ? 'Update' : 'Save'}</Button>
+                    <Button variant="outline" onClick={resetFcForm}>Cancel</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ),
+            renderCardDetails: (r) => (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-2 bg-muted/30 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Issue Date</p>
+                    <p className="font-bold text-sm">{format(new Date(r.issue_date), 'dd MMM yy')}</p>
+                  </div>
+                  <div className="p-2 bg-muted/30 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Amount</p>
+                    <p className="font-bold text-sm text-primary">₹{(r.amount || 0).toLocaleString()}</p>
+                  </div>
+                </div>
+                {r.fc_number && <p className="text-xs text-muted-foreground text-center">FC: {r.fc_number}</p>}
+              </>
+            ),
+            renderHistoryRow: (r) => (
+              <span>
+                {format(new Date(r.issue_date), 'dd MMM yy')} – {format(new Date(r.expiry_date), 'dd MMM yy')}
+                {r.fc_number ? ` · ${r.fc_number}` : ''} · ₹{(r.amount || 0).toLocaleString()}
+              </span>
+            ),
+          })}
+        </TabsContent>
+
+        {/* All India Permit Sub-Tab */}
+        <TabsContent value="permit">
+          {renderExpiryTrackingTab<VehiclePermit>({
+            records: permitGrouped.latest,
+            previous: permitGrouped.previous,
+            icon: <MapPin className="h-5 w-5" />,
+            title: 'All India Permit Tracking',
+            emptyText: 'No Permit records yet. Click "Add" to start tracking.',
+            showForm: showPermitForm,
+            onAdd: () => { resetPermitForm(); setShowPermitForm(true); },
+            onDelete: handleDeletePermit,
+            onEdit: handleEditPermit,
+            getExpiryDate: (r) => r.expiry_date,
+            deleteTitle: 'Permit Record',
+            renderForm: () => (
+              <Card className="shadow-md border-primary/20">
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-2"><Label>Vehicle Number *</Label><Input value={permitVehicle} onChange={e => setPermitVehicle(e.target.value)} placeholder="e.g. MH12AB1234" /></div>
+                    <div className="space-y-2"><Label>Permit Number</Label><Input value={permitNumber} onChange={e => setPermitNumber(e.target.value)} placeholder="Permit No." /></div>
+                    <div className="space-y-2"><Label>Issuing State</Label><Input value={permitState} onChange={e => setPermitState(e.target.value)} placeholder="e.g. Andhra Pradesh" /></div>
+                    <div className="space-y-2"><Label>Issue Date *</Label><Input type="date" value={permitIssueDate} onChange={e => setPermitIssueDate(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Expiry Date *</Label><Input type="date" value={permitExpiryDate} onChange={e => setPermitExpiryDate(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Amount (₹)</Label><Input type="number" value={permitAmount} onChange={e => setPermitAmount(e.target.value)} placeholder="0" /></div>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button onClick={handlePermitSubmit}>{editingPermitId ? 'Update' : 'Save'}</Button>
+                    <Button variant="outline" onClick={resetPermitForm}>Cancel</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ),
+            renderCardDetails: (r) => (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-2 bg-muted/30 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Issue Date</p>
+                    <p className="font-bold text-sm">{format(new Date(r.issue_date), 'dd MMM yy')}</p>
+                  </div>
+                  <div className="p-2 bg-muted/30 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Amount</p>
+                    <p className="font-bold text-sm text-primary">₹{(r.amount || 0).toLocaleString()}</p>
+                  </div>
+                </div>
+                {r.permit_number && <p className="text-xs text-muted-foreground text-center">Permit: {r.permit_number}</p>}
+                {r.issuing_state && <p className="text-xs text-muted-foreground text-center">State: {r.issuing_state}</p>}
+              </>
+            ),
+            renderHistoryRow: (r) => (
+              <span>
+                {format(new Date(r.issue_date), 'dd MMM yy')} – {format(new Date(r.expiry_date), 'dd MMM yy')}
+                {r.permit_number ? ` · ${r.permit_number}` : ''} · ₹{(r.amount || 0).toLocaleString()}
+              </span>
             ),
           })}
         </TabsContent>
