@@ -353,7 +353,67 @@ export const Dashboard = () => {
             <DriverReports />
             <MonthlyReports />
             <ExpensesReports />
+
+            {monthlyBreakdown.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Monthly Breakdown
+                  </h3>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowMonthlyBreakdown(v => !v)}
+                  >
+                    {showMonthlyBreakdown ? (
+                      <><EyeOff className="h-4 w-4 mr-2" /> Hide</>
+                    ) : (
+                      <><Eye className="h-4 w-4 mr-2" /> View</>
+                    )}
+                  </Button>
+                </div>
+                {showMonthlyBreakdown && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {monthlyBreakdown.map((month) => {
+                      const netProfit = month.totalTripMoney - month.tripExpenses - month.maintenanceExpenses;
+                      const rows = [
+                        { label: 'Trips', value: month.totalTrips.toString(), color: 'text-primary' },
+                        { label: 'Trip Money', value: `₹${month.totalTripMoney.toLocaleString('en-IN')}`, color: 'text-blue-600' },
+                        { label: 'Total Expenses', value: `₹${month.tripExpenses.toLocaleString('en-IN')}`, color: 'text-orange-600' },
+                        { label: 'Maintenance', value: `₹${month.maintenanceExpenses.toLocaleString('en-IN')}`, color: 'text-orange-600' },
+                        { label: 'Outside Vehicles', value: month.totalOutsideVehicleTrips.toString(), color: 'text-purple-600' },
+                        { label: 'Outside Amount', value: `₹${month.totalOutsideVehicleMoney.toLocaleString('en-IN')}`, color: 'text-purple-600' },
+                        { label: 'Net Profit', value: `₹${netProfit.toLocaleString('en-IN')}`, color: netProfit >= 0 ? 'text-green-600' : 'text-red-600', highlight: true },
+                      ];
+                      return (
+                        <Card key={month.monthLabel} className="border-border bg-card hover:bg-accent/50 transition-all duration-200 shadow-sm">
+                          <CardContent className="p-3 space-y-2">
+                            <p className="text-sm font-bold text-foreground border-b border-border pb-1.5">{month.monthLabel}</p>
+                            <div className="space-y-1.5 text-xs">
+                              {rows.map((row) => (
+                                <div
+                                  key={row.label}
+                                  className={cn(
+                                    "flex items-center justify-between gap-2",
+                                    row.highlight && "pt-1.5 border-t border-border mt-1 font-bold"
+                                  )}
+                                >
+                                  <span className="text-muted-foreground text-left">{row.label}</span>
+                                  <span className={cn("font-semibold text-right", row.color)}>{row.value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+
         );
       case 'admin':
         return <AdminPanel onNavigateToReports={() => setActiveSection('reports')} />;
