@@ -221,6 +221,7 @@ export const Dashboard = () => {
       sortDate: Date;
       totalTrips: number;
       totalTripMoney: number;
+      tripExpenses: number;
       maintenanceExpenses: number;
       totalOutsideVehicleTrips: number;
       totalOutsideVehicleMoney: number;
@@ -233,7 +234,7 @@ export const Dashboard = () => {
         map.set(label, {
           monthLabel: label,
           sortDate: new Date(d.getFullYear(), d.getMonth(), 1),
-          totalTrips: 0, totalTripMoney: 0, maintenanceExpenses: 0,
+          totalTrips: 0, totalTripMoney: 0, tripExpenses: 0, maintenanceExpenses: 0,
           totalOutsideVehicleTrips: 0, totalOutsideVehicleMoney: 0
         });
       }
@@ -244,6 +245,7 @@ export const Dashboard = () => {
       const m = ensureMonth(t.date);
       m.totalTrips++;
       m.totalTripMoney += t.trip_amount;
+      m.tripExpenses += (t.driver_amount || 0) + (t.commission || 0) + (t.fuel_amount || 0) + (t.tolls || 0);
     });
 
     maintenance.forEach(mr => {
@@ -259,6 +261,7 @@ export const Dashboard = () => {
 
     return Array.from(map.values()).sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime());
   }, [trips, maintenance, outsideVehicleTrips, dateFilter.type]);
+
 
   const upcomingTrips = useMemo(() => {
     const today = startOfDay(new Date());
@@ -580,42 +583,41 @@ export const Dashboard = () => {
                 </div>
                 {showMonthlyBreakdown && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {monthlyBreakdown.map((month) => (
-                      <Card key={month.monthLabel} className="border-border bg-card hover:bg-accent/50 transition-all duration-200 shadow-sm">
-                        <CardContent className="p-3 space-y-2">
-                          <p className="text-sm font-bold text-foreground">{month.monthLabel}</p>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div>
-                              <p className="text-muted-foreground">Trips</p>
-                              <p className="font-semibold text-primary">{month.totalTrips}</p>
+                    {monthlyBreakdown.map((month) => {
+                      const netProfit = month.totalTripMoney - month.tripExpenses - month.maintenanceExpenses;
+                      const rows = [
+                        { label: 'Trips', value: month.totalTrips.toString(), color: 'text-primary' },
+                        { label: 'Trip Money', value: `₹${month.totalTripMoney.toLocaleString('en-IN')}`, color: 'text-blue-600' },
+                        { label: 'Total Expenses', value: `₹${month.tripExpenses.toLocaleString('en-IN')}`, color: 'text-orange-600' },
+                        { label: 'Maintenance', value: `₹${month.maintenanceExpenses.toLocaleString('en-IN')}`, color: 'text-orange-600' },
+                        { label: 'Outside Vehicles', value: month.totalOutsideVehicleTrips.toString(), color: 'text-purple-600' },
+                        { label: 'Outside Amount', value: `₹${month.totalOutsideVehicleMoney.toLocaleString('en-IN')}`, color: 'text-purple-600' },
+                        { label: 'Net Profit', value: `₹${netProfit.toLocaleString('en-IN')}`, color: netProfit >= 0 ? 'text-green-600' : 'text-red-600', highlight: true },
+                      ];
+                      return (
+                        <Card key={month.monthLabel} className="border-border bg-card hover:bg-accent/50 transition-all duration-200 shadow-sm">
+                          <CardContent className="p-3 space-y-2">
+                            <p className="text-sm font-bold text-foreground border-b border-border pb-1.5">{month.monthLabel}</p>
+                            <div className="space-y-1.5 text-xs">
+                              {rows.map((row) => (
+                                <div
+                                  key={row.label}
+                                  className={cn(
+                                    "flex items-center justify-between gap-2",
+                                    row.highlight && "pt-1.5 border-t border-border mt-1 font-bold"
+                                  )}
+                                >
+                                  <span className="text-muted-foreground text-left">{row.label}</span>
+                                  <span className={cn("font-semibold text-right", row.color)}>{row.value}</span>
+                                </div>
+                              ))}
                             </div>
-                            <div>
-                              <p className="text-muted-foreground">Trip Money</p>
-                              <p className="font-semibold text-blue-600">₹{month.totalTripMoney.toLocaleString('en-IN')}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Outside</p>
-                              <p className="font-semibold text-purple-600">{month.totalOutsideVehicleTrips}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Outside Amt</p>
-                              <p className="font-semibold text-purple-600">₹{month.totalOutsideVehicleMoney.toLocaleString('en-IN')}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Maintenance</p>
-                              <p className="font-semibold text-orange-600">₹{month.maintenanceExpenses.toLocaleString('en-IN')}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Net Profit</p>
-                              <p className="font-semibold text-green-600">
-                                ₹{(month.totalTripMoney - month.maintenanceExpenses).toLocaleString('en-IN')}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
+
                 )}
               </div>
             )}
