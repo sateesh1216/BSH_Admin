@@ -171,16 +171,8 @@ const getDateExpiryStatus = (expiryDate: string) => {
   return { status: 'ok', daysRemaining, color: 'text-green-600', label: `${daysRemaining} days remaining` };
 };
 
-// Group records by vehicle. "Latest" (current/active) = the most recently entered
-// renewal. Ranking per vehicle:
-//   1. Records whose service/expiry date is on/after today rank above expired ones
-//      (a completed renewal always supersedes an expired historical row).
-//   2. Then by the service/expiry sort date DESC (newer coverage wins).
-//   3. Then by created_at DESC (most recently added row wins — so saving a
-//      renewal instantly replaces the current status).
-//   4. Then by optional KM (for alignment) DESC as a final tiebreaker.
-// All non-latest rows for the same vehicle move into `previous` history.
-function groupByVehicleLatest<T extends { id: string; vehicle_number: string; created_at?: string | null }>(
+// Group records by vehicle; latest = highest sortDate; rest become previous renewals.
+function groupByVehicleLatest<T extends { id: string; vehicle_number: string }>(
   records: T[],
   getSortDate: (r: T) => string | null | undefined,
   getSortKm?: (r: T) => number,
@@ -189,9 +181,6 @@ function groupByVehicleLatest<T extends { id: string; vehicle_number: string; cr
   records.forEach((r) => {
     (byVeh[r.vehicle_number] ??= []).push(r);
   });
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayMs = today.getTime();
   const latest: T[] = [];
   const previous: Record<string, T[]> = {};
   Object.values(byVeh).forEach((rows) => {
@@ -200,13 +189,7 @@ function groupByVehicleLatest<T extends { id: string; vehicle_number: string; cr
       const bd = getSortDate(b);
       const at = ad ? new Date(ad).getTime() : 0;
       const bt = bd ? new Date(bd).getTime() : 0;
-      const aValid = at >= todayMs ? 1 : 0;
-      const bValid = bt >= todayMs ? 1 : 0;
-      if (aValid !== bValid) return bValid - aValid;
       if (at !== bt) return bt - at;
-      const ac = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const bc = b.created_at ? new Date(b.created_at).getTime() : 0;
-      if (ac !== bc) return bc - ac;
       if (getSortKm) return getSortKm(b) - getSortKm(a);
       return 0;
     });
