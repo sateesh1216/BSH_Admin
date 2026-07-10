@@ -215,7 +215,7 @@ export const Dashboard = () => {
   }, [trips, maintenance, outsideVehicleTrips]);
 
   const monthlyBreakdown = useMemo(() => {
-    if (dateFilter.type !== 'all') return [];
+
 
     const map = new Map<string, {
       monthLabel: string;
