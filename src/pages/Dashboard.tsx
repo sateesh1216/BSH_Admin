@@ -85,13 +85,14 @@ interface OutsideVehicleTrip {
   trip_amount: number;
 }
 
-type Section = 'trips' | 'outside-vehicle' | 'maintenance' | 'vehicle-history' | 'upload' | 'reports' | 'admin';
+type Section = 'trips' | 'outside-vehicle' | 'maintenance' | 'vehicle-history' | 'monthly-breakdown' | 'upload' | 'reports' | 'admin';
 
 const navItems: { key: Section; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
   { key: 'trips', label: 'Trips', icon: Car },
   { key: 'outside-vehicle', label: 'Outside Vehicles', icon: Bus },
   { key: 'maintenance', label: 'Maintenance', icon: Wrench },
   { key: 'vehicle-history', label: 'Vehicles', icon: History },
+  { key: 'monthly-breakdown', label: 'Monthly Breakdown', icon: Calendar },
   { key: 'upload', label: 'Upload Data', icon: Upload },
   { key: 'reports', label: 'Reports', icon: BarChart3 },
   { key: 'admin', label: 'Admin Panel', icon: Settings, adminOnly: true },
@@ -214,7 +215,7 @@ export const Dashboard = () => {
   }, [trips, maintenance, outsideVehicleTrips]);
 
   const monthlyBreakdown = useMemo(() => {
-    if (dateFilter.type !== 'all') return [];
+
 
     const map = new Map<string, {
       monthLabel: string;
@@ -345,6 +346,59 @@ export const Dashboard = () => {
         );
       case 'vehicle-history':
         return <VehicleHistoryDashboard maintenance={maintenance} />;
+      case 'monthly-breakdown':
+        return (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Monthly Breakdown
+                </h2>
+                <p className="text-sm text-muted-foreground">Trip Money − Total Expenses − Maintenance = Net Profit</p>
+              </div>
+            </div>
+            {monthlyBreakdown.length === 0 ? (
+              <div className="text-center text-sm text-muted-foreground py-10">No data available</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {monthlyBreakdown.map((month) => {
+                  const netProfit = month.totalTripMoney - month.tripExpenses - month.maintenanceExpenses;
+                  const rows = [
+                    { label: 'Trips', value: month.totalTrips.toString(), color: 'text-primary' },
+                    { label: 'Trip Money', value: `₹${month.totalTripMoney.toLocaleString('en-IN')}`, color: 'text-blue-600' },
+                    { label: 'Total Expenses', value: `₹${month.tripExpenses.toLocaleString('en-IN')}`, color: 'text-orange-600' },
+                    { label: 'Maintenance', value: `₹${month.maintenanceExpenses.toLocaleString('en-IN')}`, color: 'text-orange-600' },
+                    { label: 'Outside Vehicles', value: month.totalOutsideVehicleTrips.toString(), color: 'text-purple-600' },
+                    { label: 'Outside Amount', value: `₹${month.totalOutsideVehicleMoney.toLocaleString('en-IN')}`, color: 'text-purple-600' },
+                    { label: 'Net Profit', value: `₹${netProfit.toLocaleString('en-IN')}`, color: netProfit >= 0 ? 'text-green-600' : 'text-red-600', highlight: true },
+                  ];
+                  return (
+                    <Card key={month.monthLabel} className="border-border bg-card hover:bg-accent/50 transition-all duration-200 shadow-sm">
+                      <CardContent className="p-3 space-y-2">
+                        <p className="text-sm font-bold text-foreground border-b border-border pb-1.5">{month.monthLabel}</p>
+                        <div className="space-y-1.5 text-xs">
+                          {rows.map((row) => (
+                            <div
+                              key={row.label}
+                              className={cn(
+                                "flex items-center justify-between gap-2",
+                                row.highlight && "pt-1.5 border-t border-border mt-1 font-bold"
+                              )}
+                            >
+                              <span className="text-muted-foreground text-left">{row.label}</span>
+                              <span className={cn("font-semibold text-right", row.color)}>{row.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
       case 'upload':
         return <FileUpload onUploadSuccess={refreshData} />;
       case 'reports':
@@ -561,66 +615,6 @@ export const Dashboard = () => {
             </div>
             <DashboardSummary data={calculateSummary} onCardClick={setSummaryDetailType} />
 
-            {/* Monthly Breakdown Cards (shown only when All is selected) */}
-            {dateFilter.type === 'all' && monthlyBreakdown.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Monthly Breakdown
-                  </h3>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowMonthlyBreakdown(v => !v)}
-                  >
-                    {showMonthlyBreakdown ? (
-                      <><EyeOff className="h-4 w-4 mr-2" /> Hide</>
-                    ) : (
-                      <><Eye className="h-4 w-4 mr-2" /> View</>
-                    )}
-                  </Button>
-                </div>
-                {showMonthlyBreakdown && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {monthlyBreakdown.map((month) => {
-                      const netProfit = month.totalTripMoney - month.tripExpenses - month.maintenanceExpenses;
-                      const rows = [
-                        { label: 'Trips', value: month.totalTrips.toString(), color: 'text-primary' },
-                        { label: 'Trip Money', value: `₹${month.totalTripMoney.toLocaleString('en-IN')}`, color: 'text-blue-600' },
-                        { label: 'Total Expenses', value: `₹${month.tripExpenses.toLocaleString('en-IN')}`, color: 'text-orange-600' },
-                        { label: 'Maintenance', value: `₹${month.maintenanceExpenses.toLocaleString('en-IN')}`, color: 'text-orange-600' },
-                        { label: 'Outside Vehicles', value: month.totalOutsideVehicleTrips.toString(), color: 'text-purple-600' },
-                        { label: 'Outside Amount', value: `₹${month.totalOutsideVehicleMoney.toLocaleString('en-IN')}`, color: 'text-purple-600' },
-                        { label: 'Net Profit', value: `₹${netProfit.toLocaleString('en-IN')}`, color: netProfit >= 0 ? 'text-green-600' : 'text-red-600', highlight: true },
-                      ];
-                      return (
-                        <Card key={month.monthLabel} className="border-border bg-card hover:bg-accent/50 transition-all duration-200 shadow-sm">
-                          <CardContent className="p-3 space-y-2">
-                            <p className="text-sm font-bold text-foreground border-b border-border pb-1.5">{month.monthLabel}</p>
-                            <div className="space-y-1.5 text-xs">
-                              {rows.map((row) => (
-                                <div
-                                  key={row.label}
-                                  className={cn(
-                                    "flex items-center justify-between gap-2",
-                                    row.highlight && "pt-1.5 border-t border-border mt-1 font-bold"
-                                  )}
-                                >
-                                  <span className="text-muted-foreground text-left">{row.label}</span>
-                                  <span className={cn("font-semibold text-right", row.color)}>{row.value}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-
-                )}
-              </div>
-            )}
 
             {/* Summary Detail Modal */}
             <SummaryDetailModal
