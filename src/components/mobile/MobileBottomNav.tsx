@@ -1,7 +1,7 @@
 import { Car, Wrench, Upload, BarChart3, Bus, History, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type Section = 'trips' | 'outside-vehicle' | 'maintenance' | 'vehicle-history' | 'upload' | 'reports' | 'admin';
+type Section = 'trips' | 'outside-vehicle' | 'maintenance' | 'vehicle-history' | 'monthly-breakdown' | 'upload' | 'reports' | 'admin';
 
 interface MobileBottomNavProps {
   activeSection: Section;
