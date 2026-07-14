@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings, History, ChevronRight, User, Menu, FileDown, Calendar, Eye, EyeOff } from 'lucide-react';
+import { LogOut, Car, Wrench, Upload, BarChart3, Plus, RefreshCw, Bell, Bus, Settings, History, ChevronRight, User, Menu, FileDown, Calendar, Eye, EyeOff, Truck } from 'lucide-react';
 import { exportSummaryPdf } from '@/utils/exportSummaryPdf';
 import { startOfDay, parseISO, isAfter } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import bshLogo from '@/assets/bsh-logo.png';
 import { MobileBottomNav } from '@/components/mobile/MobileBottomNav';
 import { MobileHeader } from '@/components/mobile/MobileHeader';
+import { DriversModule } from '@/components/drivers/DriversModule';
 
 interface Trip {
   id: string;
@@ -85,11 +86,12 @@ interface OutsideVehicleTrip {
   trip_amount: number;
 }
 
-type Section = 'trips' | 'outside-vehicle' | 'maintenance' | 'vehicle-history' | 'monthly-breakdown' | 'upload' | 'reports' | 'admin';
+type Section = 'trips' | 'outside-vehicle' | 'drivers' | 'maintenance' | 'vehicle-history' | 'monthly-breakdown' | 'upload' | 'reports' | 'admin';
 
 const navItems: { key: Section; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
   { key: 'trips', label: 'Trips', icon: Car },
   { key: 'outside-vehicle', label: 'Outside Vehicles', icon: Bus },
+  { key: 'drivers', label: 'Drivers', icon: Truck },
   { key: 'maintenance', label: 'Maintenance', icon: Wrench },
   { key: 'vehicle-history', label: 'Vehicles', icon: History },
   { key: 'monthly-breakdown', label: 'Monthly Breakdown', icon: Calendar },
@@ -327,6 +329,8 @@ export const Dashboard = () => {
             <OutsideVehicleTripsTable trips={outsideVehicleTrips} onTripUpdated={fetchOutsideVehicleTrips} canEdit={true} />
           </div>
         );
+      case 'drivers':
+        return <DriversModule />;
       case 'maintenance':
         return (
           <div className="space-y-4">

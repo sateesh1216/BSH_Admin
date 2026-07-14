@@ -1,7 +1,7 @@
-import { Car, Wrench, Upload, BarChart3, Bus, History, Settings } from 'lucide-react';
+import { Car, Wrench, Upload, BarChart3, Bus, History, Settings, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type Section = 'trips' | 'outside-vehicle' | 'maintenance' | 'vehicle-history' | 'monthly-breakdown' | 'upload' | 'reports' | 'admin';
+type Section = 'trips' | 'outside-vehicle' | 'drivers' | 'maintenance' | 'vehicle-history' | 'monthly-breakdown' | 'upload' | 'reports' | 'admin';
 
 interface MobileBottomNavProps {
   activeSection: Section;
@@ -12,6 +12,7 @@ interface MobileBottomNavProps {
 const navItems: { key: Section; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
   { key: 'trips', label: 'Trips', icon: Car },
   { key: 'outside-vehicle', label: 'Outside', icon: Bus },
+  { key: 'drivers', label: 'Drivers', icon: Truck },
   { key: 'maintenance', label: 'Service', icon: Wrench },
   { key: 'reports', label: 'Reports', icon: BarChart3 },
   { key: 'admin', label: 'Admin', icon: Settings, adminOnly: true },
