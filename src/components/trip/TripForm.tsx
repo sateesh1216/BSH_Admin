@@ -315,6 +315,38 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
         return;
       }
 
+      // Sync to driver ledger if driver name matches a registered driver
+      try {
+        const savedTripId = editData?.id || (result as any).data?.[0]?.id;
+        if (data.driverAmount > 0 && data.driverName) {
+          const { data: matched } = await supabase
+            .from('drivers')
+            .select('id')
+            .ilike('name', data.driverName.trim())
+            .limit(1);
+          const driverId = matched?.[0]?.id;
+          if (driverId) {
+            if (editData) {
+              await supabase.from('trips').update({ driver_id: driverId }).eq('id', editData.id);
+              await supabase.from('driver_trip_amounts')
+                .upsert({ driver_id: driverId, trip_id: editData.id, amount: data.driverAmount, created_by: user?.id }, { onConflict: 'trip_id' });
+            } else {
+              // Find newly created trip by created_by + created recently
+              const { data: newTrip } = await supabase
+                .from('trips').select('id')
+                .eq('created_by', user?.id)
+                .order('created_at', { ascending: false })
+                .limit(1);
+              if (newTrip?.[0]?.id) {
+                await supabase.from('trips').update({ driver_id: driverId }).eq('id', newTrip[0].id);
+                await supabase.from('driver_trip_amounts')
+                  .upsert({ driver_id: driverId, trip_id: newTrip[0].id, amount: data.driverAmount, created_by: user?.id }, { onConflict: 'trip_id' });
+              }
+            }
+          }
+        }
+      } catch (e) { console.error('Driver ledger sync failed', e); }
+
       // Update vehicle oil change and alignment records with ending Odometer KM
       if (data.endingKm && data.carNumber) {
         // Update the latest oil change record's next_oil_change_km tracking
