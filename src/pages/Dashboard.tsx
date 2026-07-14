@@ -86,11 +86,12 @@ interface OutsideVehicleTrip {
   trip_amount: number;
 }
 
-type Section = 'trips' | 'outside-vehicle' | 'maintenance' | 'vehicle-history' | 'monthly-breakdown' | 'upload' | 'reports' | 'admin';
+type Section = 'trips' | 'outside-vehicle' | 'drivers' | 'maintenance' | 'vehicle-history' | 'monthly-breakdown' | 'upload' | 'reports' | 'admin';
 
 const navItems: { key: Section; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
   { key: 'trips', label: 'Trips', icon: Car },
   { key: 'outside-vehicle', label: 'Outside Vehicles', icon: Bus },
+  { key: 'drivers', label: 'Drivers', icon: Truck },
   { key: 'maintenance', label: 'Maintenance', icon: Wrench },
   { key: 'vehicle-history', label: 'Vehicles', icon: History },
   { key: 'monthly-breakdown', label: 'Monthly Breakdown', icon: Calendar },
