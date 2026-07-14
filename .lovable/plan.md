@@ -1,42 +1,70 @@
-## Goal
+# Driver Management Module — Implementation Plan
 
-In the **Vehicles** section, when you add a renewal for Alignment / Oil Change / Insurance / PUC, the new record becomes the **Active** one and older records for the same vehicle stay visible as **Renewed / Expired** history (not deleted). Also add two new tabs: **FC (Fitness Certificate)** and **All India Permit**, with the same renewal-history behaviour.
+A full end-to-end module integrated into the existing BSH Taxi app, following current design system (green gradient, shadcn UI, responsive, collapsible monthly sections).
 
-## What changes (high level)
+## 1. Database (new migration)
 
-### 1. Renewal history (Alignment, Oil Change, Insurance, PUC)
+New tables in `public`:
 
-The DB tables already allow many rows per vehicle — today the UI only shows one row per vehicle and only one "Active" badge per card. I'll change each of these four tabs so they:
+- **drivers** — `id, name, mobile, license_number, address, aadhaar, joining_date, status ('active'|'inactive'), notes, created_by, created_at, updated_at`
+- **driver_trip_amounts** — `id, driver_id (FK drivers), trip_id (FK trips, unique), amount, created_by, created_at`
+- **driver_expenses** — `id, driver_id, expense_type ('fuel'|'food'|'toll'|'advance'|'repair'|'other'), amount, description, expense_date, created_by, created_at`
+- **driver_payments** — `id, driver_id, payment_amount, payment_mode ('cash'|'bank'|'upi'), reference_number, payment_date, notes, created_by, created_at`
 
-- Group all records by vehicle number.
-- Determine the **latest** record per vehicle (by expiry date for Insurance/PUC, by last service date/KM for Oil Change/Alignment).
-- Render the latest record as the main card with its normal status badge (Active / Expiring Soon / Expired / Overdue).
-- Render older records for the same vehicle inside a collapsible **"Previous renewals"** section under the card with a muted **Renewed** badge and the historical dates/amounts, so nothing is lost.
-- The summary status on the main **Vehicles** tab cards keeps using only the latest record per vehicle (so an expired old insurance no longer triggers a false "Expired" badge once a renewal is added).
+For every table:
+1. CREATE TABLE
+2. GRANT SELECT/INSERT/UPDATE/DELETE to `authenticated`; GRANT ALL to `service_role` (no anon)
+3. ENABLE RLS
+4. Policies: authenticated users can read all; only creator or admin can update/delete; insert requires `created_by = auth.uid()`
 
-No data migration needed — existing rows already represent your history.
+Trigger: on `trips` INSERT/UPDATE, if `driver_amount > 0` and a `driver_id` column exists, upsert into `driver_trip_amounts`. Since existing trips table doesn't have `driver_id`, add optional column `driver_id uuid REFERENCES drivers(id)` to `trips`. Existing driver text field remains for backward compat.
 
-### 2. New tab: FC (Fitness Certificate)
+Ledger will be computed in a SQL view `driver_ledger` (SECURITY INVOKER) that unions trip_amounts (credit), expenses (debit), payments (debit) with running balance per driver — or computed client-side. **Compute client-side** for simplicity and to avoid view maintenance.
 
-New table `vehicle_fc` with: `vehicle_number`, `fc_number`, `issue_date`, `expiry_date`, `amount`, `created_by`, timestamps. Same RLS pattern as the other vehicle tables. New tab in the sub-tab strip with Add / Edit / Delete form (vehicle number, FC number, issue date, expiry date, amount) and the same Active / Expiring Soon / Expired status + renewal history list.
+`updated_at` trigger reused from existing `update_updated_at_column()`.
 
-### 3. New tab: All India Permit
+## 2. Frontend structure
 
-New table `vehicle_permit` with: `vehicle_number`, `permit_number`, `issuing_state`, `issue_date`, `expiry_date`, `amount`, `created_by`, timestamps. Same pattern: tab, form, cards with status badges, and previous-renewals history.
+New folder `src/components/drivers/`:
+- `DriversDashboard.tsx` — summary cards + charts (recharts)
+- `DriversList.tsx` — searchable table with edit/delete
+- `DriverForm.tsx` — add/edit modal
+- `DriverExpensesPage.tsx` — list + add expense form
+- `DriverPaymentsPage.tsx` — list + add payment form
+- `DriverLedger.tsx` — select driver → totals + transactions table
+- `DriverReports.tsx` — filters + Excel/PDF/Print export
 
-### 4. Vehicles overview card
+New page `src/pages/Drivers.tsx` with sub-tabs (Dashboard, Drivers, Ledger, Expenses, Payments, Reports).
 
-Add small status chips on each vehicle card for **FC Expired / FC Expiring** and **Permit Expired / Permit Expiring**, alongside the existing Oil / Align / Ins / PUC chips.
+## 3. Integration
 
-## Tabs after this change
+- **Sidebar**: add "Drivers" (Truck icon) between "Outside Vehicles" and "Maintenance" in `MobileBottomNav` and desktop navigation in `Dashboard.tsx`. Bottom nav on mobile has limited slots — replace less-used entry or add overflow.
+- **TripForm**: add `driver_id` select (from drivers table) + `driver_amount` number field. On save, insert into `driver_trip_amounts` (or rely on trigger).
+- **Existing "driver_amount"** on trips already exists in schema — reuse it; only add `driver_id` FK.
 
-`Vehicles` · `EMI` · `Alignment` · `Oil Change` · `Insurance` · `PUC` · **`FC`** · **`Permit`**
+## 4. Ledger logic (client-side)
 
-## Technical notes
+For a selected driver, fetch:
+- trip_amounts (credit)
+- expenses (debit; advance is separate type)
+- payments (debit)
 
-- Migrations for `public.vehicle_fc` and `public.vehicle_permit` will include the required `GRANT SELECT, INSERT, UPDATE, DELETE … TO authenticated;`, `GRANT ALL … TO service_role;`, `ENABLE ROW LEVEL SECURITY`, and per-user CRUD policies (`auth.uid() = created_by`), matching the existing vehicle_* tables.
-- UI changes are confined to `src/components/vehicle-history/VehicleHistoryDashboard.tsx` plus the generated Supabase types (auto-regenerated from the migration).
-- "Latest" selection per vehicle: Insurance/PUC/FC/Permit → max `expiry_date`; Oil Change → max `last_oil_change_date`; Alignment → max `last_alignment_date` (fallback to max `last_alignment_km`).
-- Older records render in a compact list (date range + amount/policy no.) with a "Renewed" badge — no behaviour change to the Edit/Delete buttons, you can still fix or remove historical rows.
+Merge, sort by date asc, compute running balance = Σcredits − Σdebits.
+Show totals: Total Trips, Total Trip Amount, Total Expenses, Total Payments, Pending Balance.
 
-Confirm and I'll implement.
+## 5. Reports & Export
+
+Reuse existing jsPDF+autotable and xlsx patterns from `src/components/reports/`. Filters: driver, date range, month, year. Export current filtered view.
+
+## 6. Validation
+
+Zod schemas for driver, expense, payment forms (name required, mobile 10 digits, amounts > 0).
+
+## Deliverables
+
+- 1 migration (4 tables + `trips.driver_id` + policies + grants)
+- 1 new page + 7 components
+- Sidebar updates (desktop + mobile bottom nav)
+- TripForm additions
+
+Approve to proceed.
