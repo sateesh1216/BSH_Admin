@@ -31,6 +31,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import bshLogo from '@/assets/bsh-logo.png';
 import { MobileBottomNav } from '@/components/mobile/MobileBottomNav';
 import { MobileHeader } from '@/components/mobile/MobileHeader';
+import { DriversModule } from '@/components/drivers/DriversModule';
 
 interface Trip {
   id: string;
