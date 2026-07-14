@@ -68,6 +68,191 @@ export type Database = {
         }
         Relationships: []
       }
+      driver_expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          driver_id: string
+          expense_date: string
+          expense_type: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          driver_id: string
+          expense_date?: string
+          expense_type: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          driver_id?: string
+          expense_date?: string
+          expense_type?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_expenses_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      driver_payments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          driver_id: string
+          id: string
+          notes: string | null
+          payment_amount: number
+          payment_date: string
+          payment_mode: string
+          reference_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          driver_id: string
+          id?: string
+          notes?: string | null
+          payment_amount?: number
+          payment_date?: string
+          payment_mode: string
+          reference_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          driver_id?: string
+          id?: string
+          notes?: string | null
+          payment_amount?: number
+          payment_date?: string
+          payment_mode?: string
+          reference_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_payments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      driver_trip_amounts: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          driver_id: string
+          id: string
+          trip_id: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          driver_id: string
+          id?: string
+          trip_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          driver_id?: string
+          id?: string
+          trip_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_trip_amounts_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_trip_amounts_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_trip_amounts_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drivers: {
+        Row: {
+          aadhaar: string | null
+          address: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          joining_date: string | null
+          license_number: string | null
+          mobile: string | null
+          name: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          aadhaar?: string | null
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          joining_date?: string | null
+          license_number?: string | null
+          mobile?: string | null
+          name: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          aadhaar?: string | null
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          joining_date?: string | null
+          license_number?: string | null
+          mobile?: string | null
+          name?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       login_history: {
         Row: {
           id: string
@@ -256,6 +441,7 @@ export type Database = {
           customer_number: string
           date: string
           driver_amount: number
+          driver_id: string | null
           driver_name: string
           driver_number: string
           ending_km: number | null
@@ -283,6 +469,7 @@ export type Database = {
           customer_number: string
           date: string
           driver_amount?: number
+          driver_id?: string | null
           driver_name: string
           driver_number: string
           ending_km?: number | null
@@ -310,6 +497,7 @@ export type Database = {
           customer_number?: string
           date?: string
           driver_amount?: number
+          driver_id?: string | null
           driver_name?: string
           driver_number?: string
           ending_km?: number | null
@@ -327,7 +515,15 @@ export type Database = {
           trip_amount?: number
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "trips_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vehicle_alignment: {
         Row: {
