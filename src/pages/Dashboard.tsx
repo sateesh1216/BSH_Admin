@@ -329,6 +329,8 @@ export const Dashboard = () => {
             <OutsideVehicleTripsTable trips={outsideVehicleTrips} onTripUpdated={fetchOutsideVehicleTrips} canEdit={true} />
           </div>
         );
+      case 'drivers':
+        return <DriversModule />;
       case 'maintenance':
         return (
           <div className="space-y-4">
