@@ -12,6 +12,7 @@ interface MobileBottomNavProps {
 const navItems: { key: Section; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
   { key: 'trips', label: 'Trips', icon: Car },
   { key: 'outside-vehicle', label: 'Outside', icon: Bus },
+  { key: 'drivers', label: 'Drivers', icon: Truck },
   { key: 'maintenance', label: 'Service', icon: Wrench },
   { key: 'reports', label: 'Reports', icon: BarChart3 },
   { key: 'admin', label: 'Admin', icon: Settings, adminOnly: true },
