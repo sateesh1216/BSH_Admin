@@ -1,0 +1,251 @@
+{
+  "version": 1,
+  "sdk_version": "0.22.2",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://hecnhsynlpachotmpmjg.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "bsh-taxi-mcp",
+      "version": "0.1.0",
+      "title": "BSH Taxi Service MCP"
+    },
+    "tools": [
+      {
+        "name": "list_trips",
+        "title": "List trips",
+        "description": "List trip records for BSH Taxi Service, optionally filtered by date range, payment status, or driver name. Returns up to `limit` most recent trips.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from_date": {
+              "type": "string",
+              "description": "Optional inclusive start date in YYYY-MM-DD format."
+            },
+            "to_date": {
+              "type": "string",
+              "description": "Optional inclusive end date in YYYY-MM-DD format."
+            },
+            "payment_status": {
+              "type": "string",
+              "enum": [
+                "Paid",
+                "Pending"
+              ],
+              "description": "Optional filter for payment status."
+            },
+            "driver_name": {
+              "type": "string",
+              "description": "Optional case-insensitive driver name substring filter."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Maximum rows to return. Defaults to 50, max 500."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_trip",
+        "title": "Create trip",
+        "description": "Insert a new trip record for BSH Taxi Service. Amounts default to 0. Payment status must be 'Paid' or 'Pending'.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Trip date in YYYY-MM-DD format."
+            },
+            "customer_name": {
+              "type": "string",
+              "description": "Customer full name."
+            },
+            "customer_number": {
+              "type": "string",
+              "description": "Customer phone number."
+            },
+            "driver_name": {
+              "type": "string",
+              "description": "Assigned driver name."
+            },
+            "driver_number": {
+              "type": "string",
+              "description": "Assigned driver phone number."
+            },
+            "from_location": {
+              "type": "string"
+            },
+            "to_location": {
+              "type": "string"
+            },
+            "fuel_type": {
+              "type": "string",
+              "description": "Fuel type, e.g. Petrol, Diesel, CNG."
+            },
+            "payment_mode": {
+              "type": "string",
+              "description": "Payment mode, e.g. Cash, UPI, Bank."
+            },
+            "payment_status": {
+              "type": "string",
+              "enum": [
+                "Paid",
+                "Pending"
+              ]
+            },
+            "trip_amount": {
+              "type": "number"
+            },
+            "driver_amount": {
+              "type": "number"
+            },
+            "commission": {
+              "type": "number"
+            },
+            "fuel_amount": {
+              "type": "number"
+            },
+            "tolls": {
+              "type": "number"
+            },
+            "car_number": {
+              "type": "string"
+            },
+            "company": {
+              "type": "string"
+            },
+            "starting_km": {
+              "type": "number"
+            },
+            "ending_km": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "date",
+            "customer_name",
+            "customer_number",
+            "driver_name",
+            "driver_number",
+            "from_location",
+            "to_location",
+            "fuel_type",
+            "payment_mode"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_drivers",
+        "title": "List drivers",
+        "description": "List drivers in the Driver Management module, optionally filtered by status or name.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "active",
+                "inactive"
+              ]
+            },
+            "name": {
+              "type": "string",
+              "description": "Case-insensitive substring on driver name."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_maintenance",
+        "title": "List maintenance records",
+        "description": "List vehicle maintenance/service records, optionally filtered by date range or car number.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from_date": {
+              "type": "string",
+              "description": "YYYY-MM-DD"
+            },
+            "to_date": {
+              "type": "string",
+              "description": "YYYY-MM-DD"
+            },
+            "car_number": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "financial_summary",
+        "title": "Financial summary",
+        "description": "Compute a financial summary for BSH Taxi Service in the given date range: totals for revenue, driver amounts, commission, fuel, tolls, profit, plus pending payments and trip count. Profit = Trip - Driver - Commission - Fuel - Tolls.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from_date": {
+              "type": "string",
+              "description": "Inclusive start date YYYY-MM-DD."
+            },
+            "to_date": {
+              "type": "string",
+              "description": "Inclusive end date YYYY-MM-DD."
+            }
+          },
+          "required": [
+            "from_date",
+            "to_date"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
