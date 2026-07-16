@@ -20,6 +20,7 @@ import { DEFAULT_FUEL_RATES, FUEL_RATES_UPDATED_EVENT, FuelRates, FuelType, getF
 
 const tripSchema = z.object({
   date: z.date({ required_error: 'Date is required' }),
+  driverId: z.string().optional().or(z.literal('')),
   driverName: z.string().min(1, 'Driver name is required'),
   driverNumber: z.string().min(10, 'Valid phone number is required'),
   customerName: z.string().min(1, 'Customer name is required'),
@@ -41,6 +42,7 @@ const tripSchema = z.object({
   endingKm: z.number().min(0, 'KM must be positive').optional().or(z.literal(0)),
 });
 
+
 type TripFormData = z.infer<typeof tripSchema>;
 
 interface TripFormProps {
@@ -52,6 +54,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   const { user } = useAuth();
   const [profit, setProfit] = useState(0);
   const [fuelRates, setFuelRates] = useState<FuelRates>(DEFAULT_FUEL_RATES);
+  const [driversList, setDriversList] = useState<Array<{ id: string; name: string; mobile: string | null }>>([]);
   const lastEditedFuelFieldRef = useRef<'amount' | 'quantity'>('amount');
   const [oilChangeInfo, setOilChangeInfo] = useState<{
     lastOilChangeKm: number;
@@ -63,6 +66,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
     lastAlignmentKm: number;
     nextAlignmentKm: number;
   } | null>(null);
+
 
   const fetchVehicleTrackingInfo = useCallback(async (carNumber: string) => {
     if (!carNumber) {
@@ -113,7 +117,9 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
     resolver: zodResolver(tripSchema),
     defaultValues: {
       date: editData?.date ? new Date(editData.date) : new Date(),
+      driverId: editData?.driver_id || '',
       driverName: editData?.driver_name || '',
+
       driverNumber: editData?.driver_number || '',
       customerName: editData?.customer_name || '',
       customerNumber: editData?.customer_number || '',
@@ -155,6 +161,13 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
     const calculatedProfit = (tripAmount || 0) - ((driverAmount || 0) + (commission || 0) + (fuelAmount || 0) + (tolls || 0));
     setProfit(calculatedProfit);
   }, [watchedValues]);
+
+  useEffect(() => {
+    supabase.from('drivers').select('id, name, mobile').order('name').then(({ data }) => {
+      if (data) setDriversList(data as any);
+    });
+  }, []);
+
 
   useEffect(() => {
     const syncFuelRates = () => setFuelRates(getStoredFuelRates());
@@ -269,8 +282,20 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
 
   const onSubmit = async (data: TripFormData, withGST: boolean = false) => {
     try {
+      // Resolve driver_id: prefer explicit selection, else match by name
+      let resolvedDriverId: string | null = data.driverId || null;
+      if (!resolvedDriverId && data.driverName) {
+        const { data: matched } = await supabase
+          .from('drivers')
+          .select('id')
+          .ilike('name', data.driverName.trim())
+          .limit(1);
+        resolvedDriverId = matched?.[0]?.id || null;
+      }
+
       const tripData = {
         date: format(data.date, 'yyyy-MM-dd'),
+        driver_id: resolvedDriverId,
         driver_name: data.driverName,
         driver_number: data.driverNumber,
         customer_name: data.customerName,
@@ -314,38 +339,8 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
         });
         return;
       }
+      // Driver ledger is synced automatically by DB trigger on trips
 
-      // Sync to driver ledger if driver name matches a registered driver
-      try {
-        const savedTripId = editData?.id || (result as any).data?.[0]?.id;
-        if (data.driverAmount > 0 && data.driverName) {
-          const { data: matched } = await supabase
-            .from('drivers')
-            .select('id')
-            .ilike('name', data.driverName.trim())
-            .limit(1);
-          const driverId = matched?.[0]?.id;
-          if (driverId) {
-            if (editData) {
-              await supabase.from('trips').update({ driver_id: driverId }).eq('id', editData.id);
-              await supabase.from('driver_trip_amounts')
-                .upsert({ driver_id: driverId, trip_id: editData.id, amount: data.driverAmount, created_by: user?.id }, { onConflict: 'trip_id' });
-            } else {
-              // Find newly created trip by created_by + created recently
-              const { data: newTrip } = await supabase
-                .from('trips').select('id')
-                .eq('created_by', user?.id)
-                .order('created_at', { ascending: false })
-                .limit(1);
-              if (newTrip?.[0]?.id) {
-                await supabase.from('trips').update({ driver_id: driverId }).eq('id', newTrip[0].id);
-                await supabase.from('driver_trip_amounts')
-                  .upsert({ driver_id: driverId, trip_id: newTrip[0].id, amount: data.driverAmount, created_by: user?.id }, { onConflict: 'trip_id' });
-              }
-            }
-          }
-        }
-      } catch (e) { console.error('Driver ledger sync failed', e); }
 
       // Update vehicle oil change and alignment records with ending Odometer KM
       if (data.endingKm && data.carNumber) {
@@ -460,6 +455,36 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
             </div>
 
             <div className="space-y-2">
+              <Label>Select Driver</Label>
+              <Select
+                value={form.watch('driverId') || '__none__'}
+                onValueChange={(v) => {
+                  if (v === '__none__') {
+                    form.setValue('driverId', '', { shouldDirty: true });
+                    return;
+                  }
+                  const d = driversList.find(x => x.id === v);
+                  form.setValue('driverId', v, { shouldDirty: true });
+                  if (d) {
+                    form.setValue('driverName', d.name, { shouldDirty: true, shouldValidate: true });
+                    if (d.mobile) form.setValue('driverNumber', d.mobile, { shouldDirty: true, shouldValidate: true });
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select from registered drivers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— None (enter manually) —</SelectItem>
+                  {driversList.map(d => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}{d.mobile ? ` · ${d.mobile}` : ''}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Links this trip to the driver's ledger automatically.</p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="driverName">Driver Name</Label>
               <Input
                 id="driverName"
@@ -467,6 +492,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
                 placeholder="Enter driver name"
               />
             </div>
+
 
             <div className="space-y-2">
               <Label htmlFor="driverNumber">Driver Number</Label>
