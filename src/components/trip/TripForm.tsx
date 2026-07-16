@@ -455,6 +455,36 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
             </div>
 
             <div className="space-y-2">
+              <Label>Select Driver</Label>
+              <Select
+                value={form.watch('driverId') || '__none__'}
+                onValueChange={(v) => {
+                  if (v === '__none__') {
+                    form.setValue('driverId', '', { shouldDirty: true });
+                    return;
+                  }
+                  const d = driversList.find(x => x.id === v);
+                  form.setValue('driverId', v, { shouldDirty: true });
+                  if (d) {
+                    form.setValue('driverName', d.name, { shouldDirty: true, shouldValidate: true });
+                    if (d.mobile) form.setValue('driverNumber', d.mobile, { shouldDirty: true, shouldValidate: true });
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select from registered drivers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— None (enter manually) —</SelectItem>
+                  {driversList.map(d => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}{d.mobile ? ` · ${d.mobile}` : ''}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Links this trip to the driver's ledger automatically.</p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="driverName">Driver Name</Label>
               <Input
                 id="driverName"
@@ -462,6 +492,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
                 placeholder="Enter driver name"
               />
             </div>
+
 
             <div className="space-y-2">
               <Label htmlFor="driverNumber">Driver Number</Label>
