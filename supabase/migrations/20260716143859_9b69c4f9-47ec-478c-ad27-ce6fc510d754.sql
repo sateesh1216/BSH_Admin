@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.sync_driver_trip_amount() FROM PUBLIC, anon, authenticated;
