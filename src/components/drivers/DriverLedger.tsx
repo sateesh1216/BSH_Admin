@@ -3,6 +3,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loading } from '@/components/ui/loading';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 import { Driver } from './DriversList';
 import { DriverExpense } from './DriverExpensesPage';
 import { DriverPayment } from './DriverPaymentsPage';
@@ -27,6 +31,8 @@ interface LedgerRow {
   date: string;
   type: string;
   reference: string;
+  driverName: string;
+  tripId?: string | null;
   credit: number;
   debit: number;
   balance: number;
@@ -34,18 +40,24 @@ interface LedgerRow {
 
 export const DriverLedger = ({ drivers, tripAmounts, expenses, payments }: Props) => {
   const [selectedId, setSelectedId] = useState<string>(drivers[0]?.id || '');
+  const [tripDetails, setTripDetails] = useState<any | null>(null);
+  const [loadingTrip, setLoadingTrip] = useState(false);
+  const [tripOpen, setTripOpen] = useState(false);
 
   const { rows, totals, driver } = useMemo(() => {
     const driver = drivers.find(d => d.id === selectedId);
     const trips = tripAmounts.filter(t => t.driver_id === selectedId);
     const exps = expenses.filter(e => e.driver_id === selectedId);
     const pays = payments.filter(p => p.driver_id === selectedId);
+    const driverName = driver?.name || '';
 
     const combined: Omit<LedgerRow, 'balance'>[] = [
       ...trips.map((t, i) => ({
         date: t.trip_date || t.created_at.slice(0, 10),
         type: 'Trip Amount',
         reference: `TRIP-${String(i + 1).padStart(3, '0')}`,
+        driverName,
+        tripId: t.trip_id,
         credit: Number(t.amount) || 0,
         debit: 0,
       })),
@@ -53,6 +65,7 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments }: Props
         date: e.expense_date,
         type: e.expense_type === 'advance' ? 'Advance' : e.expense_type.charAt(0).toUpperCase() + e.expense_type.slice(1),
         reference: e.expense_type === 'advance' ? `ADV-${String(i + 1).padStart(3, '0')}` : `EXP-${String(i + 1).padStart(3, '0')}`,
+        driverName,
         credit: 0,
         debit: Number(e.amount) || 0,
       })),
@@ -60,6 +73,7 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments }: Props
         date: p.payment_date,
         type: 'Payment',
         reference: p.reference_number || `PAY-${String(i + 1).padStart(3, '0')}`,
+        driverName,
         credit: 0,
         debit: Number(p.payment_amount) || 0,
       })),
@@ -87,6 +101,22 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments }: Props
       },
     };
   }, [drivers, tripAmounts, expenses, payments, selectedId]);
+
+  const openTrip = async (tripId: string) => {
+    setTripOpen(true);
+    setLoadingTrip(true);
+    setTripDetails(null);
+    try {
+      const { data, error } = await supabase.from('trips').select('*').eq('id', tripId).maybeSingle();
+      if (error) throw error;
+      setTripDetails(data);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      setTripOpen(false);
+    } finally {
+      setLoadingTrip(false);
+    }
+  };
 
   if (drivers.length === 0) {
     return <p className="text-center text-muted-foreground py-10">Add a driver first to view the ledger.</p>;
@@ -130,6 +160,7 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments }: Props
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Driver</TableHead>
                   <TableHead>Reference</TableHead>
                   <TableHead className="text-right">Credit</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
@@ -138,22 +169,74 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments }: Props
               </TableHeader>
               <TableBody>
                 {rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No transactions</TableCell></TableRow>
-                ) : rows.map((r, i) => (
-                  <TableRow key={i}>
-                    <TableCell>{r.date}</TableCell>
-                    <TableCell><Badge variant="outline">{r.type}</Badge></TableCell>
-                    <TableCell className="font-mono text-xs">{r.reference}</TableCell>
-                    <TableCell className="text-right text-green-600">{r.credit > 0 ? `₹${r.credit.toLocaleString('en-IN')}` : '-'}</TableCell>
-                    <TableCell className="text-right text-red-600">{r.debit > 0 ? `₹${r.debit.toLocaleString('en-IN')}` : '-'}</TableCell>
-                    <TableCell className="text-right font-semibold">₹{r.balance.toLocaleString('en-IN')}</TableCell>
-                  </TableRow>
-                ))}
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No transactions</TableCell></TableRow>
+                ) : rows.map((r, i) => {
+                  const clickable = r.type === 'Trip Amount' && r.tripId;
+                  return (
+                    <TableRow
+                      key={i}
+                      className={clickable ? 'cursor-pointer hover:bg-muted/50' : ''}
+                      onClick={() => clickable && openTrip(r.tripId!)}
+                    >
+                      <TableCell>{r.date}</TableCell>
+                      <TableCell><Badge variant="outline">{r.type}</Badge></TableCell>
+                      <TableCell className="font-medium">{r.driverName}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {clickable ? <span className="text-primary underline underline-offset-2">{r.reference}</span> : r.reference}
+                      </TableCell>
+                      <TableCell className="text-right text-green-600">{r.credit > 0 ? `₹${r.credit.toLocaleString('en-IN')}` : '-'}</TableCell>
+                      <TableCell className="text-right text-red-600">{r.debit > 0 ? `₹${r.debit.toLocaleString('en-IN')}` : '-'}</TableCell>
+                      <TableCell className="text-right font-semibold">₹{r.balance.toLocaleString('en-IN')}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
         </>
       )}
+
+      <Dialog open={tripOpen} onOpenChange={setTripOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Trip Details</DialogTitle>
+          </DialogHeader>
+          {loadingTrip ? (
+            <Loading text="Loading trip..." />
+          ) : tripDetails ? (
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {[
+                ['Date', tripDetails.date],
+                ['Driver Name', tripDetails.driver_name],
+                ['Driver Number', tripDetails.driver_number],
+                ['Customer', tripDetails.customer_name],
+                ['Customer Number', tripDetails.customer_number],
+                ['From', tripDetails.from_location],
+                ['To', tripDetails.to_location],
+                ['Company', tripDetails.company],
+                ['Car Number', tripDetails.car_number],
+                ['Fuel Type', tripDetails.fuel_type],
+                ['Fuel Litres', tripDetails.fuel_litres],
+                ['Fuel Amount', tripDetails.fuel_amount != null ? `₹${Number(tripDetails.fuel_amount).toLocaleString('en-IN')}` : null],
+                ['Starting KM', tripDetails.starting_km],
+                ['Ending KM', tripDetails.ending_km],
+                ['Tolls', tripDetails.tolls != null ? `₹${Number(tripDetails.tolls).toLocaleString('en-IN')}` : null],
+                ['Commission', tripDetails.commission != null ? `₹${Number(tripDetails.commission).toLocaleString('en-IN')}` : null],
+                ['Driver Amount', tripDetails.driver_amount != null ? `₹${Number(tripDetails.driver_amount).toLocaleString('en-IN')}` : null],
+                ['Trip Amount', tripDetails.trip_amount != null ? `₹${Number(tripDetails.trip_amount).toLocaleString('en-IN')}` : null],
+                ['Profit', tripDetails.profit != null ? `₹${Number(tripDetails.profit).toLocaleString('en-IN')}` : null],
+                ['Payment Mode', tripDetails.payment_mode],
+                ['Payment Status', tripDetails.payment_status],
+              ].map(([label, value]) => (
+                <div key={label as string} className="border-b pb-2">
+                  <p className="text-xs text-muted-foreground">{label}</p>
+                  <p className="font-medium">{value !== null && value !== undefined && value !== '' ? String(value) : '-'}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
