@@ -20,6 +20,7 @@ import { DEFAULT_FUEL_RATES, FUEL_RATES_UPDATED_EVENT, FuelRates, FuelType, getF
 
 const tripSchema = z.object({
   date: z.date({ required_error: 'Date is required' }),
+  driverId: z.string().optional().or(z.literal('')),
   driverName: z.string().min(1, 'Driver name is required'),
   driverNumber: z.string().min(10, 'Valid phone number is required'),
   customerName: z.string().min(1, 'Customer name is required'),
@@ -41,6 +42,7 @@ const tripSchema = z.object({
   endingKm: z.number().min(0, 'KM must be positive').optional().or(z.literal(0)),
 });
 
+
 type TripFormData = z.infer<typeof tripSchema>;
 
 interface TripFormProps {
@@ -52,6 +54,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   const { user } = useAuth();
   const [profit, setProfit] = useState(0);
   const [fuelRates, setFuelRates] = useState<FuelRates>(DEFAULT_FUEL_RATES);
+  const [driversList, setDriversList] = useState<Array<{ id: string; name: string; mobile: string | null }>>([]);
   const lastEditedFuelFieldRef = useRef<'amount' | 'quantity'>('amount');
   const [oilChangeInfo, setOilChangeInfo] = useState<{
     lastOilChangeKm: number;
@@ -63,6 +66,7 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
     lastAlignmentKm: number;
     nextAlignmentKm: number;
   } | null>(null);
+
 
   const fetchVehicleTrackingInfo = useCallback(async (carNumber: string) => {
     if (!carNumber) {
@@ -113,7 +117,9 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
     resolver: zodResolver(tripSchema),
     defaultValues: {
       date: editData?.date ? new Date(editData.date) : new Date(),
+      driverId: editData?.driver_id || '',
       driverName: editData?.driver_name || '',
+
       driverNumber: editData?.driver_number || '',
       customerName: editData?.customer_name || '',
       customerNumber: editData?.customer_number || '',
