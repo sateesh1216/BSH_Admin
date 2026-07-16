@@ -163,6 +163,13 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
   }, [watchedValues]);
 
   useEffect(() => {
+    supabase.from('drivers').select('id, name, mobile').order('name').then(({ data }) => {
+      if (data) setDriversList(data as any);
+    });
+  }, []);
+
+
+  useEffect(() => {
     const syncFuelRates = () => setFuelRates(getStoredFuelRates());
 
     syncFuelRates();
