@@ -282,8 +282,20 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
 
   const onSubmit = async (data: TripFormData, withGST: boolean = false) => {
     try {
+      // Resolve driver_id: prefer explicit selection, else match by name
+      let resolvedDriverId: string | null = data.driverId || null;
+      if (!resolvedDriverId && data.driverName) {
+        const { data: matched } = await supabase
+          .from('drivers')
+          .select('id')
+          .ilike('name', data.driverName.trim())
+          .limit(1);
+        resolvedDriverId = matched?.[0]?.id || null;
+      }
+
       const tripData = {
         date: format(data.date, 'yyyy-MM-dd'),
+        driver_id: resolvedDriverId,
         driver_name: data.driverName,
         driver_number: data.driverNumber,
         customer_name: data.customerName,
@@ -327,38 +339,8 @@ export const TripForm = ({ onSuccess, editData }: TripFormProps) => {
         });
         return;
       }
+      // Driver ledger is synced automatically by DB trigger on trips
 
-      // Sync to driver ledger if driver name matches a registered driver
-      try {
-        const savedTripId = editData?.id || (result as any).data?.[0]?.id;
-        if (data.driverAmount > 0 && data.driverName) {
-          const { data: matched } = await supabase
-            .from('drivers')
-            .select('id')
-            .ilike('name', data.driverName.trim())
-            .limit(1);
-          const driverId = matched?.[0]?.id;
-          if (driverId) {
-            if (editData) {
-              await supabase.from('trips').update({ driver_id: driverId }).eq('id', editData.id);
-              await supabase.from('driver_trip_amounts')
-                .upsert({ driver_id: driverId, trip_id: editData.id, amount: data.driverAmount, created_by: user?.id }, { onConflict: 'trip_id' });
-            } else {
-              // Find newly created trip by created_by + created recently
-              const { data: newTrip } = await supabase
-                .from('trips').select('id')
-                .eq('created_by', user?.id)
-                .order('created_at', { ascending: false })
-                .limit(1);
-              if (newTrip?.[0]?.id) {
-                await supabase.from('trips').update({ driver_id: driverId }).eq('id', newTrip[0].id);
-                await supabase.from('driver_trip_amounts')
-                  .upsert({ driver_id: driverId, trip_id: newTrip[0].id, amount: data.driverAmount, created_by: user?.id }, { onConflict: 'trip_id' });
-              }
-            }
-          }
-        }
-      } catch (e) { console.error('Driver ledger sync failed', e); }
 
       // Update vehicle oil change and alignment records with ending Odometer KM
       if (data.endingKm && data.carNumber) {
