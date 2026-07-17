@@ -97,7 +97,7 @@ export const DriversList = ({ drivers, onChanged }: Props) => {
       for (const [key, info] of byName) {
         const existing = existingByName.get(key);
         if (!existing) {
-          toInsert.push({ name: info.name, mobile: info.number, status: 'active' });
+          toInsert.push({ name: info.name, mobile: info.number, status: 'active', created_by: user?.id });
         } else if (info.number && !existing.mobile) {
           const { error } = await supabase.from('drivers').update({ mobile: info.number }).eq('id', existing.id);
           if (!error) updated++;
