@@ -87,7 +87,7 @@ export const DriversModule = () => {
         <>
           {tab === 'dashboard' && <DriversDashboard drivers={drivers} tripAmounts={tripAmounts} expenses={expenses} payments={payments} />}
           {tab === 'drivers' && <DriversList drivers={drivers} onChanged={fetchAll} />}
-          {tab === 'ledger' && <DriverLedger drivers={drivers} tripAmounts={tripAmounts} expenses={expenses} payments={payments} />}
+          {tab === 'ledger' && <DriverLedger drivers={drivers} tripAmounts={tripAmounts} expenses={expenses} payments={payments} onChanged={fetchAll} />}
           {tab === 'expenses' && <DriverExpensesPage drivers={drivers} expenses={expenses} onChanged={fetchAll} />}
           {tab === 'payments' && <DriverPaymentsPage drivers={drivers} payments={payments} onChanged={fetchAll} />}
           {tab === 'reports' && <DriverModuleReports drivers={drivers} tripAmounts={tripAmounts} expenses={expenses} payments={payments} />}
