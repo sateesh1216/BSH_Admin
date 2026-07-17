@@ -28,6 +28,7 @@ interface Props {
   tripAmounts: TripAmount[];
   expenses: DriverExpense[];
   payments: DriverPayment[];
+  onChanged?: () => void;
 }
 
 interface LedgerRow {
