@@ -29,7 +29,7 @@ interface Props {
 }
 
 export const DriversList = ({ drivers, onChanged }: Props) => {
-  const [search, setSearch] = useState('');
+  const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [editData, setEditData] = useState<Driver | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
