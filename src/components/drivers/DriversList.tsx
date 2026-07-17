@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Pencil, Trash2, Plus, Search, RefreshCw } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pencil, Trash2, Plus, Search, RefreshCw, GitMerge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,6 +7,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { DriverForm } from './DriverForm';
@@ -63,17 +66,16 @@ export const DriversList = ({ drivers, onChanged }: Props) => {
   };
 
   const [syncing, setSyncing] = useState(false);
-  const handleSyncFromTrips = async () => {
+  const runSyncFromTrips = async (silent = false) => {
+    if (!user?.id) return { created: 0, updated: 0, linked: 0 };
     setSyncing(true);
     try {
-      // Fetch all trips with a driver_name
       const { data: trips, error: tErr } = await supabase
         .from('trips')
         .select('id, driver_id, driver_name, driver_number, date')
         .not('driver_name', 'is', null);
       if (tErr) throw tErr;
 
-      // Build unique driver map by normalized name; keep latest number
       const byName = new Map<string, { name: string; number: string | null; latest: string }>();
       (trips || []).forEach((t: any) => {
         const rawName = (t.driver_name || '').trim();
@@ -88,7 +90,6 @@ export const DriversList = ({ drivers, onChanged }: Props) => {
         }
       });
 
-      // Existing drivers map by normalized name
       const existingByName = new Map(drivers.map(d => [d.name.trim().toLowerCase(), d]));
 
       let created = 0;
@@ -97,7 +98,7 @@ export const DriversList = ({ drivers, onChanged }: Props) => {
       for (const [key, info] of byName) {
         const existing = existingByName.get(key);
         if (!existing) {
-          toInsert.push({ name: info.name, mobile: info.number, status: 'active', created_by: user?.id });
+          toInsert.push({ name: info.name, mobile: info.number, status: 'active', created_by: user.id });
         } else if (info.number && !existing.mobile) {
           const { error } = await supabase.from('drivers').update({ mobile: info.number }).eq('id', existing.id);
           if (!error) updated++;
@@ -110,7 +111,6 @@ export const DriversList = ({ drivers, onChanged }: Props) => {
         (ins || []).forEach((d: any) => existingByName.set(d.name.trim().toLowerCase(), d as any));
       }
 
-      // Link trips missing driver_id to matching driver by name
       let linked = 0;
       for (const t of trips || []) {
         if (t.driver_id) continue;
@@ -121,15 +121,68 @@ export const DriversList = ({ drivers, onChanged }: Props) => {
         if (!error) linked++;
       }
 
-      toast({
-        title: 'Sync complete',
-        description: `Created ${created} driver(s), updated ${updated}, linked ${linked} trip(s).`,
-      });
-      onChanged();
+      if (!silent) {
+        toast({
+          title: 'Sync complete',
+          description: `Created ${created} driver(s), updated ${updated}, linked ${linked} trip(s).`,
+        });
+      } else if (created > 0 || linked > 0) {
+        toast({
+          title: 'Drivers auto-synced',
+          description: `${created} added, ${linked} trip(s) linked.`,
+        });
+      }
+      if (created > 0 || updated > 0 || linked > 0) onChanged();
+      return { created, updated, linked };
     } catch (err: any) {
-      toast({ title: 'Sync failed', description: err.message, variant: 'destructive' });
+      if (!silent) toast({ title: 'Sync failed', description: err.message, variant: 'destructive' });
+      return { created: 0, updated: 0, linked: 0 };
     } finally {
       setSyncing(false);
+    }
+  };
+
+  // Auto-sync missing drivers on mount
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (autoRan.current || !user?.id) return;
+    autoRan.current = true;
+    runSyncFromTrips(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Merge drivers
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [primaryId, setPrimaryId] = useState<string>('');
+  const [duplicateId, setDuplicateId] = useState<string>('');
+  const [merging, setMerging] = useState(false);
+
+  const handleMerge = async () => {
+    if (!primaryId || !duplicateId || primaryId === duplicateId) {
+      toast({ title: 'Select two different drivers', variant: 'destructive' });
+      return;
+    }
+    setMerging(true);
+    try {
+      const updates = await Promise.all([
+        supabase.from('trips').update({ driver_id: primaryId }).eq('driver_id', duplicateId),
+        supabase.from('driver_trip_amounts').update({ driver_id: primaryId }).eq('driver_id', duplicateId),
+        supabase.from('driver_expenses').update({ driver_id: primaryId }).eq('driver_id', duplicateId),
+        supabase.from('driver_payments').update({ driver_id: primaryId }).eq('driver_id', duplicateId),
+      ]);
+      const err = updates.find(u => u.error)?.error;
+      if (err) throw err;
+      const { error: dErr } = await supabase.from('drivers').delete().eq('id', duplicateId);
+      if (dErr) throw dErr;
+      toast({ title: 'Merged', description: 'Duplicate driver merged successfully.' });
+      setMergeOpen(false);
+      setPrimaryId('');
+      setDuplicateId('');
+      onChanged();
+    } catch (err: any) {
+      toast({ title: 'Merge failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setMerging(false);
     }
   };
 
@@ -140,8 +193,11 @@ export const DriversList = ({ drivers, onChanged }: Props) => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search drivers..." className="pl-9" />
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleSyncFromTrips} disabled={syncing}>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={() => setMergeOpen(true)}>
+            <GitMerge className="h-4 w-4 mr-2" />Merge Drivers
+          </Button>
+          <Button variant="outline" onClick={() => runSyncFromTrips(false)} disabled={syncing}>
             <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Syncing...' : 'Sync from Trips'}
           </Button>
@@ -150,8 +206,6 @@ export const DriversList = ({ drivers, onChanged }: Props) => {
           </Button>
         </div>
       </div>
-
-
 
       <div className="rounded-lg border overflow-x-auto">
         <Table>
@@ -215,6 +269,45 @@ export const DriversList = ({ drivers, onChanged }: Props) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={mergeOpen} onOpenChange={setMergeOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Merge Drivers</DialogTitle>
+            <DialogDescription>
+              Move all trips, expenses, payments and ledger entries from the duplicate driver into the primary driver. The duplicate will be deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Keep (Primary)</Label>
+              <Select value={primaryId} onValueChange={setPrimaryId}>
+                <SelectTrigger><SelectValue placeholder="Select primary driver" /></SelectTrigger>
+                <SelectContent>
+                  {drivers.map(d => <SelectItem key={d.id} value={d.id}>{d.name}{d.mobile ? ` — ${d.mobile}` : ''}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Merge & Delete (Duplicate)</Label>
+              <Select value={duplicateId} onValueChange={setDuplicateId}>
+                <SelectTrigger><SelectValue placeholder="Select duplicate driver" /></SelectTrigger>
+                <SelectContent>
+                  {drivers.filter(d => d.id !== primaryId).map(d => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}{d.mobile ? ` — ${d.mobile}` : ''}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMergeOpen(false)}>Cancel</Button>
+            <Button onClick={handleMerge} disabled={merging || !primaryId || !duplicateId}>
+              {merging ? 'Merging...' : 'Merge Drivers'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
