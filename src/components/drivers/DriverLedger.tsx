@@ -42,11 +42,63 @@ interface LedgerRow {
   balance: number;
 }
 
-export const DriverLedger = ({ drivers, tripAmounts, expenses, payments }: Props) => {
+export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChanged }: Props) => {
+  const { user } = useAuth();
   const [selectedId, setSelectedId] = useState<string>(drivers[0]?.id || '');
   const [tripDetails, setTripDetails] = useState<any | null>(null);
   const [loadingTrip, setLoadingTrip] = useState(false);
   const [tripOpen, setTripOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const { data: trips, error } = await supabase
+        .from('trips')
+        .select('id, driver_id, driver_name, driver_amount');
+      if (error) throw error;
+
+      const byName = new Map(drivers.map(d => [d.name.trim().toLowerCase(), d]));
+      const existing = new Map(tripAmounts.map(t => [t.trip_id, t]));
+      const toUpsert: any[] = [];
+      let linked = 0;
+
+      for (const t of trips || []) {
+        let driverId = t.driver_id as string | null;
+        if (!driverId) {
+          const key = (t.driver_name || '').trim().toLowerCase();
+          const drv = key ? byName.get(key) : null;
+          if (drv) {
+            driverId = drv.id;
+            const { error: uErr } = await supabase.from('trips').update({ driver_id: drv.id }).eq('id', t.id);
+            if (!uErr) linked++;
+          }
+        }
+        const amt = Number(t.driver_amount) || 0;
+        if (!driverId || amt <= 0) continue;
+        const cur = existing.get(t.id);
+        if (!cur || Number(cur.amount) !== amt || cur.driver_id !== driverId) {
+          toUpsert.push({ trip_id: t.id, driver_id: driverId, amount: amt, created_by: user?.id });
+        }
+      }
+
+      let synced = 0;
+      if (toUpsert.length > 0) {
+        const { error: upErr } = await supabase
+          .from('driver_trip_amounts')
+          .upsert(toUpsert, { onConflict: 'trip_id' });
+        if (upErr) throw upErr;
+        synced = toUpsert.length;
+      }
+
+      toast({ title: 'Ledger synced', description: `${synced} entries updated, ${linked} trip(s) linked.` });
+      onChanged?.();
+    } catch (err: any) {
+      toast({ title: 'Sync failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const { rows, totals, driver } = useMemo(() => {
     const driver = drivers.find(d => d.id === selectedId);
