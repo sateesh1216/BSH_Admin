@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pencil, Trash2, Plus, Search, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/useAuth';
 
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export const DriversList = ({ drivers, onChanged }: Props) => {
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editData, setEditData] = useState<Driver | null>(null);
@@ -95,7 +97,7 @@ export const DriversList = ({ drivers, onChanged }: Props) => {
       for (const [key, info] of byName) {
         const existing = existingByName.get(key);
         if (!existing) {
-          toInsert.push({ name: info.name, mobile: info.number, status: 'active' });
+          toInsert.push({ name: info.name, mobile: info.number, status: 'active', created_by: user?.id });
         } else if (info.number && !existing.mobile) {
           const { error } = await supabase.from('drivers').update({ mobile: info.number }).eq('id', existing.id);
           if (!error) updated++;
