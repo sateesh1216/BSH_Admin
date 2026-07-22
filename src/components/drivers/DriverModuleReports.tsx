@@ -24,10 +24,8 @@ interface Props {
 interface Row {
   driver: string;
   trips: number;
+  driverAmount: number;
   tripAmount: number;
-  expenses: number;
-  payments: number;
-  balance: number;
 }
 
 export const DriverModuleReports = ({ drivers, tripAmounts, expenses, payments }: Props) => {
@@ -45,23 +43,24 @@ export const DriverModuleReports = ({ drivers, tripAmounts, expenses, payments }
     const activeDrivers = driverId === 'all' ? drivers : drivers.filter(d => d.id === driverId);
     return activeDrivers.map(d => {
       const t = tripAmounts.filter(x => x.driver_id === d.id && inRange((x.trip_date || x.created_at).slice(0, 10)));
-      const e = expenses.filter(x => x.driver_id === d.id && inRange(x.expense_date));
-      const p = payments.filter(x => x.driver_id === d.id && inRange(x.payment_date));
-      const tripAmt = t.reduce((s, x) => s + Number(x.amount || 0), 0);
-      const expAmt = e.reduce((s, x) => s + Number(x.amount || 0), 0);
-      const payAmt = p.reduce((s, x) => s + Number(x.payment_amount || 0), 0);
-      return { driver: d.name, trips: t.length, tripAmount: tripAmt, expenses: expAmt, payments: payAmt, balance: tripAmt - expAmt - payAmt };
+      const driverAmt = t.reduce((s, x) => s + Number(x.amount || 0), 0);
+      const tripAmt = t.reduce((s, x) => s + Number(x.trip_amount || 0), 0);
+      return { driver: d.name, trips: t.length, driverAmount: driverAmt, tripAmount: tripAmt };
     });
-  }, [drivers, tripAmounts, expenses, payments, driverId, from, to]);
+  }, [drivers, tripAmounts, driverId, from, to]);
+
+  const totals = useMemo(() => rows.reduce((acc, r) => ({
+    trips: acc.trips + r.trips,
+    driverAmount: acc.driverAmount + r.driverAmount,
+    tripAmount: acc.tripAmount + r.tripAmount,
+  }), { trips: 0, driverAmount: 0, tripAmount: 0 }), [rows]);
 
   const exportExcel = () => {
     const ws = XLSX.utils.json_to_sheet(rows.map(r => ({
       Driver: r.driver,
-      Trips: r.trips,
+      'Total Trips': r.trips,
+      'Driver Amount': r.driverAmount,
       'Trip Amount': r.tripAmount,
-      Expenses: r.expenses,
-      Payments: r.payments,
-      Balance: r.balance,
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Driver Report');
@@ -73,11 +72,12 @@ export const DriverModuleReports = ({ drivers, tripAmounts, expenses, payments }
     const doc = new jsPDF();
     doc.setFontSize(14);
     doc.text('Driver Report', 14, 14);
-    if (from || to) doc.setFontSize(10), doc.text(`Range: ${from || 'start'} to ${to || 'today'}`, 14, 20);
+    if (from || to) { doc.setFontSize(10); doc.text(`Range: ${from || 'start'} to ${to || 'today'}`, 14, 20); }
     autoTable(doc, {
       startY: 26,
-      head: [['Driver', 'Trips', 'Trip Amt', 'Expenses', 'Payments', 'Balance']],
-      body: rows.map(r => [r.driver, r.trips, r.tripAmount.toLocaleString('en-IN'), r.expenses.toLocaleString('en-IN'), r.payments.toLocaleString('en-IN'), r.balance.toLocaleString('en-IN')]),
+      head: [['Driver', 'Total Trips', 'Driver Amount', 'Trip Amount']],
+      body: rows.map(r => [r.driver, r.trips, r.driverAmount.toLocaleString('en-IN'), r.tripAmount.toLocaleString('en-IN')]),
+      foot: [['Total', totals.trips, totals.driverAmount.toLocaleString('en-IN'), totals.tripAmount.toLocaleString('en-IN')]],
     });
     doc.save(`driver-report-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
@@ -119,26 +119,30 @@ export const DriverModuleReports = ({ drivers, tripAmounts, expenses, payments }
           <TableHeader>
             <TableRow>
               <TableHead>Driver</TableHead>
-              <TableHead className="text-right">Trips</TableHead>
+              <TableHead className="text-right">Total Trips</TableHead>
+              <TableHead className="text-right">Driver Amount</TableHead>
               <TableHead className="text-right">Trip Amount</TableHead>
-              <TableHead className="text-right">Expenses</TableHead>
-              <TableHead className="text-right">Payments</TableHead>
-              <TableHead className="text-right">Balance</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No data</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No data</TableCell></TableRow>
             ) : rows.map((r, i) => (
               <TableRow key={i}>
                 <TableCell className="font-medium">{r.driver}</TableCell>
                 <TableCell className="text-right">{r.trips}</TableCell>
-                <TableCell className="text-right">₹{r.tripAmount.toLocaleString('en-IN')}</TableCell>
-                <TableCell className="text-right text-orange-600">₹{r.expenses.toLocaleString('en-IN')}</TableCell>
-                <TableCell className="text-right text-purple-600">₹{r.payments.toLocaleString('en-IN')}</TableCell>
-                <TableCell className={`text-right font-semibold ${r.balance > 0 ? 'text-red-600' : 'text-green-600'}`}>₹{r.balance.toLocaleString('en-IN')}</TableCell>
+                <TableCell className="text-right text-blue-600">₹{r.driverAmount.toLocaleString('en-IN')}</TableCell>
+                <TableCell className="text-right text-indigo-600">₹{r.tripAmount.toLocaleString('en-IN')}</TableCell>
               </TableRow>
             ))}
+            {rows.length > 0 && (
+              <TableRow className="bg-muted/50 font-semibold">
+                <TableCell>Total</TableCell>
+                <TableCell className="text-right">{totals.trips}</TableCell>
+                <TableCell className="text-right text-blue-600">₹{totals.driverAmount.toLocaleString('en-IN')}</TableCell>
+                <TableCell className="text-right text-indigo-600">₹{totals.tripAmount.toLocaleString('en-IN')}</TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
