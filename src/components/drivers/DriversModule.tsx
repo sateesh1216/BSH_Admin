@@ -35,7 +35,7 @@ export const DriversModule = () => {
     try {
       const [dRes, taRes, eRes, pRes] = await Promise.all([
         supabase.from('drivers').select('*').order('name'),
-        supabase.from('driver_trip_amounts').select('*, trips(date)').order('created_at', { ascending: false }),
+        supabase.from('driver_trip_amounts').select('*, trips(date, trip_amount)').order('created_at', { ascending: false }),
         supabase.from('driver_expenses').select('*').order('expense_date', { ascending: false }),
         supabase.from('driver_payments').select('*').order('payment_date', { ascending: false }),
       ]);
