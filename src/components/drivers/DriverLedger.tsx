@@ -381,6 +381,9 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
                       <TableCell className="text-right text-indigo-600">
                         {r.tripAmount > 0 ? fmt(r.tripAmount) : '-'}
                       </TableCell>
+                      <TableCell className={`text-right font-semibold ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {balance < 0 ? '-' : ''}{fmt(balance)}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           {r.source !== 'trip' && (
@@ -395,7 +398,7 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
                       </TableCell>
                     </TableRow>
                   );
-                })}
+                }); })()}
               </TableBody>
             </Table>
           </div>
