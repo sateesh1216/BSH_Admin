@@ -144,7 +144,16 @@ export const AuthForm = () => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline"
+                  onClick={() => setForgotOpen(true)}
+                >
+                  Forgot password?
+                </button>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -164,6 +173,33 @@ export const AuthForm = () => {
           <p className="text-center text-sm text-muted-foreground">
             Contact your administrator if you need an account
           </p>
+
+          <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Reset your password</DialogTitle>
+                <DialogDescription>
+                  We'll email you a secure link to set a new password.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2">
+                <Label htmlFor="reset-email">Email</Label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setForgotOpen(false)} disabled={sendingReset}>Cancel</Button>
+                <Button onClick={handleForgotPassword} disabled={sendingReset}>
+                  {sendingReset ? 'Sending...' : 'Send Reset Link'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     </div>
