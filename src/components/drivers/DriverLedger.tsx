@@ -491,6 +491,51 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={settleOpen} onOpenChange={o => !o && setSettleOpen(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Settle Pending Balance</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md bg-muted p-3 text-sm">
+              <span className="text-muted-foreground">Pending for {driver?.name}: </span>
+              <span className={`font-bold ${totals.pending > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {totals.pending < 0 ? '-' : ''}{fmt(totals.pending)}
+              </span>
+            </div>
+            <div className="space-y-1">
+              <Label>Payment Date</Label>
+              <Input type="date" value={settleValues.date} onChange={e => setSettleValues(v => ({ ...v, date: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Amount (₹)</Label>
+              <Input type="number" step="0.01" value={settleValues.amount} onChange={e => setSettleValues(v => ({ ...v, amount: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Payment Mode</Label>
+              <Select value={settleValues.mode} onValueChange={val => setSettleValues(v => ({ ...v, mode: val }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['Cash', 'UPI', 'Bank Transfer', 'Cheque'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Reference (optional)</Label>
+              <Input value={settleValues.reference} onChange={e => setSettleValues(v => ({ ...v, reference: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Notes</Label>
+              <Textarea value={settleValues.notes} onChange={e => setSettleValues(v => ({ ...v, notes: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSettleOpen(false)} disabled={busy}>Cancel</Button>
+            <Button onClick={saveSettle} disabled={busy}>{busy ? 'Saving...' : 'Record Payment'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
