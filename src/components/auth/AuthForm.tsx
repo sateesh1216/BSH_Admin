@@ -25,7 +25,29 @@ type AuthFormData = z.infer<typeof authSchema>;
 export const AuthForm = () => {
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [sendingReset, setSendingReset] = useState(false);
   const { signIn } = useAuth();
+
+  const handleForgotPassword = async () => {
+    const email = resetEmail.trim();
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      toast({ title: 'Invalid email', description: 'Enter a valid email address', variant: 'destructive' });
+      return;
+    }
+    setSendingReset(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setSendingReset(false);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Reset link sent', description: `Check ${email} for the password reset link.` });
+    setForgotOpen(false);
+  };
   
   const form = useForm<AuthFormData>({
     resolver: zodResolver(authSchema),
