@@ -313,10 +313,16 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
           </Select>
         </div>
         {driver && <Badge variant={driver.status === 'active' ? 'default' : 'secondary'} className="capitalize">{driver.status}</Badge>}
-        <Button variant="outline" onClick={handleSync} disabled={syncing}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Syncing...' : 'Sync Ledger'}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleSync} disabled={syncing}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync Ledger'}
+          </Button>
+          <Button onClick={openSettle} disabled={!selectedId}>
+            <CheckCircle2 className="h-4 w-4 mr-2" />
+            Settle Pending
+          </Button>
+        </div>
       </div>
 
       {driver && (
