@@ -43,11 +43,16 @@ export const DriversDashboard = ({ drivers, tripAmounts, expenses, payments }: P
   }, [payments, expenses]);
 
   const topDrivers = useMemo(() => {
-    const map = new Map<string, number>();
-    tripAmounts.forEach(t => map.set(t.driver_id, (map.get(t.driver_id) || 0) + Number(t.amount || 0)));
+    const map = new Map<string, { driverAmount: number; tripAmount: number }>();
+    tripAmounts.forEach(t => {
+      const cur = map.get(t.driver_id) || { driverAmount: 0, tripAmount: 0 };
+      cur.driverAmount += Number(t.amount || 0);
+      cur.tripAmount += Number((t as any).trip_amount || 0);
+      map.set(t.driver_id, cur);
+    });
     return Array.from(map.entries())
-      .map(([id, total]) => ({ name: drivers.find(d => d.id === id)?.name || 'Unknown', total }))
-      .sort((a, b) => b.total - a.total)
+      .map(([id, v]) => ({ name: drivers.find(d => d.id === id)?.name || 'Unknown', ...v }))
+      .sort((a, b) => b.tripAmount - a.tripAmount)
       .slice(0, 5);
   }, [tripAmounts, drivers]);
 
