@@ -353,14 +353,17 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
                   <TableHead>Reference</TableHead>
                   <TableHead className="text-right">Driver Amount</TableHead>
                   <TableHead className="text-right">Trip Amount</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No transactions</TableCell></TableRow>
-                ) : rows.map((r, i) => {
+                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">No transactions</TableCell></TableRow>
+                ) : (() => { let run = 0; return rows.map((r, i) => {
                   const clickable = r.source === 'trip' && r.tripId;
+                  run += r.driverAmount;
+                  const balance = run;
                   return (
                     <TableRow key={i} className={clickable ? 'hover:bg-muted/50' : ''}>
                       <TableCell>{r.date}</TableCell>
