@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Loading } from '@/components/ui/loading';
-import { RefreshCw, Pencil, Trash2 } from 'lucide-react';
+import { RefreshCw, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -61,6 +61,9 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
   const [editValues, setEditValues] = useState<{ date: string; amount: string; note: string }>({ date: '', amount: '', note: '' });
   const [deleteRow, setDeleteRow] = useState<LedgerRow | null>(null);
   const [busy, setBusy] = useState(false);
+  const [settleOpen, setSettleOpen] = useState(false);
+  const [settleValues, setSettleValues] = useState({ date: new Date().toISOString().slice(0, 10), amount: '', mode: 'Cash', reference: '', notes: '' });
+
 
   const handleSync = async () => {
     setSyncing(true);
@@ -250,6 +253,47 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
     }
   };
 
+  const openSettle = () => {
+    setSettleValues({
+      date: new Date().toISOString().slice(0, 10),
+      amount: totals.pending > 0 ? String(Math.round(totals.pending * 100) / 100) : '',
+      mode: 'Cash',
+      reference: '',
+      notes: 'Pending balance settlement',
+    });
+    setSettleOpen(true);
+  };
+
+  const saveSettle = async () => {
+    if (!selectedId) return;
+    const amt = Number(settleValues.amount);
+    if (!(amt > 0)) {
+      toast({ title: 'Invalid amount', description: 'Enter an amount greater than 0', variant: 'destructive' });
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase.from('driver_payments').insert({
+        driver_id: selectedId,
+        payment_amount: amt,
+        payment_mode: settleValues.mode,
+        reference_number: settleValues.reference || null,
+        payment_date: settleValues.date,
+        notes: settleValues.notes || null,
+        created_by: user?.id,
+      });
+      if (error) throw error;
+      toast({ title: 'Balance settled', description: `₹${amt.toLocaleString('en-IN')} recorded as paid.` });
+      setSettleOpen(false);
+      onChanged?.();
+    } catch (err: any) {
+      toast({ title: 'Settlement failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+
   if (drivers.length === 0) {
     return <p className="text-center text-muted-foreground py-10">Add a driver first to view the ledger.</p>;
   }
@@ -269,10 +313,16 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
           </Select>
         </div>
         {driver && <Badge variant={driver.status === 'active' ? 'default' : 'secondary'} className="capitalize">{driver.status}</Badge>}
-        <Button variant="outline" onClick={handleSync} disabled={syncing}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Syncing...' : 'Sync Ledger'}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleSync} disabled={syncing}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync Ledger'}
+          </Button>
+          <Button onClick={openSettle} disabled={!selectedId}>
+            <CheckCircle2 className="h-4 w-4 mr-2" />
+            Settle Pending
+          </Button>
+        </div>
       </div>
 
       {driver && (
@@ -303,14 +353,17 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
                   <TableHead>Reference</TableHead>
                   <TableHead className="text-right">Driver Amount</TableHead>
                   <TableHead className="text-right">Trip Amount</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No transactions</TableCell></TableRow>
-                ) : rows.map((r, i) => {
+                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">No transactions</TableCell></TableRow>
+                ) : (() => { let run = 0; return rows.map((r, i) => {
                   const clickable = r.source === 'trip' && r.tripId;
+                  run += r.driverAmount;
+                  const balance = run;
                   return (
                     <TableRow key={i} className={clickable ? 'hover:bg-muted/50' : ''}>
                       <TableCell>{r.date}</TableCell>
@@ -328,6 +381,9 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
                       <TableCell className="text-right text-indigo-600">
                         {r.tripAmount > 0 ? fmt(r.tripAmount) : '-'}
                       </TableCell>
+                      <TableCell className={`text-right font-semibold ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {balance < 0 ? '-' : ''}{fmt(balance)}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           {r.source !== 'trip' && (
@@ -342,7 +398,7 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
                       </TableCell>
                     </TableRow>
                   );
-                })}
+                }); })()}
               </TableBody>
             </Table>
           </div>
@@ -435,6 +491,51 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={settleOpen} onOpenChange={o => !o && setSettleOpen(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Settle Pending Balance</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md bg-muted p-3 text-sm">
+              <span className="text-muted-foreground">Pending for {driver?.name}: </span>
+              <span className={`font-bold ${totals.pending > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {totals.pending < 0 ? '-' : ''}{fmt(totals.pending)}
+              </span>
+            </div>
+            <div className="space-y-1">
+              <Label>Payment Date</Label>
+              <Input type="date" value={settleValues.date} onChange={e => setSettleValues(v => ({ ...v, date: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Amount (₹)</Label>
+              <Input type="number" step="0.01" value={settleValues.amount} onChange={e => setSettleValues(v => ({ ...v, amount: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Payment Mode</Label>
+              <Select value={settleValues.mode} onValueChange={val => setSettleValues(v => ({ ...v, mode: val }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['Cash', 'UPI', 'Bank Transfer', 'Cheque'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Reference (optional)</Label>
+              <Input value={settleValues.reference} onChange={e => setSettleValues(v => ({ ...v, reference: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Notes</Label>
+              <Textarea value={settleValues.notes} onChange={e => setSettleValues(v => ({ ...v, notes: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSettleOpen(false)} disabled={busy}>Cancel</Button>
+            <Button onClick={saveSettle} disabled={busy}>{busy ? 'Saving...' : 'Record Payment'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
