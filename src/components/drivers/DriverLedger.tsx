@@ -253,6 +253,47 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
     }
   };
 
+  const openSettle = () => {
+    setSettleValues({
+      date: new Date().toISOString().slice(0, 10),
+      amount: totals.pending > 0 ? String(Math.round(totals.pending * 100) / 100) : '',
+      mode: 'Cash',
+      reference: '',
+      notes: 'Pending balance settlement',
+    });
+    setSettleOpen(true);
+  };
+
+  const saveSettle = async () => {
+    if (!selectedId) return;
+    const amt = Number(settleValues.amount);
+    if (!(amt > 0)) {
+      toast({ title: 'Invalid amount', description: 'Enter an amount greater than 0', variant: 'destructive' });
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase.from('driver_payments').insert({
+        driver_id: selectedId,
+        payment_amount: amt,
+        payment_mode: settleValues.mode,
+        reference_number: settleValues.reference || null,
+        payment_date: settleValues.date,
+        notes: settleValues.notes || null,
+        created_by: user?.id,
+      });
+      if (error) throw error;
+      toast({ title: 'Balance settled', description: `₹${amt.toLocaleString('en-IN')} recorded as paid.` });
+      setSettleOpen(false);
+      onChanged?.();
+    } catch (err: any) {
+      toast({ title: 'Settlement failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+
   if (drivers.length === 0) {
     return <p className="text-center text-muted-foreground py-10">Add a driver first to view the ledger.</p>;
   }
