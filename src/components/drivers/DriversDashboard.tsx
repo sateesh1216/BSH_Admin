@@ -107,8 +107,10 @@ export const DriversDashboard = ({ drivers, tripAmounts, expenses, payments }: P
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" fontSize={11} />
                 <YAxis fontSize={11} />
-                <Tooltip />
-                <Bar dataKey="total" fill="hsl(var(--primary))" />
+                <Tooltip formatter={(v: number) => `₹${Number(v).toLocaleString('en-IN')}`} />
+                <Legend />
+                <Bar dataKey="tripAmount" name="Trip Amount" fill="#6366f1" />
+                <Bar dataKey="driverAmount" name="Driver Amount" fill="hsl(var(--primary))" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
