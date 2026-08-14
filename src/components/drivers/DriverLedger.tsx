@@ -62,7 +62,7 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
   const [deleteRow, setDeleteRow] = useState<LedgerRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [settleOpen, setSettleOpen] = useState(false);
-  const [settleValues, setSettleValues] = useState({ date: new Date().toISOString().slice(0, 10), amount: '', mode: 'Cash', reference: '', notes: '' });
+  const [settleValues, setSettleValues] = useState({ date: new Date().toISOString().slice(0, 10), amount: '', mode: 'cash', reference: '', notes: '' });
 
 
   const handleSync = async () => {
@@ -257,7 +257,7 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
     setSettleValues({
       date: new Date().toISOString().slice(0, 10),
       amount: totals.pending > 0 ? String(Math.round(totals.pending * 100) / 100) : '',
-      mode: 'Cash',
+      mode: 'cash',
       reference: '',
       notes: 'Pending balance settlement',
     });
@@ -517,7 +517,7 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
               <Select value={settleValues.mode} onValueChange={val => setSettleValues(v => ({ ...v, mode: val }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {['Cash', 'UPI', 'Bank Transfer', 'Cheque'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  {[{ v: 'cash', l: 'Cash' }, { v: 'upi', l: 'UPI' }, { v: 'bank', l: 'Bank Transfer' }].map(m => <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
