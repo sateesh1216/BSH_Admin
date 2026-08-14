@@ -62,7 +62,7 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
   const [deleteRow, setDeleteRow] = useState<LedgerRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [settleOpen, setSettleOpen] = useState(false);
-  const [settleValues, setSettleValues] = useState({ date: new Date().toISOString().slice(0, 10), amount: '', mode: 'Cash', reference: '', notes: '' });
+  const [settleValues, setSettleValues] = useState({ date: new Date().toISOString().slice(0, 10), amount: '', mode: 'cash', reference: '', notes: '' });
 
 
   const handleSync = async () => {
