@@ -360,6 +360,10 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
             <CheckCircle2 className="h-4 w-4 mr-2" />
             Settle Pending
           </Button>
+          <Button variant="secondary" onClick={() => setSettleAllOpen(true)} disabled={allPending.length === 0 || busy}>
+            <CheckCircle2 className="h-4 w-4 mr-2" />
+            Settle All ({allPending.length})
+          </Button>
         </div>
       </div>
 
