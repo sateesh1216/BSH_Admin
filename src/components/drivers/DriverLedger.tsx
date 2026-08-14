@@ -294,6 +294,43 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
   };
 
 
+  const allPending = useMemo(() => {
+    return drivers.map(d => {
+      const t = tripAmounts.filter(x => x.driver_id === d.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      const e = expenses.filter(x => x.driver_id === d.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      const p = payments.filter(x => x.driver_id === d.id).reduce((s, x) => s + (Number(x.payment_amount) || 0), 0);
+      return { driver: d, pending: Math.round((t - e - p) * 100) / 100 };
+    }).filter(x => x.pending > 0);
+  }, [drivers, tripAmounts, expenses, payments]);
+
+  const settleAllTotal = allPending.reduce((s, x) => s + x.pending, 0);
+
+  const settleAll = async () => {
+    if (allPending.length === 0) return;
+    setBusy(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const { error } = await supabase.from('driver_payments').insert(
+        allPending.map(x => ({
+          driver_id: x.driver.id,
+          payment_amount: x.pending,
+          payment_mode: 'cash',
+          payment_date: today,
+          notes: 'Bulk pending balance settlement',
+          created_by: user?.id,
+        }))
+      );
+      if (error) throw error;
+      toast({ title: 'All balances settled', description: `${allPending.length} driver(s), ₹${settleAllTotal.toLocaleString('en-IN')} recorded.` });
+      setSettleAllOpen(false);
+      onChanged?.();
+    } catch (err: any) {
+      toast({ title: 'Settlement failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (drivers.length === 0) {
     return <p className="text-center text-muted-foreground py-10">Add a driver first to view the ledger.</p>;
   }
