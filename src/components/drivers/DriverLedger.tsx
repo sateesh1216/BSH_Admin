@@ -517,7 +517,7 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
               <Select value={settleValues.mode} onValueChange={val => setSettleValues(v => ({ ...v, mode: val }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {['Cash', 'UPI', 'Bank Transfer', 'Cheque'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  {[{ v: 'cash', l: 'Cash' }, { v: 'upi', l: 'UPI' }, { v: 'bank', l: 'Bank Transfer' }].map(m => <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
