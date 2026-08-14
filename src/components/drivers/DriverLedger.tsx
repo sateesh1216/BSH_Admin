@@ -62,6 +62,7 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
   const [deleteRow, setDeleteRow] = useState<LedgerRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [settleOpen, setSettleOpen] = useState(false);
+  const [settleAllOpen, setSettleAllOpen] = useState(false);
   const [settleValues, setSettleValues] = useState({ date: new Date().toISOString().slice(0, 10), amount: '', mode: 'cash', reference: '', notes: '' });
 
 
@@ -294,6 +295,43 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
   };
 
 
+  const allPending = useMemo(() => {
+    return drivers.map(d => {
+      const t = tripAmounts.filter(x => x.driver_id === d.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      const e = expenses.filter(x => x.driver_id === d.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      const p = payments.filter(x => x.driver_id === d.id).reduce((s, x) => s + (Number(x.payment_amount) || 0), 0);
+      return { driver: d, pending: Math.round((t - e - p) * 100) / 100 };
+    }).filter(x => x.pending > 0);
+  }, [drivers, tripAmounts, expenses, payments]);
+
+  const settleAllTotal = allPending.reduce((s, x) => s + x.pending, 0);
+
+  const settleAll = async () => {
+    if (allPending.length === 0) return;
+    setBusy(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const { error } = await supabase.from('driver_payments').insert(
+        allPending.map(x => ({
+          driver_id: x.driver.id,
+          payment_amount: x.pending,
+          payment_mode: 'cash',
+          payment_date: today,
+          notes: 'Bulk pending balance settlement',
+          created_by: user?.id,
+        }))
+      );
+      if (error) throw error;
+      toast({ title: 'All balances settled', description: `${allPending.length} driver(s), ₹${settleAllTotal.toLocaleString('en-IN')} recorded.` });
+      setSettleAllOpen(false);
+      onChanged?.();
+    } catch (err: any) {
+      toast({ title: 'Settlement failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (drivers.length === 0) {
     return <p className="text-center text-muted-foreground py-10">Add a driver first to view the ledger.</p>;
   }
@@ -321,6 +359,10 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
           <Button onClick={openSettle} disabled={!selectedId}>
             <CheckCircle2 className="h-4 w-4 mr-2" />
             Settle Pending
+          </Button>
+          <Button variant="secondary" onClick={() => setSettleAllOpen(true)} disabled={allPending.length === 0 || busy}>
+            <CheckCircle2 className="h-4 w-4 mr-2" />
+            Settle All ({allPending.length})
           </Button>
         </div>
       </div>
@@ -536,6 +578,29 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={settleAllOpen} onOpenChange={o => !o && setSettleAllOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Settle all pending balances?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This records a cash payment (dated today) for {allPending.length} driver(s), totalling {fmt(settleAllTotal)}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="max-h-56 overflow-y-auto text-sm space-y-1">
+            {allPending.map(x => (
+              <div key={x.driver.id} className="flex justify-between border-b pb-1">
+                <span>{x.driver.name}</span>
+                <span className="font-medium text-red-600">{fmt(x.pending)}</span>
+              </div>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={settleAll} disabled={busy}>{busy ? 'Settling...' : 'Settle All'}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
