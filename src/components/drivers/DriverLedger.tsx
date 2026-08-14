@@ -257,7 +257,7 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
     setSettleValues({
       date: new Date().toISOString().slice(0, 10),
       amount: totals.pending > 0 ? String(Math.round(totals.pending * 100) / 100) : '',
-      mode: 'Cash',
+      mode: 'cash',
       reference: '',
       notes: 'Pending balance settlement',
     });
