@@ -578,6 +578,29 @@ export const DriverLedger = ({ drivers, tripAmounts, expenses, payments, onChang
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={settleAllOpen} onOpenChange={o => !o && setSettleAllOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Settle all pending balances?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This records a cash payment (dated today) for {allPending.length} driver(s), totalling {fmt(settleAllTotal)}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="max-h-56 overflow-y-auto text-sm space-y-1">
+            {allPending.map(x => (
+              <div key={x.driver.id} className="flex justify-between border-b pb-1">
+                <span>{x.driver.name}</span>
+                <span className="font-medium text-red-600">{fmt(x.pending)}</span>
+              </div>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={settleAll} disabled={busy}>{busy ? 'Settling...' : 'Settle All'}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
