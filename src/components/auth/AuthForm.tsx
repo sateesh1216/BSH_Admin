@@ -226,6 +226,22 @@ export const AuthForm = () => {
           </Dialog>
         </CardContent>
       </Card>
+
+      <footer className="text-center text-xs text-muted-foreground space-y-1">
+        <p>
+          Looking for a reliable{' '}
+          <a
+            href="https://www.bshtaxiservices.com/"
+            className="text-primary font-medium hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            taxi in Vizag
+          </a>
+          ? Book with BSH Taxi Services.
+        </p>
+        <p>© {new Date().getFullYear()} BSH Taxi Services · Palanati Colony, Kancharapalem, Visakhapatnam</p>
+      </footer>
     </div>
   );
 };
