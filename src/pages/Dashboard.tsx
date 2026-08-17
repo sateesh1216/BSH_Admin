@@ -635,6 +635,28 @@ export const Dashboard = () => {
             <div className="bg-card rounded-xl border border-border shadow-sm p-4 lg:p-6">
               {renderContent()}
             </div>
+
+            {/* Backlink footer */}
+            <footer className="text-center text-[11px] text-muted-foreground py-2">
+              Powered by{' '}
+              <a
+                href="https://www.bshtaxiservices.com/"
+                className="text-primary font-medium hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                BSH Taxi Services
+              </a>
+              {' · '}
+              <a
+                href="https://www.bshtaxiservices.com/"
+                className="text-primary font-medium hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                taxi in Vizag
+              </a>
+            </footer>
           </div>
         </main>
       </div>
