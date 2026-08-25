@@ -229,9 +229,9 @@ export const PhoneAuthForm = ({ onBackToEmail }: PhoneAuthFormProps) => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="driver1">Driver 1</SelectItem>
-                        <SelectItem value="driver2">Driver 2</SelectItem>
-                        <SelectItem value="driver3">Driver 3</SelectItem>
+                        <SelectItem value="driver1">User 1</SelectItem>
+                        <SelectItem value="driver2">User 2</SelectItem>
+                        <SelectItem value="driver3">User 3</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

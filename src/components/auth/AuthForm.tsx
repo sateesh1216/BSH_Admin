@@ -103,7 +103,7 @@ export const AuthForm = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-8 bg-gradient-to-br from-primary/5 to-accent/5 p-4">
       <Card className="w-full max-w-md shadow-xl border-primary/20">
         <CardHeader className="text-center">
          <div className="flex items-center justify-center gap-2 mb-2">
@@ -227,7 +227,7 @@ export const AuthForm = () => {
         </CardContent>
       </Card>
 
-      <footer className="text-center text-xs text-muted-foreground space-y-1">
+      <footer className="mt-auto w-full text-center text-xs text-muted-foreground space-y-1">
         <p>
           Looking for a reliable{' '}
           <a
