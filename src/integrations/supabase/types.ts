@@ -822,6 +822,69 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicles: {
+        Row: {
+          chassis_number: string | null
+          colour: string | null
+          created_at: string
+          created_by: string | null
+          engine_number: string | null
+          fuel_type: string | null
+          id: string
+          make: string | null
+          model: string | null
+          notes: string | null
+          owner_name: string | null
+          purchase_date: string | null
+          registration_date: string | null
+          seating_capacity: number | null
+          status: string
+          updated_at: string
+          vehicle_number: string
+          year: number | null
+        }
+        Insert: {
+          chassis_number?: string | null
+          colour?: string | null
+          created_at?: string
+          created_by?: string | null
+          engine_number?: string | null
+          fuel_type?: string | null
+          id?: string
+          make?: string | null
+          model?: string | null
+          notes?: string | null
+          owner_name?: string | null
+          purchase_date?: string | null
+          registration_date?: string | null
+          seating_capacity?: number | null
+          status?: string
+          updated_at?: string
+          vehicle_number: string
+          year?: number | null
+        }
+        Update: {
+          chassis_number?: string | null
+          colour?: string | null
+          created_at?: string
+          created_by?: string | null
+          engine_number?: string | null
+          fuel_type?: string | null
+          id?: string
+          make?: string | null
+          model?: string | null
+          notes?: string | null
+          owner_name?: string | null
+          purchase_date?: string | null
+          registration_date?: string | null
+          seating_capacity?: number | null
+          status?: string
+          updated_at?: string
+          vehicle_number?: string
+          year?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       maintenance_secure: {
