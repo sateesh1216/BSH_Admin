@@ -14,6 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { VehiclesMaster } from '@/components/vehicle-history/VehiclesMaster';
 
 interface Maintenance {
   id: string;
@@ -722,6 +723,7 @@ export const VehicleHistoryDashboard = ({ maintenance }: VehicleHistoryDashboard
 
         {/* Vehicles Sub-Tab */}
         <TabsContent value="vehicles">
+          <VehiclesMaster />
           <h2 className="text-lg font-semibold text-primary flex items-center gap-2 mb-4">
             <Car className="h-5 w-5" />
             Vehicle History ({vehicleSummaries.length} vehicles)

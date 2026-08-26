@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { detectEmailTypo } from '@/utils/emailValidation';
+import { UserDataViewer } from '@/components/admin/UserDataViewer';
 
 const createUserSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -265,11 +266,18 @@ export const UsersList = ({ searchTerm = '' }: UsersListProps) => {
     }
   };
 
+  const roleLabel = (role: string | null) => {
+    if (!role) return 'User';
+    if (role === 'admin') return 'Admin';
+    const match = role.match(/^driver(\d)$/);
+    return match ? `User ${match[1]}` : role;
+  };
+
   const getRoleBadge = (role: string | null) => {
     if (role === 'admin') {
-      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30"><Shield className="h-3 w-3 mr-1" />admin</Badge>;
+      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30"><Shield className="h-3 w-3 mr-1" />Admin</Badge>;
     }
-    return <Badge variant="outline">{role || 'user'}</Badge>;
+    return <Badge variant="outline">{roleLabel(role)}</Badge>;
   };
 
   return (
@@ -506,20 +514,20 @@ export const UsersList = ({ searchTerm = '' }: UsersListProps) => {
 
       {/* View User Dialog */}
       <Dialog open={!!viewingUser} onOpenChange={(open) => !open && setViewingUser(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>User Details</DialogTitle>
           </DialogHeader>
           {viewingUser && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Full Name</Label>
                   <p className="font-semibold">{viewingUser.full_name || 'Not set'}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Email</Label>
-                  <p className="font-semibold">{viewingUser.username}</p>
+                  <p className="font-semibold break-all">{viewingUser.username}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Role</Label>
@@ -542,6 +550,11 @@ export const UsersList = ({ searchTerm = '' }: UsersListProps) => {
                   <p className="font-semibold">{viewingUser.created_at ? format(new Date(viewingUser.created_at), 'MMM d, yyyy') : 'Unknown'}</p>
                 </div>
               </div>
+
+              <UserDataViewer
+                userId={viewingUser.id}
+                userLabel={viewingUser.full_name || viewingUser.username}
+              />
             </div>
           )}
         </DialogContent>
