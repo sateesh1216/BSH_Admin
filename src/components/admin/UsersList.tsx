@@ -266,11 +266,18 @@ export const UsersList = ({ searchTerm = '' }: UsersListProps) => {
     }
   };
 
+  const roleLabel = (role: string | null) => {
+    if (!role) return 'User';
+    if (role === 'admin') return 'Admin';
+    const match = role.match(/^driver(\d)$/);
+    return match ? `User ${match[1]}` : role;
+  };
+
   const getRoleBadge = (role: string | null) => {
     if (role === 'admin') {
-      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30"><Shield className="h-3 w-3 mr-1" />admin</Badge>;
+      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30"><Shield className="h-3 w-3 mr-1" />Admin</Badge>;
     }
-    return <Badge variant="outline">{role || 'user'}</Badge>;
+    return <Badge variant="outline">{roleLabel(role)}</Badge>;
   };
 
   return (
