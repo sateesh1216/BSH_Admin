@@ -506,20 +506,20 @@ export const UsersList = ({ searchTerm = '' }: UsersListProps) => {
 
       {/* View User Dialog */}
       <Dialog open={!!viewingUser} onOpenChange={(open) => !open && setViewingUser(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>User Details</DialogTitle>
           </DialogHeader>
           {viewingUser && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Full Name</Label>
                   <p className="font-semibold">{viewingUser.full_name || 'Not set'}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Email</Label>
-                  <p className="font-semibold">{viewingUser.username}</p>
+                  <p className="font-semibold break-all">{viewingUser.username}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Role</Label>
@@ -542,6 +542,11 @@ export const UsersList = ({ searchTerm = '' }: UsersListProps) => {
                   <p className="font-semibold">{viewingUser.created_at ? format(new Date(viewingUser.created_at), 'MMM d, yyyy') : 'Unknown'}</p>
                 </div>
               </div>
+
+              <UserDataViewer
+                userId={viewingUser.id}
+                userLabel={viewingUser.full_name || viewingUser.username}
+              />
             </div>
           )}
         </DialogContent>
