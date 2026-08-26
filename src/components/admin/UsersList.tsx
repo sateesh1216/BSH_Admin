@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { detectEmailTypo } from '@/utils/emailValidation';
+import { UserDataViewer } from '@/components/admin/UserDataViewer';
 
 const createUserSchema = z.object({
   email: z.string().email('Invalid email address'),
