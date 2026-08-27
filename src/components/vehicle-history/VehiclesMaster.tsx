@@ -99,7 +99,7 @@ export const VehiclesMaster = ({ onChanged }: { onChanged?: (v: VehicleRecord[])
       return;
     }
     setSaving(true);
-    const payload: Record<string, unknown> = {
+    const payload = {
       vehicle_number: number,
       make: form.make.trim() || null,
       model: form.model.trim() || null,
