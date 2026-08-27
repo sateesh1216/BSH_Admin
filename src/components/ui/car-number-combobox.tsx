@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CarNumberComboboxProps {
   value: string;
@@ -24,6 +25,7 @@ interface CarNumberComboboxProps {
 }
 
 export function CarNumberCombobox({ value, onValueChange }: CarNumberComboboxProps) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [carNumbers, setCarNumbers] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState('');
