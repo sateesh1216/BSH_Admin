@@ -113,7 +113,7 @@ export const UserDataViewer = ({ userId, userLabel }: Props) => {
         payload[k] = v === '' ? null : v;
       }
     });
-    const { error } = await supabase.from(editing.table).update(payload).eq('id', editing.row.id);
+    const { error } = await (supabase.from(editing.table) as any).update(payload).eq('id', editing.row.id);
     setSaving(false);
     if (error) {
       toast({ title: 'Update failed', description: error.message, variant: 'destructive' });
