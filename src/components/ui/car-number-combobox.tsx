@@ -62,11 +62,11 @@ export function CarNumberCombobox({ value, onValueChange }: CarNumberComboboxPro
     }
 
     setIsLoading(true);
-    
+
     const { error } = await supabase
       .from('car_numbers')
-      .insert([{ car_number: upperCarNumber }]);
-    
+      .insert([{ car_number: upperCarNumber, created_by: user?.id }]);
+
     if (error) {
       if (error.code === '23505') {
         // Duplicate - just select it
@@ -74,7 +74,7 @@ export function CarNumberCombobox({ value, onValueChange }: CarNumberComboboxPro
       } else {
         toast({
           title: 'Error',
-          description: 'Failed to save car number',
+          description: error.message || 'Failed to save car number',
           variant: 'destructive',
         });
       }
